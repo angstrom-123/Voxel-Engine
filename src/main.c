@@ -4,15 +4,25 @@
 #include "sokol_app.h"
 #include "sokol_glue.h"
 
-#include "math/extra_math.h"
+#include "camera.h"
 
-#include "shaders/triangle.glsl.h"
 #include "shaders/cube.glsl.h"
 
 struct cube_bufs {
 	float vertices[168];
 	uint16_t indices[36];
 };
+
+static struct {
+	camera_t cam;
+	sg_pipeline pip;
+	sg_bindings bind;
+	sg_pass_action pass_action;
+
+	bool key_down[SAPP_KEYCODE_MENU + 1];
+	float mouse_dx;
+	float mouse_dy;
+} state;
 
 static struct cube_bufs _get_cube_bufs(void)
 {
@@ -59,12 +69,6 @@ static struct cube_bufs _get_cube_bufs(void)
 	};
 }
 
-static struct {
-	sg_pipeline pip;
-	sg_bindings bind;
-	sg_pass_action pass_action;
-} state;
-
 static void init(void)
 {
 	sg_setup(&(sg_desc) {
@@ -91,7 +95,7 @@ static void init(void)
 			.buffers[0].stride = 28,
 			.attrs = {
 				[ATTR_cube_cube_position].format = SG_VERTEXFORMAT_FLOAT3,
-				[ATTR_cube_cube_color0].format = SG_VERTEXFORMAT_FLOAT4
+				[ATTR_cube_cube_color0].format 	 = SG_VERTEXFORMAT_FLOAT4
 			}
 		},
 		.shader = shdr,
@@ -115,13 +119,32 @@ static void init(void)
 			.clear_value = {0.25, 0.5, 0.75, 1.0}
 		}
 	};
+
+	state.cam = cam_setup(&(camera_desc_t) {
+		.near_dist = 0.1,
+		.far_dist = 100.0,
+		.aspect = (sapp_widthf() / sapp_heightf()),
+		.fov = 60.0,
+		.turn_sens = 0.04,
+		.move_sens = 0.2,
+		.rotation = {.x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0},
+		.position = {.x = 0.0, .y = 1.5, .z = 6.0},
+	});
 }
 
 static void frame(void)
 {
-	const float w = sapp_width();
-	const float h = sapp_height();
-	const float t = (float) (sapp_frame_duration() * 60);
+	// update camera position / rotation
+	cam_handle_mouse(&state.cam, state.mouse_dx, state.mouse_dy);
+	cam_handle_keyboard(&state.cam, state.key_down);
+	cam_update(&state.cam);
+
+	state.mouse_dx = 0.0;
+	state.mouse_dy = 0.0;
+
+	cube_vs_params_t vs_params;
+	em_mat4 model = em_new_mat4_diagonal(1.0);
+	vs_params.mvp = em_mul_mat4(state.cam.view_proj, model);
 
 	sg_begin_pass(&(sg_pass) {
 		.action = state.pass_action,
@@ -129,6 +152,7 @@ static void frame(void)
 	});
 	sg_apply_pipeline(state.pip);
 	sg_apply_bindings(&state.bind);
+	sg_apply_uniforms(UB_cube_vs_params, &SG_RANGE(vs_params));
 	sg_draw(0, 36, 1);
 	sg_end_pass();
 	sg_commit();
@@ -139,9 +163,27 @@ static void cleanup(void)
 	sg_shutdown();
 }
 
-static void event(const sapp_event* event)
+static void event(const sapp_event *event)
 {
-	(void) event;
+	// mouse deltas are updated on every event type
+	state.mouse_dx += event->mouse_dx;
+	state.mouse_dy += event->mouse_dy;
+
+	switch (event->type) {
+	case SAPP_EVENTTYPE_KEY_DOWN:
+		if (event->key_code == SAPP_KEYCODE_SPACE)
+			sapp_lock_mouse(false);
+		state.key_down[event->key_code] = true;
+		break;
+	case SAPP_EVENTTYPE_KEY_UP:
+		state.key_down[event->key_code] = false;
+		break;
+	case SAPP_EVENTTYPE_MOUSE_DOWN:
+		sapp_lock_mouse(true);
+		break;
+	default:
+		break;
+	}
 }
 
 sapp_desc sokol_main(int argc, char* argv[])
@@ -156,7 +198,8 @@ sapp_desc sokol_main(int argc, char* argv[])
 		.event_cb = event,
 		.width = 1280,
 		.height = 720,
+		.sample_count = 4,
 		.window_title = "Minecraft Remake",
-		.icon.sokol_default = true,
+		.icon.sokol_default = true
 	};
 }
