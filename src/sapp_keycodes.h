@@ -1,3 +1,15 @@
+#ifndef SAPP_KEYCODES_H
+#define SAPP_KEYCODES_H
+
+/*
+ * This header file is a copy of the sapp_keycode enum from sokol_app.h because 
+ * I couldn't think of a better way to access those constants without re-including 
+ * sokol_app.h for a second time (as this breaks a bunch of stuff)
+ *
+ * This is for use in camera.c / camera.h for receiving inputs from the sokol 
+ * event callback in main.c
+ */
+
 typedef enum _sapp_keycode {
     _SAPP_KEYCODE_INVALID          = 0,
     _SAPP_KEYCODE_SPACE            = 32,
@@ -121,3 +133,5 @@ typedef enum _sapp_keycode {
     _SAPP_KEYCODE_RIGHT_SUPER      = 347,
     _SAPP_KEYCODE_MENU             = 348,
 } _sapp_keycode;
+
+#endif

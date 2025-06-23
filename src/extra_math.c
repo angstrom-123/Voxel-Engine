@@ -1,15 +1,5 @@
 #include "extra_math.h"
 
-void em_debug_print_mat4(em_mat4 matrix)
-{
-	for (size_t i = 0; i < 4; i++)
-	{
-		printf("%f %f %f %f\n", 
-			   matrix.elements[i][0], matrix.elements[i][1], 
-			   matrix.elements[i][2], matrix.elements[i][3]);
-	}
-}
-
 em_vec2 em_new_vec2(float x, float y) 
 {
 	return (em_vec2) {
@@ -537,17 +527,17 @@ em_mat4 em_quaternion_to_mat4(em_quaternion a)
 	float wy = norm_quat.w * norm_quat.y;
 	float wz = norm_quat.w * norm_quat.z;
 
-	res.elements[0][0] = 1.0 - (2.0 * (yy + zz));
-	res.elements[0][1] = 2.0 * (xy + wz);
-	res.elements[0][2] = 2.0 * (xz - wy);
+	res.elements[0][0] = 1.0 - (2.0 * yy) - (2.0 * zz);
+	res.elements[0][1] = (2.0 * xy) + (2.0 * wz);
+	res.elements[0][2] = (2.0 * xz) - (2.0 * wy);
 
-	res.elements[1][0] = 2.0 * (xy - wz);
-	res.elements[1][1] = 1.0 - (2.0 * (xx + zz));
-	res.elements[1][2] = 2.0 * (yz + wx);
+	res.elements[1][0] = (2.0 * xy) - (2.0 * wz);
+	res.elements[1][1] = 1.0 - (2.0 * xx) - (2.0 * zz);
+	res.elements[1][2] = (2.0 * yz) + (2.0 * wx);
 
-	res.elements[2][0] = 2.0 * (xz + wy);
-	res.elements[2][1] = 2.0 * (yz - wx);
-	res.elements[2][2] = 1.0 - (2.0 * (xx + yy));
+	res.elements[2][0] = (2.0 * xz) + (2.0 * wy);
+	res.elements[2][1] = (2.0 * yz) - (2.0 * wx);
+	res.elements[2][2] = 1.0 - (2.0 * xx) - (2.0 * yy);
 
 	return res;
 }

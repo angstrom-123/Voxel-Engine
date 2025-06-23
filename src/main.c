@@ -165,18 +165,18 @@ static void cleanup(void)
 
 static void event(const sapp_event *event)
 {
-	// mouse deltas are updated on every event type
-	state.mouse_dx += event->mouse_dx;
-	state.mouse_dy += event->mouse_dy;
-
 	switch (event->type) {
-	case SAPP_EVENTTYPE_KEY_DOWN:
-		if (event->key_code == SAPP_KEYCODE_SPACE)
-			sapp_lock_mouse(false);
-		state.key_down[event->key_code] = true;
-		break;
 	case SAPP_EVENTTYPE_KEY_UP:
 		state.key_down[event->key_code] = false;
+		break;
+	case SAPP_EVENTTYPE_KEY_DOWN:
+		state.key_down[event->key_code] = true;
+		if (event->key_code == SAPP_KEYCODE_CAPS_LOCK)
+			sapp_lock_mouse(false);
+		break;
+	case SAPP_EVENTTYPE_MOUSE_MOVE:
+		state.mouse_dx += event->mouse_dx;
+		state.mouse_dy += event->mouse_dy;
 		break;
 	case SAPP_EVENTTYPE_MOUSE_DOWN:
 		sapp_lock_mouse(true);

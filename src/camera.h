@@ -4,20 +4,11 @@
 #include "extra_math.h"
 #include "sapp_keycodes.h"
 #include <stdbool.h>
+#include <stdio.h>
 
 #define MAX_PITCH 89.0
 #define WORLD_X (em_vec3) {.x = 1.0, .y = 0.0, .z = 0.0}
 #define WORLD_Y (em_vec3) {.x = 0.0, .y = 1.0, .z = 0.0}
-
-typedef struct camera_sapp_interface {
-	uint16_t k;
-	uint16_t v;
-} camera_sapp_interface_t;
-
-typedef struct camera_keymap {
-	size_t mapping_count;
-	camera_sapp_interface_t *mapping;
-} camera_keymap_t;
 
 typedef struct camera_desc {
 	float near_dist;
@@ -38,7 +29,7 @@ typedef struct camera {
 	float fov;						// field of view (degrees)
 	float turn_sens;				// turn speed multiplier
 	float move_sens;				// movement speed multiplier
-	// state
+	// transform
 	float pitch;					// current pitch (up / down) angle (degrees)
 	float yaw;						// current yaw (left / right) angle (degrees)
 	em_quaternion rotation;			// current rotation

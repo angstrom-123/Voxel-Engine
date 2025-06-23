@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "src/extra_math.h"
 
 static em_vec3 _get_forward(em_quaternion camera_rotation)
 {
@@ -31,27 +32,51 @@ void cam_handle_mouse(camera_t *cam, float mouse_dx, float mouse_dy)
 	em_quaternion pitch_q = em_quaternion_from_axis_angle(right, cam->pitch);
 
 	// apply quaternions
-	cam->rotation = em_mul_quaternion(pitch_q, yaw_q);
-	cam->rotation = em_normalize_quaternion(cam->rotation);
+	cam->rotation = em_normalize_quaternion(em_mul_quaternion(pitch_q, yaw_q));
+
+	// recalculate basis vectors
+	cam->forward = _get_forward(cam->rotation);
+	cam->right = _get_right(cam->rotation);
+	cam->up = _get_up(cam->rotation);
+
+	// recalculate view matrix
+	em_mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(cam->rotation));
+	em_mat4 trans = em_translate_mat4(em_mul_vec3_f(cam->position, -1.0));
+	cam->view = em_mul_mat4(rot, trans);
 }
 
 void cam_handle_keyboard(camera_t *cam, bool *key_down)
 {
 	// movement
 	em_vec3 move = {0};
-	if (key_down[_SAPP_KEYCODE_W]) move = em_add_vec3(move, cam->forward);
-	if (key_down[_SAPP_KEYCODE_S]) move = em_sub_vec3(move, cam->forward);
-	if (key_down[_SAPP_KEYCODE_D]) move = em_add_vec3(move, cam->right);
-	if (key_down[_SAPP_KEYCODE_A]) move = em_sub_vec3(move, cam->right);
-	move = em_mul_vec3_f(em_normalize_vec3(move), cam->move_sens);
 
-	move.y = 0.0; // TODO: implement more advanced movement, this is a quick fix
+	em_vec3 forward = cam->forward;
+	em_vec3 right = cam->right;
 
-	cam->position = em_add_vec3(cam->position, move);
+	forward.y = 0.0;
+	right.y = 0.0;
+
+	forward = em_normalize_vec3(forward);
+	right = em_normalize_vec3(right);
+
+	if (key_down[_SAPP_KEYCODE_W]) 			  move = em_add_vec3(move, forward);
+	if (key_down[_SAPP_KEYCODE_S]) 			  move = em_sub_vec3(move, forward);
+	if (key_down[_SAPP_KEYCODE_D]) 			  move = em_add_vec3(move, right);
+	if (key_down[_SAPP_KEYCODE_A]) 			  move = em_sub_vec3(move, right);
+	if (key_down[_SAPP_KEYCODE_SPACE]) 		  move = em_add_vec3(move, WORLD_Y);
+	if (key_down[_SAPP_KEYCODE_LEFT_CONTROL]) move = em_sub_vec3(move, WORLD_Y);
+
+	if (em_length_squared_vec3(move) > 0.0)
+	{
+		move = em_mul_vec3_f(move, cam->move_sens);
+		cam->position = em_add_vec3(cam->position, move);
+	}
 }
 
 camera_t cam_setup(const camera_desc_t *desc) 
 {
+	em_mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(desc->rotation));
+	em_mat4 trans = em_translate_mat4(em_mul_vec3_f(desc->position, -1.0));
 	camera_t cam = {
 		.near_dist   = desc->near_dist,
 		.far_dist    = desc->far_dist,
@@ -59,8 +84,10 @@ camera_t cam_setup(const camera_desc_t *desc)
 		.fov 	     = desc->fov,
 		.turn_sens   = desc->turn_sens,
 		.move_sens   = desc->move_sens,
-		.rotation    = desc->rotation,
+		.rotation    = em_normalize_quaternion(desc->rotation),
 		.position    = desc->position,
+		.view 		 = em_mul_mat4(rot, trans),
+		.proj 		 = em_perspective(desc->fov, desc->aspect, desc->near_dist, desc->far_dist)
 	};
 
 	cam_update(&cam);
@@ -70,12 +97,7 @@ camera_t cam_setup(const camera_desc_t *desc)
 void cam_update(camera_t *cam)
 {
 	// recalculate basis vectors
-	cam->forward = _get_forward(cam->rotation);
-	cam->right = _get_right(cam->rotation);
-	cam->up = _get_up(cam->rotation);
+	printf("y: %f p: %f\n", cam->yaw, cam->pitch);
 
-	// recalculate matrices
-	cam->proj = em_perspective(cam->fov, cam->aspect, cam->near_dist, cam->far_dist);
-	cam->view = em_look_at(cam->position, em_add_vec3(cam->position, cam->forward), cam->up);
 	cam->view_proj = em_mul_mat4(cam->proj, cam->view);
 }

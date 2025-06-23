@@ -3,8 +3,6 @@
 
 #include <math.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
 
 #define em_PI acosf(-1.0)
 #define em_deg_to_rad(t) (t * (em_PI / 180.0))
@@ -44,8 +42,6 @@ typedef em_vec4 em_quaternion;
 typedef struct em_mat4 {
 	float elements[4][4];
 } em_mat4;
-
-extern void em_debug_print_mat4(em_mat4 matrix);
 
 extern em_vec2 em_new_vec2(float x, float y);
 extern em_vec3 em_new_vec3(float x, float y, float z);
