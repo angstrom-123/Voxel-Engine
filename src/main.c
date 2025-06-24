@@ -4,14 +4,25 @@
 #include "sokol_app.h"
 #include "sokol_glue.h"
 
+#include "bmp.h"
 #include "camera.h"
 
 #include "shaders/cube.glsl.h"
+#include "shaders/tex_cube.glsl.h"
 
 struct cube_bufs {
 	float vertices[168];
 	uint16_t indices[36];
 };
+
+typedef struct vertex {
+	float x;
+	float y;
+	float z;
+
+	int16_t u;
+	int16_t v;
+} vertex_t;
 
 static struct {
 	camera_t cam;
@@ -77,40 +88,96 @@ static void init(void)
 
 	struct cube_bufs cube_bufs = _get_cube_bufs();
 
-	sg_buffer v_buf = sg_make_buffer(&(sg_buffer_desc) {
-		.data = SG_RANGE(cube_bufs.vertices),
-		.label = "cube-vertices"
-	});
-
-	sg_buffer i_buf = sg_make_buffer(&(sg_buffer_desc) {
-		.usage.index_buffer = true,
-		.data = SG_RANGE(cube_bufs.indices),
-		.label = "cube-indices"
-	});
-
-	sg_shader shdr = sg_make_shader(cube_cube_shader_desc(sg_query_backend()));
+	// sg_shader shdr = sg_make_shader(cube_cube_shader_desc(sg_query_backend()));
+	sg_shader shdr = sg_make_shader(tex_cube_tex_cube_shader_desc(sg_query_backend()));
 
 	state.pip = sg_make_pipeline(&(sg_pipeline_desc) {
+		.shader = shdr,
 		.layout = {
-			.buffers[0].stride = 28,
 			.attrs = {
-				[ATTR_cube_cube_position].format = SG_VERTEXFORMAT_FLOAT3,
-				[ATTR_cube_cube_color0].format 	 = SG_VERTEXFORMAT_FLOAT4
+				[ATTR_tex_cube_tex_cube_position].format = SG_VERTEXFORMAT_FLOAT3,
+				[ATTR_tex_cube_tex_cube_texcoord0].format = SG_VERTEXFORMAT_SHORT2N
 			}
 		},
-		.shader = shdr,
 		.index_type = SG_INDEXTYPE_UINT16,
 		.cull_mode = SG_CULLMODE_BACK,
 		.depth = {
-			.write_enabled = true,
-			.compare = SG_COMPAREFUNC_LESS_EQUAL
+			.compare = SG_COMPAREFUNC_LESS_EQUAL,
+			.write_enabled = true
 		},
-		.label = "cube-pipeline"
+		.label = "tex-cube-pipeline"
 	});
 
+	// state.pip = sg_make_pipeline(&(sg_pipeline_desc) {
+	// 	.layout = {
+	// 		.buffers[0].stride = 28,
+	// 		.attrs = {
+	// 			[ATTR_cube_cube_position].format = SG_VERTEXFORMAT_FLOAT3,
+	// 			[ATTR_cube_cube_color0].format = SG_VERTEXFORMAT_FLOAT4
+	// 		}
+	// 	},
+	// 	.shader = shdr,
+	// 	.index_type = SG_INDEXTYPE_UINT16,
+	// 	.cull_mode = SG_CULLMODE_BACK,
+	// 	.depth = {
+	// 		.write_enabled = true,
+	// 		.compare = SG_COMPAREFUNC_LESS_EQUAL
+	// 	},
+	// 	.label = "cube-pipeline"
+	// });
+
+	const vertex_t vertices[] = {
+		// pos 				// uv
+		{-1.0, -1.0, -1.0, 	0	 , 0	},
+		{ 1.0, -1.0, -1.0,  32767, 0	},
+		{ 1.0,  1.0, -1.0,  32767, 32767},
+		{-1.0,  1.0, -1.0,  0	 , 32767},
+
+		{-1.0, -1.0,  1.0,  0	 , 0	},
+		{ 1.0, -1.0,  1.0,  32767, 0	},
+		{ 1.0,  1.0,  1.0,  32767, 32767},
+		{-1.0,  1.0,  1.0,  0	 , 32767},
+
+		{-1.0, -1.0, -1.0,  0	 , 0	},
+		{-1.0,  1.0, -1.0,  32767, 0	},
+		{-1.0,  1.0,  1.0,  32767, 32767},
+		{-1.0, -1.0,  1.0,  0	 , 32767},
+
+		{ 1.0, -1.0, -1.0,  0	 , 0	},
+		{ 1.0,  1.0, -1.0,  32767, 0	},
+		{ 1.0,  1.0,  1.0,  32767, 32767},
+		{ 1.0, -1.0,  1.0,  0	 , 32767},
+
+		{-1.0, -1.0, -1.0,  0	 , 0	},
+		{-1.0, -1.0,  1.0,  32767, 0	},
+		{ 1.0, -1.0,  1.0,  32767, 32767},
+		{ 1.0, -1.0, -1.0,  0	 , 32767},
+
+		{-1.0,  1.0, -1.0,  0	 , 0	},
+		{-1.0,  1.0,  1.0,  32767, 0	},
+		{ 1.0,  1.0,  1.0,  32767, 32767},
+		{ 1.0,  1.0, -1.0,  0	 , 32767}
+	};
+
 	state.bind = (sg_bindings) {
-		.vertex_buffers[0] = v_buf,
-		.index_buffer = i_buf
+		// .vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
+		// 	.data = SG_RANGE(cube_bufs.vertices),
+		// 	.label = "cube-vertices"
+		// }),
+		.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
+			.data = SG_RANGE(vertices),
+			.label = "tex-cube-vertices"
+		}),
+		.index_buffer = sg_make_buffer(&(sg_buffer_desc) {
+			.usage.index_buffer = true,
+			.data = SG_RANGE(cube_bufs.indices),
+			.label = "cube-indices"
+		}),
+		.samplers[0] = sg_make_sampler(&(sg_sampler_desc) {
+			.min_filter = SG_FILTER_NEAREST,
+			.mag_filter = SG_FILTER_NEAREST
+		}),
+		.images[0] = sg_alloc_image()
 	};
 
 	state.pass_action = (sg_pass_action) {
@@ -130,6 +197,21 @@ static void init(void)
 		.rotation = {.x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0},
 		.position = {.x = 0.0, .y = 1.5, .z = 6.0},
 	});
+
+	bmp_image_t *atlas = bmp_load_file("res/minecraft_remake_texture_atlas.bmp");
+	if (atlas)
+	{
+		sg_init_image(state.bind.images[0], &(sg_image_desc) {
+			.width = (*atlas).info_header.width,
+			.height = (*atlas).info_header.height,
+			.pixel_format = SG_PIXELFORMAT_RGBA8,
+			.data.subimage[0][0] = {
+				.ptr = (*atlas).pixel_data,
+				.size = (size_t) ((*atlas).info_header.img_size)
+			}
+		});
+	} 
+	free(atlas);
 }
 
 static void frame(void)
@@ -190,6 +272,11 @@ sapp_desc sokol_main(int argc, char* argv[])
 {
 	(void) argc;
 	(void) argv;
+
+	if (!bmp_load_file("res/minecraft_remake_texture_atlas.bmp"))
+	{
+		printf("load failed\n");
+	}
 
 	return (sapp_desc) {
 		.init_cb = init,

@@ -96,8 +96,5 @@ camera_t cam_setup(const camera_desc_t *desc)
 
 void cam_update(camera_t *cam)
 {
-	// recalculate basis vectors
-	printf("y: %f p: %f\n", cam->yaw, cam->pitch);
-
 	cam->view_proj = em_mul_mat4(cam->proj, cam->view);
 }
