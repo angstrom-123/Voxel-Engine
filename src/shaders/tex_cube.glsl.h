@@ -10,24 +10,24 @@
     Overview:
     =========
     Shader program: 'tex_cube':
-        Get shader desc: tex_cube_tex_cube_shader_desc(sg_query_backend());
+        Get shader desc: tex_cube_shader_desc(sg_query_backend());
         Vertex Shader: vs
         Fragment Shader: fs
         Attributes:
-            ATTR_tex_cube_tex_cube_position => 0
-            ATTR_tex_cube_tex_cube_texcoord0 => 1
+            ATTR_tex_cube_position => 0
+            ATTR_tex_cube_texcoord0 => 1
     Bindings:
         Uniform block 'vs_params':
-            C struct: tex_cube_vs_params_t
-            Bind slot: UB_tex_cube_vs_params => 0
+            C struct: vs_params_t
+            Bind slot: UB_vs_params => 0
         Image 'tex':
             Image type: SG_IMAGETYPE_2D
             Sample type: SG_IMAGESAMPLETYPE_FLOAT
             Multisampled: false
-            Bind slot: IMG_tex_cube_tex => 0
+            Bind slot: IMG_tex => 0
         Sampler 'smp':
             Type: SG_SAMPLERTYPE_FILTERING
-            Bind slot: SMP_tex_cube_smp => 0
+            Bind slot: SMP_smp => 0
 */
 #if !defined(SOKOL_GFX_INCLUDED)
 #error "Please include sokol_gfx.h before tex_cube.glsl.h"
@@ -39,15 +39,15 @@
 #define SOKOL_SHDC_ALIGN(a) __attribute__((aligned(a)))
 #endif
 #endif
-#define ATTR_tex_cube_tex_cube_position (0)
-#define ATTR_tex_cube_tex_cube_texcoord0 (1)
-#define UB_tex_cube_vs_params (0)
-#define IMG_tex_cube_tex (0)
-#define SMP_tex_cube_smp (0)
+#define ATTR_tex_cube_position (0)
+#define ATTR_tex_cube_texcoord0 (1)
+#define UB_vs_params (0)
+#define IMG_tex (0)
+#define SMP_smp (0)
 #pragma pack(push,1)
-SOKOL_SHDC_ALIGN(16) typedef struct tex_cube_vs_params_t {
+SOKOL_SHDC_ALIGN(16) typedef struct vs_params_t {
     em_mat4 mvp;
-} tex_cube_vs_params_t;
+} vs_params_t;
 #pragma pack(pop)
 /*
     #version 300 es
@@ -64,7 +64,7 @@ SOKOL_SHDC_ALIGN(16) typedef struct tex_cube_vs_params_t {
     }
 
 */
-static const uint8_t tex_cube_vs_source_glsl300es[266] = {
+static const uint8_t vs_source_glsl300es[266] = {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x30,0x30,0x20,0x65,0x73,0x0a,
     0x0a,0x75,0x6e,0x69,0x66,0x6f,0x72,0x6d,0x20,0x76,0x65,0x63,0x34,0x20,0x76,0x73,
     0x5f,0x70,0x61,0x72,0x61,0x6d,0x73,0x5b,0x34,0x5d,0x3b,0x0a,0x6c,0x61,0x79,0x6f,
@@ -99,7 +99,7 @@ static const uint8_t tex_cube_vs_source_glsl300es[266] = {
     }
 
 */
-static const uint8_t tex_cube_fs_source_glsl300es[221] = {
+static const uint8_t fs_source_glsl300es[221] = {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x30,0x30,0x20,0x65,0x73,0x0a,
     0x70,0x72,0x65,0x63,0x69,0x73,0x69,0x6f,0x6e,0x20,0x6d,0x65,0x64,0x69,0x75,0x6d,
     0x70,0x20,0x66,0x6c,0x6f,0x61,0x74,0x3b,0x0a,0x70,0x72,0x65,0x63,0x69,0x73,0x69,
@@ -115,15 +115,15 @@ static const uint8_t tex_cube_fs_source_glsl300es[221] = {
     0x20,0x3d,0x20,0x74,0x65,0x78,0x74,0x75,0x72,0x65,0x28,0x74,0x65,0x78,0x5f,0x73,
     0x6d,0x70,0x2c,0x20,0x75,0x76,0x29,0x3b,0x0a,0x7d,0x0a,0x0a,0x00,
 };
-static inline const sg_shader_desc* tex_cube_tex_cube_shader_desc(sg_backend backend) {
+static inline const sg_shader_desc* tex_cube_shader_desc(sg_backend backend) {
     if (backend == SG_BACKEND_GLES3) {
         static sg_shader_desc desc;
         static bool valid;
         if (!valid) {
             valid = true;
-            desc.vertex_func.source = (const char*)tex_cube_vs_source_glsl300es;
+            desc.vertex_func.source = (const char*)vs_source_glsl300es;
             desc.vertex_func.entry = "main";
-            desc.fragment_func.source = (const char*)tex_cube_fs_source_glsl300es;
+            desc.fragment_func.source = (const char*)fs_source_glsl300es;
             desc.fragment_func.entry = "main";
             desc.attrs[0].base_type = SG_SHADERATTRBASETYPE_FLOAT;
             desc.attrs[0].glsl_name = "position";
@@ -145,7 +145,7 @@ static inline const sg_shader_desc* tex_cube_tex_cube_shader_desc(sg_backend bac
             desc.image_sampler_pairs[0].image_slot = 0;
             desc.image_sampler_pairs[0].sampler_slot = 0;
             desc.image_sampler_pairs[0].glsl_name = "tex_smp";
-            desc.label = "tex_cube_tex_cube_shader";
+            desc.label = "tex_cube_shader";
         }
         return &desc;
     }

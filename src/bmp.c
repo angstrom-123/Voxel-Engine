@@ -1,12 +1,12 @@
 #include "bmp.h"
 
-static bool _read_bytes_to_buf(FILE *file_ptr, size_t start_offset, size_t length, u8 *buf)
+static bool _read_bytes_to_buf(FILE *f_ptr, size_t offset, size_t len, u8 *buf)
 {
-	fseek(file_ptr, start_offset, SEEK_SET);
+	fseek(f_ptr, offset, SEEK_SET);
 
-	for (size_t i = 0; i < length; i++)
+	for (size_t i = 0; i < len; i++)
 	{
-		int read = fgetc(file_ptr);
+		int read = fgetc(f_ptr);
 		if (read == EOF)
 			return false;
 
@@ -16,66 +16,68 @@ static bool _read_bytes_to_buf(FILE *file_ptr, size_t start_offset, size_t lengt
 	return true;
 }
 
-static bool _load_file_header(FILE *file_ptr, bmp_file_header_t *fh)
+static bool _load_file_header(FILE *f_ptr, bmp_file_header_t *fh)
 {
 	u8 buf[14];
-	if (!_read_bytes_to_buf(file_ptr, 0, 14, buf)) return false;
+	if (!_read_bytes_to_buf(f_ptr, 0, 14, buf)) return false;
 
-	/* header's signature is big endian because it encodes hex, rest is little endian */
-	fh->signature   = TO_U16_BE(buf[0], buf[1]);
-	fh->file_size   = TO_U32_LE(buf[2], buf[3], buf[4], buf[5]);
-	/* bytes 6-9 are reserved and currently unused */
-	fh->data_offset = TO_U32_LE(buf[10], buf[11], buf[12], buf[13]);
+	size_t head = 0;
+	fh->signature 	= READ_U16_MOVE(buf, head);
+	fh->signature 	= htons(fh->signature); // signature is big endian, so we use htons
+	fh->file_size 	= READ_U32_MOVE(buf, head);
+	fh->reserved 	= READ_U32_MOVE(buf, head);
+	fh->data_offset = READ_U32_MOVE(buf, head);
 	
 	return true;
 }
 
-static bool _load_info_header(FILE *file_ptr, bmp_info_header_t *ih)
+static bool _load_info_header(FILE *f_ptr, bmp_info_header_t *ih)
 {
 	u8 buf[40];
-	if (!_read_bytes_to_buf(file_ptr, 14, 40, buf)) return false;
+	if (!_read_bytes_to_buf(f_ptr, 14, 40, buf)) return false;
 
-	ih->header_size 	 = TO_U32_LE(buf[0], buf[1], buf[2], buf[3]);
-	ih->width 			 = TO_U32_LE(buf[4], buf[5], buf[6], buf[7]);
-	ih->height 			 = TO_U32_LE(buf[8], buf[9], buf[10], buf[11]);
-	ih->planes 			 = TO_U16_LE(buf[12], buf[13]);
-	ih->bits_per_pixel   = TO_U16_LE(buf[14], buf[15]);
-	ih->compression_type = TO_U32_LE(buf[16], buf[17], buf[18], buf[19]);
-	ih->img_size 		 = TO_U32_LE(buf[20], buf[21], buf[22], buf[23]);
-	ih->x_pix_per_m 	 = TO_U32_LE(buf[24], buf[25], buf[26], buf[27]);
-	ih->y_pix_per_m 	 = TO_U32_LE(buf[28], buf[29], buf[30], buf[31]);
-	ih->cols_used 		 = TO_U32_LE(buf[32], buf[33], buf[34], buf[35]);
-	ih->important_cols   = TO_U32_LE(buf[36], buf[37], buf[38], buf[39]);
+	size_t head = 0;
+	ih->header_size 	 = READ_U32_MOVE(buf, head);
+	ih->width 			 = READ_U32_MOVE(buf, head);
+	ih->height 			 = READ_U32_MOVE(buf, head);
+	ih->planes 			 = READ_U16_MOVE(buf, head);
+	ih->bits_per_pixel 	 = READ_U16_MOVE(buf, head);
+	ih->compression_type = READ_U32_MOVE(buf, head);
+	ih->img_size 	 	 = READ_U32_MOVE(buf, head);
+	ih->x_pix_per_m    	 = READ_U32_MOVE(buf, head);
+	ih->y_pix_per_m    	 = READ_U32_MOVE(buf, head);
+	ih->cols_used 	   	 = READ_U32_MOVE(buf, head);
+	ih->important_cols 	 = READ_U32_MOVE(buf, head);
 
 	return true;
 }
 
-static u8 *_load_pixel_data(FILE *file_ptr, bmp_file_header_t *fh, bmp_info_header_t *ih)
+static u8 *_load_pixel_data(FILE *f_ptr, bmp_file_header_t *fh, bmp_info_header_t *ih)
 {
-	u8 *pix = malloc(ih->img_size);
-	if (!pix) 
+	u8 *pixels = malloc(ih->img_size);
+	if (!pixels) 
 	{
-		free(pix);
+		free(pixels);
 		return NULL;
 	}
 
 	size_t offset = fh->data_offset;
-	size_t length = ih->img_size;
-	if (!_read_bytes_to_buf(file_ptr, offset, length, pix)) return NULL;
+	size_t len = ih->img_size;
+	if (!_read_bytes_to_buf(f_ptr, offset, len, pixels)) return NULL;
 
 	// rearrange from BGRA to RGBA
 	u8 tmp;
-	for (size_t i = 0; i < length; i += 4)
+	for (size_t i = 0; i < len; i += 4)
 	{
-		tmp = pix[i];
-		pix[i] = pix[i + 2];
-		pix[i + 2] = tmp;
+		tmp = pixels[i];
+		pixels[i] = pixels[i + 2];
+		pixels[i + 2] = tmp;
 	}
 
-	return pix;
+	return pixels;
 }
 
-bmp_image_t *bmp_load_file(char *file_path)
+bmp_image_t *bmp_load_file(char *path)
 {
 	bmp_image_t *out = malloc(sizeof(bmp_image_t));
 	if (!out)
@@ -84,40 +86,73 @@ bmp_image_t *bmp_load_file(char *file_path)
 		return NULL;
 	}
 
-	FILE *file_ptr = fopen(file_path, "rb");
-	if (!file_ptr)
+	FILE *f_ptr = fopen(path, "rb");
+	if (!f_ptr)
 	{
-		fclose(file_ptr);
+		fclose(f_ptr);
 		return NULL;
 	}
 
-	bmp_file_header_t file_header;
-	if (!_load_file_header(file_ptr, &file_header))
+	bmp_file_header_t fh;
+	if (!_load_file_header(f_ptr, &fh))
 	{
-		fclose(file_ptr);
+		fclose(f_ptr);
 		return NULL;
 	}
 
-	bmp_info_header_t info_header;
-	if (!_load_info_header(file_ptr, &info_header))
+	bmp_info_header_t ih;
+	if (!_load_info_header(f_ptr, &ih))
 	{
-		fclose(file_ptr);
+		fclose(f_ptr);
 		return NULL;
 	}
 
 	// TODO: add support for color table (for when there are less than 8 BPP)
 
-	u8 *pixels = _load_pixel_data(file_ptr, &file_header, &info_header);
+	u8 *pixels = _load_pixel_data(f_ptr, &fh, &ih);
 	if (!pixels) 
 	{
-		fclose(file_ptr);
+		fclose(f_ptr);
 		free(pixels);
 		return NULL;
 	}
 
-	out->file_header = file_header;
-	out->info_header = info_header;
+	out->file_header = fh;
+	out->info_header = ih;
 	out->color_table = (bmp_color_table_t) {0}; // NOTE: empty until support added
+	out->pixel_data = pixels;
+
+	return out;
+}
+
+bmp_sub_image_t *bmp_create_sub_image(bmp_image_t *img, bmp_sub_image_desc_t *desc)
+{
+	bmp_sub_image_t *out = malloc(sizeof(bmp_sub_image_t));
+	
+	u16 by_pp = img->info_header.bits_per_pixel / 8;
+
+	/* BMP file pixels are stored bottom to top so I flip y_offset to start in top */
+	u32 y_off = img->info_header.height - desc->y_offset - 1;
+	/* color channels are stored consecutively so I multiply x_offset to be in pixels */
+	u32 x_off = desc->x_offset * by_pp;
+
+	size_t pix_siz = desc->height * desc->width * by_pp;
+	u8 *pixels = malloc(pix_siz);
+	
+	for (size_t y = 0; y < desc->height; y++)
+	{
+		for (size_t x = 0; x < desc->width * by_pp; x++)
+		{
+			size_t src_i = (y_off - y) * img->info_header.width * by_pp + (x + x_off);
+			size_t tar_i = (desc->height - y - 1) * desc->width * by_pp + x;
+			pixels[tar_i] = img->pixel_data[src_i];
+		}
+	}
+
+	out->width = desc->width;
+	out->height = desc->height;
+	out->bits_per_pixel = img->info_header.bits_per_pixel;
+	out->img_size = pix_siz;
 	out->pixel_data = pixels;
 
 	return out;

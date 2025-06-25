@@ -1,5 +1,3 @@
-@module tex_cube
-
 @ctype mat4 em_mat4
 
 @vs vs

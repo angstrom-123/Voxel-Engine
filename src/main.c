@@ -7,13 +7,7 @@
 #include "bmp.h"
 #include "camera.h"
 
-#include "shaders/cube.glsl.h"
 #include "shaders/tex_cube.glsl.h"
-
-struct cube_bufs {
-	float vertices[168];
-	uint16_t indices[36];
-};
 
 typedef struct vertex {
 	float x;
@@ -35,68 +29,18 @@ static struct {
 	float mouse_dy;
 } state;
 
-static struct cube_bufs _get_cube_bufs(void)
-{
-	return (struct cube_bufs) {
-		.vertices = {
-			-1.0, -1.0, -1.0,   1.0, 0.0, 0.0, 1.0,
-			 1.0, -1.0, -1.0,   1.0, 0.0, 0.0, 1.0,
-			 1.0,  1.0, -1.0,   1.0, 0.0, 0.0, 1.0,
-			-1.0,  1.0, -1.0,   1.0, 0.0, 0.0, 1.0,
-
-			-1.0, -1.0,  1.0,   0.0, 1.0, 0.0, 1.0,
-			 1.0, -1.0,  1.0,   0.0, 1.0, 0.0, 1.0,
-			 1.0,  1.0,  1.0,   0.0, 1.0, 0.0, 1.0,
-			-1.0,  1.0,  1.0,   0.0, 1.0, 0.0, 1.0,
-
-			-1.0, -1.0, -1.0,   0.0, 0.0, 1.0, 1.0,
-			-1.0,  1.0, -1.0,   0.0, 0.0, 1.0, 1.0,
-			-1.0,  1.0,  1.0,   0.0, 0.0, 1.0, 1.0,
-			-1.0, -1.0,  1.0,   0.0, 0.0, 1.0, 1.0,
-
-			 1.0, -1.0, -1.0,   1.0, 0.5, 0.0, 1.0,
-			 1.0,  1.0, -1.0,   1.0, 0.5, 0.0, 1.0,
-			 1.0,  1.0,  1.0,   1.0, 0.5, 0.0, 1.0,
-			 1.0, -1.0,  1.0,   1.0, 0.5, 0.0, 1.0,
-
-			-1.0, -1.0, -1.0,   0.0, 0.5, 1.0, 1.0,
-			-1.0, -1.0,  1.0,   0.0, 0.5, 1.0, 1.0,
-			 1.0, -1.0,  1.0,   0.0, 0.5, 1.0, 1.0,
-			 1.0, -1.0, -1.0,   0.0, 0.5, 1.0, 1.0,
-
-			-1.0,  1.0, -1.0,   1.0, 0.0, 0.5, 1.0,
-			-1.0,  1.0,  1.0,   1.0, 0.0, 0.5, 1.0,
-			 1.0,  1.0,  1.0,   1.0, 0.0, 0.5, 1.0,
-			 1.0,  1.0, -1.0,   1.0, 0.0, 0.5, 1.0
-		},
-		.indices = {
-			 0,  1,  2,    0,  2,  3,
-			 6,  5,  4,	   7,  6,  4,
-			 8,  9, 10,	   8, 10, 11,
-			14, 13, 12,	  15, 14, 12,
-			16, 17, 18,	  16, 18, 19,
-			22, 21, 20,	  23, 22, 20
-		},
-	};
-}
-
 static void init(void)
 {
 	sg_setup(&(sg_desc) {
 		.environment = sglue_environment(),
 	});
 
-	struct cube_bufs cube_bufs = _get_cube_bufs();
-
-	// sg_shader shdr = sg_make_shader(cube_cube_shader_desc(sg_query_backend()));
-	sg_shader shdr = sg_make_shader(tex_cube_tex_cube_shader_desc(sg_query_backend()));
-
 	state.pip = sg_make_pipeline(&(sg_pipeline_desc) {
-		.shader = shdr,
+		.shader = sg_make_shader(tex_cube_shader_desc(sg_query_backend())),
 		.layout = {
 			.attrs = {
-				[ATTR_tex_cube_tex_cube_position].format = SG_VERTEXFORMAT_FLOAT3,
-				[ATTR_tex_cube_tex_cube_texcoord0].format = SG_VERTEXFORMAT_SHORT2N
+				[ATTR_tex_cube_position].format = SG_VERTEXFORMAT_FLOAT3,
+				[ATTR_tex_cube_texcoord0].format = SG_VERTEXFORMAT_SHORT2N
 			}
 		},
 		.index_type = SG_INDEXTYPE_UINT16,
@@ -108,50 +52,32 @@ static void init(void)
 		.label = "tex-cube-pipeline"
 	});
 
-	// state.pip = sg_make_pipeline(&(sg_pipeline_desc) {
-	// 	.layout = {
-	// 		.buffers[0].stride = 28,
-	// 		.attrs = {
-	// 			[ATTR_cube_cube_position].format = SG_VERTEXFORMAT_FLOAT3,
-	// 			[ATTR_cube_cube_color0].format = SG_VERTEXFORMAT_FLOAT4
-	// 		}
-	// 	},
-	// 	.shader = shdr,
-	// 	.index_type = SG_INDEXTYPE_UINT16,
-	// 	.cull_mode = SG_CULLMODE_BACK,
-	// 	.depth = {
-	// 		.write_enabled = true,
-	// 		.compare = SG_COMPAREFUNC_LESS_EQUAL
-	// 	},
-	// 	.label = "cube-pipeline"
-	// });
-
 	const vertex_t vertices[] = {
 		// pos 				// uv
-		{-1.0, -1.0, -1.0, 	0	 , 0	},
-		{ 1.0, -1.0, -1.0,  32767, 0	},
+		{-1.0, -1.0, -1.0, 		0, 	   0},
+		{ 1.0, -1.0, -1.0,  32767, 	   0},
 		{ 1.0,  1.0, -1.0,  32767, 32767},
-		{-1.0,  1.0, -1.0,  0	 , 32767},
+		{-1.0,  1.0, -1.0,  	0, 32767},
 
-		{-1.0, -1.0,  1.0,  0	 , 0	},
-		{ 1.0, -1.0,  1.0,  32767, 0	},
+		{-1.0, -1.0,  1.0,  	0, 	   0},
+		{ 1.0, -1.0,  1.0,  32767, 	   0},
 		{ 1.0,  1.0,  1.0,  32767, 32767},
-		{-1.0,  1.0,  1.0,  0	 , 32767},
+		{-1.0,  1.0,  1.0,  	0, 32767},
 
-		{-1.0, -1.0, -1.0,  0	 , 0	},
-		{-1.0,  1.0, -1.0,  32767, 0	},
+		{-1.0, -1.0, -1.0,  	0, 	   0},
+		{-1.0,  1.0, -1.0,  32767, 	   0},
 		{-1.0,  1.0,  1.0,  32767, 32767},
-		{-1.0, -1.0,  1.0,  0	 , 32767},
+		{-1.0, -1.0,  1.0,  	0, 32767},
 
-		{ 1.0, -1.0, -1.0,  0	 , 0	},
-		{ 1.0,  1.0, -1.0,  32767, 0	},
+		{ 1.0, -1.0, -1.0,  	0, 	   0},
+		{ 1.0,  1.0, -1.0,  32767, 	   0},
 		{ 1.0,  1.0,  1.0,  32767, 32767},
-		{ 1.0, -1.0,  1.0,  0	 , 32767},
+		{ 1.0, -1.0,  1.0,  	0, 32767},
 
-		{-1.0, -1.0, -1.0,  0	 , 0	},
-		{-1.0, -1.0,  1.0,  32767, 0	},
+		{-1.0, -1.0, -1.0,  	0, 	   0},
+		{-1.0, -1.0,  1.0,  32767, 	   0},
 		{ 1.0, -1.0,  1.0,  32767, 32767},
-		{ 1.0, -1.0, -1.0,  0	 , 32767},
+		{ 1.0, -1.0, -1.0,  	0, 32767},
 
 		{-1.0,  1.0, -1.0,  0	 , 0	},
 		{-1.0,  1.0,  1.0,  32767, 0	},
@@ -159,18 +85,23 @@ static void init(void)
 		{ 1.0,  1.0, -1.0,  0	 , 32767}
 	};
 
+	const int16_t indices[] = {
+		 0,  1,  2,    0,  2,  3,
+		 6,  5,  4,	   7,  6,  4,
+		 8,  9, 10,	   8, 10, 11,
+		14, 13, 12,	  15, 14, 12,
+		16, 17, 18,	  16, 18, 19,
+		22, 21, 20,	  23, 22, 20
+	};
+
 	state.bind = (sg_bindings) {
-		// .vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
-		// 	.data = SG_RANGE(cube_bufs.vertices),
-		// 	.label = "cube-vertices"
-		// }),
 		.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
 			.data = SG_RANGE(vertices),
 			.label = "tex-cube-vertices"
 		}),
 		.index_buffer = sg_make_buffer(&(sg_buffer_desc) {
 			.usage.index_buffer = true,
-			.data = SG_RANGE(cube_bufs.indices),
+			.data = SG_RANGE(indices),
 			.label = "cube-indices"
 		}),
 		.samplers[0] = sg_make_sampler(&(sg_sampler_desc) {
@@ -201,15 +132,25 @@ static void init(void)
 	bmp_image_t *atlas = bmp_load_file("res/minecraft_remake_texture_atlas.bmp");
 	if (atlas)
 	{
-		sg_init_image(state.bind.images[0], &(sg_image_desc) {
-			.width = (*atlas).info_header.width,
-			.height = (*atlas).info_header.height,
-			.pixel_format = SG_PIXELFORMAT_RGBA8,
-			.data.subimage[0][0] = {
-				.ptr = (*atlas).pixel_data,
-				.size = (size_t) ((*atlas).info_header.img_size)
-			}
+		bmp_sub_image_t *sub_tex = bmp_create_sub_image(atlas, &(bmp_sub_image_desc_t) {
+			.width = 16,
+			.height = 16,
+			.x_offset = 48,
+			.y_offset = 0,
 		});
+		if (sub_tex)
+		{
+			sg_init_image(state.bind.images[0], &(sg_image_desc) {
+				.width = (*sub_tex).width,
+				.height = (*sub_tex).height,
+				.pixel_format = SG_PIXELFORMAT_RGBA8,
+				.data.subimage[0][0] = {
+					.ptr = (*sub_tex).pixel_data,
+					.size = (size_t) ((*sub_tex).img_size)
+				}
+			});
+		}
+		free(sub_tex);
 	} 
 	free(atlas);
 }
@@ -224,7 +165,7 @@ static void frame(void)
 	state.mouse_dx = 0.0;
 	state.mouse_dy = 0.0;
 
-	cube_vs_params_t vs_params;
+	vs_params_t vs_params;
 	em_mat4 model = em_new_mat4_diagonal(1.0);
 	vs_params.mvp = em_mul_mat4(state.cam.view_proj, model);
 
@@ -234,7 +175,7 @@ static void frame(void)
 	});
 	sg_apply_pipeline(state.pip);
 	sg_apply_bindings(&state.bind);
-	sg_apply_uniforms(UB_cube_vs_params, &SG_RANGE(vs_params));
+	sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
 	sg_draw(0, 36, 1);
 	sg_end_pass();
 	sg_commit();
@@ -272,11 +213,6 @@ sapp_desc sokol_main(int argc, char* argv[])
 {
 	(void) argc;
 	(void) argv;
-
-	if (!bmp_load_file("res/minecraft_remake_texture_atlas.bmp"))
-	{
-		printf("load failed\n");
-	}
 
 	return (sapp_desc) {
 		.init_cb = init,
