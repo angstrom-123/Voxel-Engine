@@ -58,29 +58,13 @@ typedef struct bmp_image {
 	bmp_file_header_t file_header;
 	bmp_info_header_t info_header;
 	bmp_color_table_t color_table; 
-	/* 
-	 * Pixel data rows are padded as per the BMP spec, format is specified in 
-	 * the info header under bites per pixel.
-	  */
+/* 
+ * Pixel data rows are padded as per the BMP spec, format is specified in 
+ * the info header under bites per pixel.
+ */
 	u8 *pixel_data;
 } bmp_image_t;
 
-typedef struct bmp_sub_image_desc {
-	u32 width;
-	u32 height;
-	u32 x_offset;
-	u32 y_offset;
-} bmp_sub_image_desc_t;
-
-typedef struct bmp_sub_image {
-	u32 width;
-	u32 height;
-	u16 bits_per_pixel;
-	u32 img_size;
-	u8 *pixel_data;
-} bmp_sub_image_t;
-
-bmp_image_t *bmp_load_file(char *file_path);
-bmp_sub_image_t *bmp_create_sub_image(bmp_image_t *bmp_img, bmp_sub_image_desc_t *desc);
+extern bmp_image_t *bmp_load_file(char *file_path);
 
 #endif

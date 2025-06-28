@@ -1,22 +1,17 @@
 #define SOKOL_IMPL
 
+#define TEXTURE_PATH "res/minecraft_remake_texture_atlas.bmp"
+
 #include "sokol_gfx.h"
 #include "sokol_app.h"
 #include "sokol_glue.h"
 
 #include "bmp.h"
 #include "camera.h"
+#include "atlas.h"
+#include "mesh.h"
 
 #include "shaders/tex_cube.glsl.h"
-
-typedef struct vertex {
-	float x;
-	float y;
-	float z;
-
-	int16_t u;
-	int16_t v;
-} vertex_t;
 
 static struct {
 	camera_t cam;
@@ -27,6 +22,8 @@ static struct {
 	bool key_down[SAPP_KEYCODE_MENU + 1];
 	float mouse_dx;
 	float mouse_dy;
+
+	size_t num_elements;
 } state;
 
 static void init(void)
@@ -34,6 +31,8 @@ static void init(void)
 	sg_setup(&(sg_desc) {
 		.environment = sglue_environment(),
 	});
+
+	state.num_elements = 0;
 
 	state.pip = sg_make_pipeline(&(sg_pipeline_desc) {
 		.shader = sg_make_shader(tex_cube_shader_desc(sg_query_backend())),
@@ -52,56 +51,19 @@ static void init(void)
 		.label = "tex-cube-pipeline"
 	});
 
-	const vertex_t vertices[] = {
-		// pos 				// uv
-		{-1.0, -1.0, -1.0, 		0, 	   0},
-		{ 1.0, -1.0, -1.0,  32767, 	   0},
-		{ 1.0,  1.0, -1.0,  32767, 32767},
-		{-1.0,  1.0, -1.0,  	0, 32767},
 
-		{-1.0, -1.0,  1.0,  	0, 	   0},
-		{ 1.0, -1.0,  1.0,  32767, 	   0},
-		{ 1.0,  1.0,  1.0,  32767, 32767},
-		{-1.0,  1.0,  1.0,  	0, 32767},
-
-		{-1.0, -1.0, -1.0,  	0, 	   0},
-		{-1.0,  1.0, -1.0,  32767, 	   0},
-		{-1.0,  1.0,  1.0,  32767, 32767},
-		{-1.0, -1.0,  1.0,  	0, 32767},
-
-		{ 1.0, -1.0, -1.0,  	0, 	   0},
-		{ 1.0,  1.0, -1.0,  32767, 	   0},
-		{ 1.0,  1.0,  1.0,  32767, 32767},
-		{ 1.0, -1.0,  1.0,  	0, 32767},
-
-		{-1.0, -1.0, -1.0,  	0, 	   0},
-		{-1.0, -1.0,  1.0,  32767, 	   0},
-		{ 1.0, -1.0,  1.0,  32767, 32767},
-		{ 1.0, -1.0, -1.0,  	0, 32767},
-
-		{-1.0,  1.0, -1.0,  0	 , 0	},
-		{-1.0,  1.0,  1.0,  32767, 0	},
-		{ 1.0,  1.0,  1.0,  32767, 32767},
-		{ 1.0,  1.0, -1.0,  0	 , 32767}
-	};
-
-	const int16_t indices[] = {
-		 0,  1,  2,    0,  2,  3,
-		 6,  5,  4,	   7,  6,  4,
-		 8,  9, 10,	   8, 10, 11,
-		14, 13, 12,	  15, 14, 12,
-		16, 17, 18,	  16, 18, 19,
-		22, 21, 20,	  23, 22, 20
-	};
+	cube_t *cube = mesh_generate_cube();
+	atlas_set_texture(cube, TEX_STONE);
+	state.num_elements += cube->i_len;
 
 	state.bind = (sg_bindings) {
 		.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
-			.data = SG_RANGE(vertices),
+			.data = SG_RANGE(cube->vertices),
 			.label = "tex-cube-vertices"
 		}),
 		.index_buffer = sg_make_buffer(&(sg_buffer_desc) {
 			.usage.index_buffer = true,
-			.data = SG_RANGE(indices),
+			.data = SG_RANGE(cube->indices),
 			.label = "cube-indices"
 		}),
 		.samplers[0] = sg_make_sampler(&(sg_sampler_desc) {
@@ -110,6 +72,8 @@ static void init(void)
 		}),
 		.images[0] = sg_alloc_image()
 	};
+
+	free(cube);
 
 	state.pass_action = (sg_pass_action) {
 		.colors[0] = {
@@ -129,29 +93,21 @@ static void init(void)
 		.position = {.x = 0.0, .y = 1.5, .z = 6.0},
 	});
 
-	bmp_image_t *atlas = bmp_load_file("res/minecraft_remake_texture_atlas.bmp");
+	bmp_image_t *atlas = bmp_load_file(TEXTURE_PATH);
 	if (atlas)
 	{
-		bmp_sub_image_t *sub_tex = bmp_create_sub_image(atlas, &(bmp_sub_image_desc_t) {
-			.width = 16,
-			.height = 16,
-			.x_offset = 48,
-			.y_offset = 0,
+		sg_init_image(state.bind.images[0], &(sg_image_desc) {
+			.width = atlas->info_header.width,
+			.height = atlas->info_header.height,
+			.pixel_format = SG_PIXELFORMAT_RGBA8,
+			.data.subimage[0][0] = {
+				.ptr = atlas->pixel_data,
+				.size = (size_t) atlas->info_header.img_size
+			}
 		});
-		if (sub_tex)
-		{
-			sg_init_image(state.bind.images[0], &(sg_image_desc) {
-				.width = (*sub_tex).width,
-				.height = (*sub_tex).height,
-				.pixel_format = SG_PIXELFORMAT_RGBA8,
-				.data.subimage[0][0] = {
-					.ptr = (*sub_tex).pixel_data,
-					.size = (size_t) ((*sub_tex).img_size)
-				}
-			});
-		}
-		free(sub_tex);
 	} 
+	else fprintf(stderr, "Failed to load texture atlas at: %s\n", TEXTURE_PATH);
+
 	free(atlas);
 }
 
@@ -176,7 +132,7 @@ static void frame(void)
 	sg_apply_pipeline(state.pip);
 	sg_apply_bindings(&state.bind);
 	sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
-	sg_draw(0, 36, 1);
+	sg_draw(0, state.num_elements, 1);
 	sg_end_pass();
 	sg_commit();
 }
@@ -221,7 +177,7 @@ sapp_desc sokol_main(int argc, char* argv[])
 		.event_cb = event,
 		.width = 1280,
 		.height = 720,
-		.sample_count = 4,
+		.sample_count = 1,
 		.window_title = "Minecraft Remake",
 		.icon.sokol_default = true
 	};

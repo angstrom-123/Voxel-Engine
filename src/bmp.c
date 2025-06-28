@@ -124,36 +124,3 @@ bmp_image_t *bmp_load_file(char *path)
 
 	return out;
 }
-
-bmp_sub_image_t *bmp_create_sub_image(bmp_image_t *img, bmp_sub_image_desc_t *desc)
-{
-	bmp_sub_image_t *out = malloc(sizeof(bmp_sub_image_t));
-	
-	u16 by_pp = img->info_header.bits_per_pixel / 8;
-
-	/* BMP file pixels are stored bottom to top so I flip y_offset to start in top */
-	u32 y_off = img->info_header.height - desc->y_offset - 1;
-	/* color channels are stored consecutively so I multiply x_offset to be in pixels */
-	u32 x_off = desc->x_offset * by_pp;
-
-	size_t pix_siz = desc->height * desc->width * by_pp;
-	u8 *pixels = malloc(pix_siz);
-	
-	for (size_t y = 0; y < desc->height; y++)
-	{
-		for (size_t x = 0; x < desc->width * by_pp; x++)
-		{
-			size_t src_i = (y_off - y) * img->info_header.width * by_pp + (x + x_off);
-			size_t tar_i = (desc->height - y - 1) * desc->width * by_pp + x;
-			pixels[tar_i] = img->pixel_data[src_i];
-		}
-	}
-
-	out->width = desc->width;
-	out->height = desc->height;
-	out->bits_per_pixel = img->info_header.bits_per_pixel;
-	out->img_size = pix_siz;
-	out->pixel_data = pixels;
-
-	return out;
-}
