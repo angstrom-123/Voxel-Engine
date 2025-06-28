@@ -29,6 +29,8 @@ typedef struct atlas_offset {
 	int16_t v;
 } atlas_offset_t;
 
+extern void atlas_set_bottom(cube_t *cube, atlas_texture_e texture);
+extern void atlas_set_top(cube_t *cube, atlas_texture_e texture);
 extern void atlas_set_texture(cube_t *cube, atlas_texture_e texture);
 
 #endif

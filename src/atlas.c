@@ -12,6 +12,8 @@
 #define MUL_X (UV_SCALE + 1) / TEX_X
 #define MUL_Y (UV_SCALE + 1) / TEX_Y 
 
+#define SET_UV(cube, idx, uv_u, uv_v) cube->vertices[idx].u = uv_u; cube->vertices[idx].v = uv_v
+
 static atlas_offset_t _get_tex_offset(atlas_texture_e tex)
 {
 	switch (tex) {
@@ -63,22 +65,64 @@ static atlas_offset_t _get_tex_offset(atlas_texture_e tex)
 	};
 }
 
+void atlas_set_bottom(cube_t *cube, atlas_texture_e tex)
+{
+	atlas_offset_t off = _get_tex_offset(tex);
+	int16_t max_u = off.u + (TEX_SIZE * MUL_X);
+	int16_t max_v = off.v + (TEX_SIZE * MUL_Y);
+
+	SET_UV(cube, 16, max_u, off.v);
+	SET_UV(cube, 17, off.u, off.v);
+	SET_UV(cube, 18, off.u, max_v);
+	SET_UV(cube, 19, max_u, max_v);
+}
+
+void atlas_set_top(cube_t *cube, atlas_texture_e tex)
+{
+	atlas_offset_t off = _get_tex_offset(tex);
+	int16_t max_u = off.u + (TEX_SIZE * MUL_X);
+	int16_t max_v = off.v + (TEX_SIZE * MUL_Y);
+
+	SET_UV(cube, 20, max_u, off.v);
+	SET_UV(cube, 21, off.u, off.v);
+	SET_UV(cube, 22, off.u, max_v);
+	SET_UV(cube, 23, max_u, max_v);
+}
+
 void atlas_set_texture(cube_t *cube, atlas_texture_e tex)
 {
-	printf("%hi\n", MUL_X);
 	atlas_offset_t off = _get_tex_offset(tex);
-	for (size_t i = 0; i < 24; i += 4)
-	{
-		cube->vertices[i].u = off.u;
-		cube->vertices[i].v = off.v;
+	int16_t max_u = off.u + (TEX_SIZE * MUL_X);
+	int16_t max_v = off.v + (TEX_SIZE * MUL_Y);
 
-		cube->vertices[i + 1].u = off.u + (TEX_SIZE * MUL_X);
-		cube->vertices[i + 1].v = off.v;
-
-		cube->vertices[i + 2].u = off.u + (TEX_SIZE * MUL_X);
-		cube->vertices[i + 2].v = off.v + (TEX_SIZE * MUL_Y);
-
-		cube->vertices[i + 3].u = off.u;
-		cube->vertices[i + 3].v = off.v + (TEX_SIZE * MUL_Y);
-	}
+	/* back */
+	SET_UV(cube, 0, max_u, off.v);
+	SET_UV(cube, 1, off.u, off.v);
+	SET_UV(cube, 2, off.u, max_v);
+	SET_UV(cube, 3, max_u, max_v);
+	/* front */
+	SET_UV(cube, 4, off.u, off.v);
+	SET_UV(cube, 5, max_u, off.v);
+	SET_UV(cube, 6, max_u, max_v);
+	SET_UV(cube, 7, off.u, max_v);
+	/* right */
+	SET_UV(cube, 8, off.u, off.v);
+	SET_UV(cube, 9, off.u, max_v);
+	SET_UV(cube, 10, max_u, max_v);
+	SET_UV(cube, 11, max_u, off.v);
+	/* left */
+	SET_UV(cube, 12, max_u, off.v);
+	SET_UV(cube, 13, max_u, max_v);
+	SET_UV(cube, 14, off.u, max_v);
+	SET_UV(cube, 15, off.u, off.v);
+	/* bottom */
+	SET_UV(cube, 16, max_u, off.v);
+	SET_UV(cube, 17, off.u, off.v);
+	SET_UV(cube, 18, off.u, max_v);
+	SET_UV(cube, 19, max_u, max_v);
+	/* top */
+	SET_UV(cube, 20, max_u, off.v);
+	SET_UV(cube, 21, off.u, off.v);
+	SET_UV(cube, 22, off.u, max_v);
+	SET_UV(cube, 23, max_u, max_v);
 }

@@ -53,7 +53,9 @@ static void init(void)
 
 
 	cube_t *cube = mesh_generate_cube();
-	atlas_set_texture(cube, TEX_STONE);
+	atlas_set_texture(cube, TEX_GRASS_SIDE);
+	atlas_set_top(cube, TEX_GRASS_TOP);
+	atlas_set_bottom(cube, TEX_DIRT);
 	state.num_elements += cube->i_len;
 
 	state.bind = (sg_bindings) {
