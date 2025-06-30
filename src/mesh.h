@@ -3,7 +3,11 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h> /* malloc */
+#include <memory.h>
+
+#include "extra_math.h"
+
+#define UVM INT16_MAX
 
 typedef struct vertex {
 	float x;
@@ -24,6 +28,10 @@ typedef struct cube {
 	vertex_t vertices[24];
 	uint16_t indices[36];
 } cube_t;
+
+typedef struct cube_instance {
+	em_vec3 pos;
+} cube_instance_t;
 
 extern cube_t *mesh_generate_cube(void);
 

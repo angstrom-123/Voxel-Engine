@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #define SOKOL_IMPL
 
 #define TEXTURE_PATH "res/minecraft_remake_texture_atlas.bmp"
@@ -8,23 +9,28 @@
 
 #include "bmp.h"
 #include "camera.h"
-#include "atlas.h"
 #include "mesh.h"
+#include "atlas.h"
+#include "state.h"
+#include "world_gen.h"
 
-#include "shaders/tex_cube.glsl.h"
+#include "shaders/cube.glsl.h"
 
-static struct {
-	camera_t cam;
-	sg_pipeline pip;
-	sg_bindings bind;
-	sg_pass_action pass_action;
+// static struct {
+// 	camera_t cam;
+// 	sg_pipeline pip;
+// 	sg_bindings bind;
+// 	sg_pass_action pass_action;
+//
+// 	uint16_t instance_count;
+// 	cube_instance_t *instances;
+//
+// 	bool key_down[SAPP_KEYCODE_MENU + 1];
+// 	float mouse_dx;
+// 	float mouse_dy;
+// } state;
 
-	bool key_down[SAPP_KEYCODE_MENU + 1];
-	float mouse_dx;
-	float mouse_dy;
-
-	size_t num_elements;
-} state;
+static state_t state = {0};
 
 static void init(void)
 {
@@ -32,14 +38,23 @@ static void init(void)
 		.environment = sglue_environment(),
 	});
 
-	state.num_elements = 0;
-
 	state.pip = sg_make_pipeline(&(sg_pipeline_desc) {
-		.shader = sg_make_shader(tex_cube_shader_desc(sg_query_backend())),
+		.shader = sg_make_shader(cube_shader_desc(sg_query_backend())),
 		.layout = {
+			.buffers[1].step_func = SG_VERTEXSTEP_PER_INSTANCE,
 			.attrs = {
-				[ATTR_tex_cube_position].format = SG_VERTEXFORMAT_FLOAT3,
-				[ATTR_tex_cube_texcoord0].format = SG_VERTEXFORMAT_SHORT2N
+				[ATTR_cube_base_pos] = {
+					.format = SG_VERTEXFORMAT_FLOAT3, 
+					.buffer_index = 0
+				},
+				[ATTR_cube_inst_pos] = {
+					.format = SG_VERTEXFORMAT_FLOAT3,
+					.buffer_index = 1 /* NOTE: buffer_index = 1, not 0 */
+				},
+				[ATTR_cube_tex_uv] = {
+					.format = SG_VERTEXFORMAT_SHORT2N, 
+					.buffer_index = 0
+				}
 			}
 		},
 		.index_type = SG_INDEXTYPE_UINT16,
@@ -51,22 +66,28 @@ static void init(void)
 		.label = "tex-cube-pipeline"
 	});
 
+	state.instance_count = 0;
+	state.instances = malloc(MAX_INSTANCES * sizeof(cube_instance_t));
+	if (!state.instances)
+	{
+		fprintf(stderr, "Failed to malloc instance array\n");
+		exit(1);
+	}
 
 	cube_t *cube = mesh_generate_cube();
 	atlas_set_texture(cube, TEX_GRASS_SIDE);
 	atlas_set_top(cube, TEX_GRASS_TOP);
 	atlas_set_bottom(cube, TEX_DIRT);
-	state.num_elements += cube->i_len;
 
 	state.bind = (sg_bindings) {
 		.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
 			.data = SG_RANGE(cube->vertices),
-			.label = "tex-cube-vertices"
+			.label = "vertices"
 		}),
 		.index_buffer = sg_make_buffer(&(sg_buffer_desc) {
 			.usage.index_buffer = true,
 			.data = SG_RANGE(cube->indices),
-			.label = "cube-indices"
+			.label = "indices"
 		}),
 		.samplers[0] = sg_make_sampler(&(sg_sampler_desc) {
 			.min_filter = SG_FILTER_NEAREST,
@@ -75,7 +96,12 @@ static void init(void)
 		.images[0] = sg_alloc_image()
 	};
 
-	free(cube);
+	state.instance_buf = sg_make_buffer(&(sg_buffer_desc) {
+		.size = MAX_INSTANCES * sizeof(cube_instance_t),
+		.usage.stream_update = true,
+		.label = "instance-data"
+	});
+	state.bind.vertex_buffers[1] = state.instance_buf;
 
 	state.pass_action = (sg_pass_action) {
 		.colors[0] = {
@@ -111,11 +137,14 @@ static void init(void)
 	else fprintf(stderr, "Failed to load texture atlas at: %s\n", TEXTURE_PATH);
 
 	free(atlas);
+	free(cube);
+
+	gen_add_cube_instance(&state, (em_vec3) {.x = 3.0, .y = 0.0, .z = 0.0});
+	gen_add_cube_instance(&state, (em_vec3) {.x = 1.0, .y = 0.0, .z = 0.0});
 }
 
 static void frame(void)
 {
-	// update camera position / rotation
 	cam_handle_mouse(&state.cam, state.mouse_dx, state.mouse_dy);
 	cam_handle_keyboard(&state.cam, state.key_down);
 	cam_update(&state.cam);
@@ -127,6 +156,14 @@ static void frame(void)
 	em_mat4 model = em_new_mat4_diagonal(1.0);
 	vs_params.mvp = em_mul_mat4(state.cam.view_proj, model);
 
+	if (state.instance_count > 0)
+	{
+		sg_update_buffer(state.instance_buf, &(sg_range) {
+			.ptr = state.instances,
+			.size = MAX_INSTANCES * sizeof(cube_instance_t)
+		});
+	}
+
 	sg_begin_pass(&(sg_pass) {
 		.action = state.pass_action,
 		.swapchain = sglue_swapchain()
@@ -134,13 +171,15 @@ static void frame(void)
 	sg_apply_pipeline(state.pip);
 	sg_apply_bindings(&state.bind);
 	sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
-	sg_draw(0, state.num_elements, 1);
+	if (state.instance_count > 0)
+		sg_draw(0, 36, state.instance_count);
 	sg_end_pass();
 	sg_commit();
 }
 
 static void cleanup(void)
 {
+	free(state.instances);
 	sg_shutdown();
 }
 
