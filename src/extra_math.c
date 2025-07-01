@@ -27,6 +27,16 @@ em_vec4 em_new_vec4(float x, float y, float z, float w)
 	};
 }
 
+em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, float w)
+{
+	return (em_vec4) {
+		.x = xyz.x,
+		.y = xyz.y,
+		.z = xyz.z,
+		.w = w
+	};
+}
+
 em_mat4 em_new_mat4(void) 
 {
 	return (em_mat4) {

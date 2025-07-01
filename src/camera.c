@@ -59,12 +59,12 @@ void cam_handle_keyboard(camera_t *cam, bool *key_down)
 	forward = em_normalize_vec3(forward);
 	right = em_normalize_vec3(right);
 
-	if (key_down[_SAPP_KEYCODE_W]) 			  move = em_add_vec3(move, forward);
-	if (key_down[_SAPP_KEYCODE_S]) 			  move = em_sub_vec3(move, forward);
-	if (key_down[_SAPP_KEYCODE_D]) 			  move = em_add_vec3(move, right);
-	if (key_down[_SAPP_KEYCODE_A]) 			  move = em_sub_vec3(move, right);
-	if (key_down[_SAPP_KEYCODE_SPACE]) 		  move = em_add_vec3(move, WORLD_Y);
-	if (key_down[_SAPP_KEYCODE_LEFT_CONTROL]) move = em_sub_vec3(move, WORLD_Y);
+	if (key_down[SAPP_KEYCODE_W]) 			 move = em_add_vec3(move, forward);
+	if (key_down[SAPP_KEYCODE_S]) 			 move = em_sub_vec3(move, forward);
+	if (key_down[SAPP_KEYCODE_D]) 			 move = em_add_vec3(move, right);
+	if (key_down[SAPP_KEYCODE_A]) 			 move = em_sub_vec3(move, right);
+	if (key_down[SAPP_KEYCODE_SPACE]) 		 move = em_add_vec3(move, WORLD_Y);
+	if (key_down[SAPP_KEYCODE_LEFT_CONTROL]) move = em_sub_vec3(move, WORLD_Y);
 
 	if (em_length_squared_vec3(move) > 0.0)
 	{
@@ -97,4 +97,14 @@ camera_t cam_setup(const camera_desc_t *desc)
 void cam_update(camera_t *cam)
 {
 	cam->view_proj = em_mul_mat4(cam->proj, cam->view);
+}
+
+void cam_frame(camera_t *cam, bool *key_down, float *mouse_dx, float *mouse_dy)
+{
+	cam_handle_mouse(cam, *mouse_dx, *mouse_dy);
+	cam_handle_keyboard(cam, key_down);
+	cam_update(cam);
+
+	*mouse_dx = 0.0;
+	*mouse_dy = 0.0;
 }

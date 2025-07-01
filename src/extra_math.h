@@ -46,6 +46,7 @@ typedef struct em_mat4 {
 extern em_vec2 em_new_vec2(float x, float y);
 extern em_vec3 em_new_vec3(float x, float y, float z);
 extern em_vec4 em_new_vec4(float x, float y, float z, float w);
+extern em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, float w);
 extern em_mat4 em_new_mat4(void);
 extern em_mat4 em_new_mat4_diagonal(float diagonal);
 extern em_quaternion em_new_quaternion_vec3_f(em_vec3 xyz, float w);

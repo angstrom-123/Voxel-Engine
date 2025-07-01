@@ -1,10 +1,12 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#if !defined(SOKOL_APP_INCLUDED) 
+#include "sokol_app.h"
+#endif
+
 #include "extra_math.h"
-#include "sapp_keycodes.h"
 #include <stdbool.h>
-#include <stdio.h>
 
 #define MAX_PITCH 89.0
 #define WORLD_X (em_vec3) {.x = 1.0, .y = 0.0, .z = 0.0}
@@ -48,5 +50,6 @@ camera_t cam_setup(const camera_desc_t *desc);
 void cam_update(camera_t *cam);
 void cam_handle_mouse(camera_t *cam, float mouse_dx, float mouse_dy);
 void cam_handle_keyboard(camera_t *cam, bool *key_down);
+void cam_frame(camera_t *cam, bool *key_down, float *mouse_dx, float *mouse_dy);
 
 #endif
