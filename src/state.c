@@ -7,15 +7,15 @@ void state_init_pipeline(state_t *state)
 		.layout = {
 			// .buffers[1].step_func = SG_VERTEXSTEP_PER_INSTANCE, /* IMPORTANT */
 			.attrs = {
-				[ATTR_cube_base_pos] = {
+				[ATTR_cube_i_pos] = {
 					.format = SG_VERTEXFORMAT_FLOAT3,
 					.buffer_index = 0
 				},
-				// [ATTR_cube_inst_pos] = {
-				// 	.format = SG_VERTEXFORMAT_FLOAT3,
-				// 	.buffer_index = 1 /* NOTE: buffer_index = 1, not 0 */
-				// },
-				[ATTR_cube_tex_uv] = {
+				[ATTR_cube_i_norm] = {
+					.format = SG_VERTEXFORMAT_FLOAT3,
+					.buffer_index = 0
+				},
+				[ATTR_cube_i_uv] = {
 					.format = SG_VERTEXFORMAT_SHORT2N, 
 					.buffer_index = 0
 				}
@@ -93,7 +93,7 @@ void state_init_cam(state_t *state)
 		.aspect = (sapp_widthf() / sapp_heightf()),
 		.fov = 60.0,
 		.turn_sens = 0.04,
-		.move_sens = 0.2,
+		.move_sens = 0.1,
 		.rotation = {.x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0},
 		.position = {.x = 0.0, .y = 1.5, .z = 6.0},
 	});

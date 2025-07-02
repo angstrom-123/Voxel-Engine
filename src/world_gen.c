@@ -16,7 +16,10 @@ void gen_instantiate_cube(state_t *state, em_vec3 pos)
 
 	size_t new_size = (size_t) (sizeof(cube_instance_t) * (state->instance_count + 1));
 	state->instances = realloc(state->instances, new_size);
-	state->instances[state->instance_count++] = (cube_instance_t) {pos};
+			state->instances[state->instance_count++] = (cube_instance_t) {
+				.pos = pos,
+				.type = 1
+			};
 }
 
 void gen_instantiate_chunk(state_t *state, em_vec3 pos)
@@ -36,7 +39,10 @@ void gen_instantiate_chunk(state_t *state, em_vec3 pos)
 				.z = pos.z + (float) j
 			};
 
-			state->instances[state->instance_count++] = (cube_instance_t) {inst_pos};
+			state->instances[state->instance_count++] = (cube_instance_t) {
+				.pos = inst_pos,
+				.type = 1
+			};
 		}
 	}
 }

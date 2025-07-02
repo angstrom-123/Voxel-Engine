@@ -19,15 +19,19 @@
 #include "shaders/cube.glsl.h"
 
 typedef struct state {
+	/* Player */
 	camera_t cam;
+
+	/* Render */
 	sg_pipeline pip;
 	sg_bindings bind;
 	sg_pass_action pass_action;
 
-	sg_buffer instance_buf;
+	/* World */
 	uint16_t instance_count;
 	cube_instance_t *instances;
 
+	/* Input */
 	bool key_down[SAPP_KEYCODE_MENU + 1];
 	float mouse_dx;
 	float mouse_dy;

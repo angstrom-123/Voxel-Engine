@@ -3,37 +3,49 @@
 
 @vs vs
 layout(binding=0) uniform vs_params {
-    mat4 mvp;
-	int inst_cnt;
-	vec4 inst_pos[256];
+    mat4 u_mvp;		  // model, view, projection matrix
+	int u_cnt;		  // number of instances in batch
+	vec4 u_data[256]; // instance data
 };
 
-in vec3 base_pos;
-in vec2 tex_uv;
+in vec3 i_pos;
+in vec3 i_norm;
+in vec2 i_uv;
 
-out vec2 uv;
+out vec3 v_norm;
+out vec2 v_uv;
+out float v_type;
 
 void main() {
-	vec4 base_pos4 = vec4(base_pos, 1.0);
-	int inst_id = gl_InstanceIndex;
-	if (inst_id < inst_cnt) {
-		vec4 i_pos = inst_pos[inst_id];
-		gl_Position = mvp * (base_pos4 + i_pos);
-		uv = tex_uv;
+	int idx = gl_InstanceIndex;
+	if (idx < u_cnt) {
+		vec4 inst = u_data[idx];
+		vec3 ofst = inst.xyz;
+		gl_Position = u_mvp * vec4(ofst + i_pos, 1.0);
+
+		v_norm = i_norm;
+		v_uv = i_uv;
+		v_type = inst.w;
+	} else {
+		gl_Position = vec4(0.0); // Discard instances out of range of batch
 	}
 }
 @end
 
 @fs fs
-layout(binding=0) uniform texture2D tex;
-layout(binding=0) uniform sampler smp;
+layout(binding=0) uniform texture2D u_tex;
+layout(binding=0) uniform sampler u_smp;
 
-in vec2 uv;
+in vec3 v_norm;
+in vec2 v_uv;
+in float v_type;
 
 out vec4 frag_color;
 
 void main() {
-    frag_color = texture(sampler2D(tex, smp), uv);
+	// TODO: use base uv and type to calculate uv coords for this block type
+    frag_color = texture(sampler2D(u_tex, u_smp), v_uv);
+	frag_color.rgb *= (0.7 + 0.3 * dot(v_norm, vec3(0.0, 1.0, 0.0)));
 }
 @end
 

@@ -37,11 +37,16 @@ static void init(void)
 		}
 	};
 
+	gen_instantiate_cube(&state, (em_vec3) {.x = 0.0, .y = 4.0, .z = 0.0});
 	gen_instantiate_chunk(&state, (em_vec3) {.x = 0.0, .y = 0.0, .z = 0.0});
 	gen_instantiate_chunk(&state, (em_vec3) {.x = 16.0, .y = 0.0, .z = 0.0});
 	gen_instantiate_chunk(&state, (em_vec3) {.x = -16.0, .y = 0.0, .z = 0.0});
 	gen_instantiate_chunk(&state, (em_vec3) {.x = 0.0, .y = 0.0, .z = 16.0});
 	gen_instantiate_chunk(&state, (em_vec3) {.x = 0.0, .y = 0.0, .z = -16.0});
+	gen_instantiate_chunk(&state, (em_vec3) {.x = 16.0, .y = 0.0, .z = 16.0});
+	gen_instantiate_chunk(&state, (em_vec3) {.x = -16.0, .y = 0.0, .z = 16.0});
+	gen_instantiate_chunk(&state, (em_vec3) {.x = 16.0, .y = 0.0, .z = -16.0});
+	gen_instantiate_chunk(&state, (em_vec3) {.x = -16.0, .y = 0.0, .z = -16.0});
 }
 
 static void render_cubes(void)
@@ -52,24 +57,21 @@ static void render_cubes(void)
 
 	while (remaining > 0)
 	{
-		vs_params_t vs_params;
-
 		size_t batch_size = (remaining >= MAX_INSTANCES_PER_BATCH)
 						  ? MAX_INSTANCES_PER_BATCH
 						  : remaining;
 
-		/* set base position to spawn instances from for this batch */
-		vs_params.mvp = em_mul_mat4(state.cam.view_proj, em_new_mat4_diagonal(1.0));
-		/* set number of instances for this batch */
-		vs_params.inst_cnt = batch_size;
-		/* set positions for instances for this batch */
+		/* set the uniforms for this batch */
+		vs_params_t vs_params;
+		vs_params.u_mvp = em_mul_mat4(state.cam.view_proj, em_new_mat4_diagonal(1.0));
+		vs_params.u_cnt = batch_size;
 		for (size_t i = 0; i < batch_size; i++)
 		{
 			const cube_instance_t *instance = &state.instances[offset + i];
-			vs_params.inst_pos[i][0] = instance->pos.x;
-			vs_params.inst_pos[i][1] = instance->pos.y;
-			vs_params.inst_pos[i][2] = instance->pos.z;
-			vs_params.inst_pos[i][3] = 1.0;
+			vs_params.u_data[i][0] = instance->pos.x;
+			vs_params.u_data[i][1] = instance->pos.y;
+			vs_params.u_data[i][2] = instance->pos.z;
+			vs_params.u_data[i][3] = instance->type;
 		}
 
 		sg_apply_pipeline(state.pip);
@@ -135,11 +137,11 @@ sapp_desc sokol_main(int argc, char* argv[])
 		.frame_cb = frame,
 		.cleanup_cb = cleanup,
 		.event_cb = event,
+		.logger.func = slog_func,
 		.width = 1280,
 		.height = 720,
 		.sample_count = 1,
 		.window_title = "Minecraft Remake",
-		.icon.sokol_default = true,
-		.logger.func = slog_func
+		.icon.sokol_default = true
 	};
 }
