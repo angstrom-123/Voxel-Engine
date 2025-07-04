@@ -5,7 +5,6 @@ void state_init_pipeline(state_t *state)
 	state->pip = sg_make_pipeline(&(sg_pipeline_desc) {
 		.shader = sg_make_shader(cube_shader_desc(sg_query_backend())),
 		.layout = {
-			// .buffers[1].step_func = SG_VERTEXSTEP_PER_INSTANCE, /* IMPORTANT */
 			.attrs = {
 				[ATTR_cube_i_pos] = {
 					.format = SG_VERTEXFORMAT_FLOAT3,
@@ -16,8 +15,12 @@ void state_init_pipeline(state_t *state)
 					.buffer_index = 0
 				},
 				[ATTR_cube_i_uv] = {
-					.format = SG_VERTEXFORMAT_SHORT2N, 
+					.format = SG_VERTEXFORMAT_FLOAT2, 
 					.buffer_index = 0
+				},
+				[ATTR_cube_i_face] = {
+					.format = SG_VERTEXFORMAT_FLOAT,
+					.buffer_index = 0 
 				}
 			}
 		},
@@ -27,23 +30,29 @@ void state_init_pipeline(state_t *state)
 			.compare = SG_COMPAREFUNC_LESS_EQUAL,
 			.write_enabled = true
 		},
+		.blend_color = {1.0, 0.0, 0.0, 1.0},
+		.colors[0].blend = {
+			.enabled = true,
+			.src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
+			.dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+			.op_rgb = SG_BLENDOP_ADD,
+			.src_factor_alpha = SG_BLENDFACTOR_ONE,
+			.dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+			.op_alpha = SG_BLENDOP_ADD
+		},
 		.label = "pipeline"
 	});
 }
 
 void state_init_bindings(state_t *state)
 {
-	cube_t *cube = mesh_generate_cube();
+	cube_t *cube = cube_new();
 	if (!cube)
 	{
 		free(cube);
-		fprintf(stderr, "Failed to generate base cube mesh\n");
+		fprintf(stderr, "Failed to generate base cube mesh.\n");
 		exit(1);
 	}
-
-	atlas_set_texture(cube, TEX_GRASS_SIDE);
-	atlas_set_top(cube, TEX_GRASS_TOP);
-	atlas_set_bottom(cube, TEX_DIRT);
 
 	state->bind = (sg_bindings) {
 		.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
@@ -79,10 +88,14 @@ void state_init_textures(state_t *state, char* tex_path)
 				.size = (size_t) atlas->info_header.img_size
 			}
 		});
+		free(atlas);
 	} 
-	else fprintf(stderr, "Failed to load texture atlas at: %s\n", tex_path);
-
-	free(atlas);
+	else 
+	{
+		free(atlas);
+		fprintf(stderr, "Failed to load texture atlas at: %s\n", tex_path);
+		exit(1);
+	}
 }
 
 void state_init_cam(state_t *state)
@@ -94,7 +107,7 @@ void state_init_cam(state_t *state)
 		.fov = 60.0,
 		.turn_sens = 0.04,
 		.move_sens = 0.1,
-		.rotation = {.x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0},
-		.position = {.x = 0.0, .y = 1.5, .z = 6.0},
+		.rotation = {0.0, 0.0, 0.0, 1.0}, /* Identity quaternion */
+		.position = {0.0, 1.5, 6.0},
 	});
 }

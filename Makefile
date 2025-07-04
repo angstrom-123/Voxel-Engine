@@ -3,7 +3,7 @@ SHADERS		= $(wildcard ./src/shaders/*.glsl)
 SHDR_HEADS	= $(wildcard ./src/shaders/*.glsl.h)
 
 CC			= clang
-CFLAGS		= -Wall -Wextra -pthread
+CFLAGS		= -Wall -Wextra -pthread -Wno-missing-braces
 INCLUDE		= -I./lib -I.
 LX_LIBS		= -lX11 -lXi -lXcursor -lGL -ldl -lm -lEGL
 DEFS		= -DSOKOL_GLES3

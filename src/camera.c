@@ -1,19 +1,18 @@
 #include "camera.h"
-#include "src/extra_math.h"
 
 static em_vec3 _get_forward(em_quaternion camera_rotation)
 {
-	return em_quaternion_rotate_vec3(em_new_vec3(0.0, 0.0, -1.0), camera_rotation);
+	return em_quaternion_rotate_vec3((em_vec3) {0.0, 0.0, -1.0}, camera_rotation);
 }
 
 static em_vec3 _get_right(em_quaternion camera_rotation)
 {
-	return em_quaternion_rotate_vec3(em_new_vec3(1.0, 0.0, 0.0), camera_rotation);
+	return em_quaternion_rotate_vec3((em_vec3) {1.0, 0.0, 0.0}, camera_rotation);
 }
 
 static em_vec3 _get_up(em_quaternion camera_rotation)
 {
-	return em_quaternion_rotate_vec3(em_new_vec3(0.0, 1.0, 0.0), camera_rotation);
+	return em_quaternion_rotate_vec3((em_vec3) {0.0, 1.0, 0.0}, camera_rotation);
 }
 
 void cam_handle_mouse(camera_t *cam, float mouse_dx, float mouse_dy)

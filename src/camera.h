@@ -6,6 +6,7 @@
 #endif
 
 #include "extra_math.h"
+
 #include <stdbool.h>
 
 #define MAX_PITCH 89.0

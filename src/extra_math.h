@@ -1,8 +1,8 @@
 #ifndef EXTRA_MATH_H
 #define EXTRA_MATH_H
 
-#include <math.h>
-#include <stdlib.h>
+#include <math.h> /* trig */
+#include <stdlib.h> /* size_t */
 
 #define em_PI acosf(-1.0)
 #define em_deg_to_rad(t) (t * (em_PI / 180.0))
@@ -21,7 +21,7 @@ typedef union em_vec2 {
 	float elements[2];
 } em_vec2;
 
-typedef struct em_vec3 {
+typedef union em_vec3 {
 	struct {
 		float x, y, z;
 	};
@@ -29,7 +29,7 @@ typedef struct em_vec3 {
 	float elements[3];
 } em_vec3;
 
-typedef struct em_vec4 {
+typedef union em_vec4 {
 	struct {
 		float x, y, z, w;
 	};
@@ -43,9 +43,6 @@ typedef struct em_mat4 {
 	float elements[4][4];
 } em_mat4;
 
-extern em_vec2 em_new_vec2(float x, float y);
-extern em_vec3 em_new_vec3(float x, float y, float z);
-extern em_vec4 em_new_vec4(float x, float y, float z, float w);
 extern em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, float w);
 extern em_mat4 em_new_mat4(void);
 extern em_mat4 em_new_mat4_diagonal(float diagonal);

@@ -13,8 +13,7 @@
 
 #include "camera.h"
 #include "bmp.h"
-#include "atlas.h"
-#include "mesh.h"
+#include "cube.h"
 
 #include "shaders/cube.glsl.h"
 
@@ -26,10 +25,13 @@ typedef struct state {
 	sg_pipeline pip;
 	sg_bindings bind;
 	sg_pass_action pass_action;
+	cube_uv_lookup_t uv_lookup;
 
 	/* World */
 	uint16_t instance_count;
 	cube_instance_t *instances;
+	uint16_t deferred_count;
+	cube_instance_t *deferred;
 
 	/* Input */
 	bool key_down[SAPP_KEYCODE_MENU + 1];
