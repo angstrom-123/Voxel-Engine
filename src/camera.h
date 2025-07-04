@@ -50,7 +50,7 @@ typedef struct camera {
 camera_t cam_setup(const camera_desc_t *desc);
 void cam_update(camera_t *cam);
 void cam_handle_mouse(camera_t *cam, float mouse_dx, float mouse_dy);
-void cam_handle_keyboard(camera_t *cam, bool *key_down);
-void cam_frame(camera_t *cam, bool *key_down, float *mouse_dx, float *mouse_dy);
+void cam_handle_keyboard(camera_t *cam, bool *key_down, double dt);
+void cam_frame(camera_t *cam, bool *key_down, float *mouse_dx, float *mouse_dy, double dt);
 
 #endif

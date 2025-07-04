@@ -106,7 +106,7 @@ void state_init_cam(state_t *state)
 		.aspect = (sapp_widthf() / sapp_heightf()),
 		.fov = 60.0,
 		.turn_sens = 0.04,
-		.move_sens = 0.1,
+		.move_sens = 5.0,
 		.rotation = {0.0, 0.0, 0.0, 1.0}, /* Identity quaternion */
 		.position = {0.0, 1.5, 6.0},
 	});

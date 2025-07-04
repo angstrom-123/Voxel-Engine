@@ -44,7 +44,7 @@ void cam_handle_mouse(camera_t *cam, float mouse_dx, float mouse_dy)
 	cam->view = em_mul_mat4(rot, trans);
 }
 
-void cam_handle_keyboard(camera_t *cam, bool *key_down)
+void cam_handle_keyboard(camera_t *cam, bool *key_down, double dt)
 {
 	// movement
 	em_vec3 move = {0};
@@ -67,7 +67,7 @@ void cam_handle_keyboard(camera_t *cam, bool *key_down)
 
 	if (em_length_squared_vec3(move) > 0.0)
 	{
-		move = em_mul_vec3_f(move, cam->move_sens);
+		move = em_mul_vec3_f(em_mul_vec3_f(move, cam->move_sens), dt);
 		cam->position = em_add_vec3(cam->position, move);
 	}
 }
@@ -98,10 +98,10 @@ void cam_update(camera_t *cam)
 	cam->view_proj = em_mul_mat4(cam->proj, cam->view);
 }
 
-void cam_frame(camera_t *cam, bool *key_down, float *mouse_dx, float *mouse_dy)
+void cam_frame(camera_t *cam, bool *key_down, float *mouse_dx, float *mouse_dy, double dt)
 {
 	cam_handle_mouse(cam, *mouse_dx, *mouse_dy);
-	cam_handle_keyboard(cam, key_down);
+	cam_handle_keyboard(cam, key_down, dt);
 	cam_update(cam);
 
 	*mouse_dx = 0.0;

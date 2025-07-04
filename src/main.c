@@ -84,8 +84,16 @@ static void draw_instances(size_t count, cube_instance_t *instances)
 	}
 }
 
-static void render_cubes(void)
+static void frame(void)
 {
+	double dt = sapp_frame_duration();
+	cam_frame(&state.cam, state.key_down, &state.mouse_dx, &state.mouse_dy, dt);
+
+	sg_begin_pass(&(sg_pass) {
+		.action = state.pass_action,
+		.swapchain = sglue_swapchain()
+	});
+
 	fs_params_t fs_params;
 	memcpy(fs_params.u_uv_rects, state.uv_lookup.uv_rects, sizeof(state.uv_lookup.uv_rects));
 
@@ -95,17 +103,6 @@ static void render_cubes(void)
 	/* Draw blocks with transparency (deferred instances) last */
 	draw_instances(state.instance_count, state.instances);
 	draw_instances(state.deferred_count, state.deferred);
-}
-
-static void frame(void)
-{
-	cam_frame(&state.cam, state.key_down, &state.mouse_dx, &state.mouse_dy);
-
-	sg_begin_pass(&(sg_pass) {
-		.action = state.pass_action,
-		.swapchain = sglue_swapchain()
-	});
-	render_cubes();
 
 	sg_end_pass();
 	sg_commit();
