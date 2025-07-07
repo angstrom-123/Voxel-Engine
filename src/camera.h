@@ -7,13 +7,12 @@
 
 #include "extra_math.h"
 
-#include <stdbool.h>
-
 #define MAX_PITCH 89.0
 #define WORLD_X (em_vec3) {.x = 1.0, .y = 0.0, .z = 0.0}
 #define WORLD_Y (em_vec3) {.x = 0.0, .y = 1.0, .z = 0.0}
 
 typedef struct camera_desc {
+	uint8_t render_distance;
 	float near_dist;
 	float far_dist;
 	float aspect;
@@ -26,6 +25,7 @@ typedef struct camera_desc {
 
 typedef struct camera {
 	// parameters
+	uint8_t render_distance;		// maximum rendering distance in chunks
 	float near_dist;				// near clipping distance
 	float far_dist;					// far clipping distance
 	float aspect;					// width / height

@@ -3,24 +3,16 @@
 void state_init_pipeline(state_t *state)
 {
 	state->pip = sg_make_pipeline(&(sg_pipeline_desc) {
-		.shader = sg_make_shader(cube_shader_desc(sg_query_backend())),
+		.shader = sg_make_shader(chunk_shader_desc(sg_query_backend())),
 		.layout = {
 			.attrs = {
-				[ATTR_cube_i_pos] = {
-					.format = SG_VERTEXFORMAT_FLOAT3,
+				[ATTR_chunk_a_xyzn] = {
+					.format = SG_VERTEXFORMAT_UBYTE4,
 					.buffer_index = 0
 				},
-				[ATTR_cube_i_norm] = {
-					.format = SG_VERTEXFORMAT_FLOAT3,
+				[ATTR_chunk_a_uv] = {
+					.format = SG_VERTEXFORMAT_UINT,
 					.buffer_index = 0
-				},
-				[ATTR_cube_i_uv] = {
-					.format = SG_VERTEXFORMAT_FLOAT2, 
-					.buffer_index = 0
-				},
-				[ATTR_cube_i_face] = {
-					.format = SG_VERTEXFORMAT_FLOAT,
-					.buffer_index = 0 
 				}
 			}
 		},
@@ -40,38 +32,21 @@ void state_init_pipeline(state_t *state)
 			.dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
 			.op_alpha = SG_BLENDOP_ADD
 		},
-		.label = "pipeline"
+		.label = "chunk-pipeline"
 	});
 }
 
 void state_init_bindings(state_t *state)
 {
-	cube_t *cube = cube_new();
-	if (!cube)
-	{
-		free(cube);
-		fprintf(stderr, "Failed to generate base cube mesh.\n");
-		exit(1);
-	}
-
 	state->bind = (sg_bindings) {
-		.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
-			.data = SG_RANGE(cube->vertices),
-			.label = "vertices"
-		}),
-		.index_buffer = sg_make_buffer(&(sg_buffer_desc) {
-			.usage.index_buffer = true,
-			.data = SG_RANGE(cube->indices),
-			.label = "indices"
-		}),
 		.samplers[0] = sg_make_sampler(&(sg_sampler_desc) {
 			.min_filter = SG_FILTER_NEAREST,
-			.mag_filter = SG_FILTER_NEAREST
+			.mag_filter = SG_FILTER_NEAREST,
+			// .mipmap_filter = SG_FILTER_NEAREST,
+			// .max_lod = 4.0
 		}),
 		.images[0] = sg_alloc_image()
 	};
-
-	free(cube);
 }
 
 void state_init_textures(state_t *state, char* tex_path)
@@ -88,6 +63,8 @@ void state_init_textures(state_t *state, char* tex_path)
 				.size = (size_t) atlas->info_header.img_size
 			}
 		});
+
+		free(atlas->pixel_data);
 		free(atlas);
 	} 
 	else 
@@ -101,12 +78,13 @@ void state_init_textures(state_t *state, char* tex_path)
 void state_init_cam(state_t *state)
 {
 	state->cam = cam_setup(&(camera_desc_t) {
+		.render_distance = 4,
 		.near_dist = 0.1,
 		.far_dist = 100.0,
 		.aspect = (sapp_widthf() / sapp_heightf()),
 		.fov = 60.0,
 		.turn_sens = 0.04,
-		.move_sens = 5.0,
+		.move_sens = 10.0,
 		.rotation = {0.0, 0.0, 0.0, 1.0}, /* Identity quaternion */
 		.position = {0.0, 1.5, 6.0},
 	});

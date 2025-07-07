@@ -1,5 +1,10 @@
 #include "extra_math.h"
 
+bool em_equals_vec2(em_vec2 a, em_vec2 b)
+{
+	return (em_abs(a.x - b.x) < 1.0E-8) && (em_abs(a.y - b.y) < 1.0E-8);
+}
+
 em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, float w)
 {
 	return (em_vec4) {xyz.x, xyz.y, xyz.z, w};

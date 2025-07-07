@@ -122,5 +122,7 @@ bmp_image_t *bmp_load_file(char *path)
 	out->color_table = (bmp_color_table_t) {0}; // NOTE: empty until support added
 	out->pixel_data = pixels;
 
+	fclose(f_ptr);
+
 	return out;
 }

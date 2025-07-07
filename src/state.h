@@ -13,11 +13,14 @@
 
 #include "camera.h"
 #include "bmp.h"
-#include "cube.h"
+#include "object.h"
 
-#include "shaders/cube.glsl.h"
+#include "shaders/chunk.glsl.h"
 
 typedef struct state {
+	/* Global state */
+	size_t tick;
+
 	/* Player */
 	camera_t cam;
 
@@ -28,10 +31,8 @@ typedef struct state {
 	cube_uv_lookup_t uv_lookup;
 
 	/* World */
-	uint16_t instance_count;
-	cube_instance_t *instances;
-	uint16_t deferred_count;
-	cube_instance_t *deferred;
+	size_t chunk_count;
+	chunk_t **chunks;
 
 	/* Input */
 	bool key_down[SAPP_KEYCODE_MENU + 1];

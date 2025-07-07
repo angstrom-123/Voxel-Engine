@@ -11,7 +11,7 @@
 #include "extra_math.h"
 #include "world_gen.h"
 
-#include "shaders/cube.glsl.h"
+#include "shaders/chunk.glsl.h"
 
 static state_t state = {0};
 
@@ -22,10 +22,9 @@ static void init(void)
 		.logger.func = slog_func
 	});
 
-	cube_init_lookup(&(state.uv_lookup));
-
-	state.instance_count = 0;
-	state.instances = NULL; /* instances are dynamically allocated */
+	state.tick = 0;
+	state.chunk_count = 0;
+	state.chunks = NULL;
 
 	state_init_pipeline(&state);
 	state_init_bindings(&state);
@@ -39,53 +38,58 @@ static void init(void)
 		}
 	};
 
-	gen_instantiate_cube(&state,  (em_vec3) { 0.0,  4.0,  0.0}, CUBETYPE_LEAF);
-	gen_instantiate_chunk(&state, (em_vec3) { 0.0,  0.0,  0.0});
-	gen_instantiate_chunk(&state, (em_vec3) { 16.0, 0.0,  0.0});
-	gen_instantiate_chunk(&state, (em_vec3) {-16.0, 0.0,  0.0});
-	gen_instantiate_chunk(&state, (em_vec3) { 0.0,  0.0,  16.0});
-	gen_instantiate_chunk(&state, (em_vec3) { 0.0,  0.0, -16.0});
-	gen_instantiate_chunk(&state, (em_vec3) { 16.0, 0.0,  16.0});
-	gen_instantiate_chunk(&state, (em_vec3) {-16.0, 0.0,  16.0});
-	gen_instantiate_chunk(&state, (em_vec3) { 16.0, 0.0, -16.0});
-	gen_instantiate_chunk(&state, (em_vec3) {-16.0, 0.0, -16.0});
+	state.chunks = realloc(state.chunks, sizeof(chunk_t *));
+	state.chunk_count = 1;
+
+	state.chunks[0] = gen_new_chunk((em_vec3) {0.0, 0.0, 0.0});
 }
 
-static void draw_instances(size_t count, cube_instance_t *instances)
+/* 
+ * NOTE: With current techniques, it should be possible to draw up to 8 chunks 
+ * render distance in around 2000 draw calls (assuming large, complex chunks).
+ */
+static void render(void)
 {
-	const size_t BATCH_SIZE = 256;
-	size_t offset = 0;
-	size_t remaining = count;
-	while (remaining > 0)
+	for (size_t i = 0; i < state.chunk_count; i++)
 	{
-		size_t batch_size = (remaining >= BATCH_SIZE)
-						  ? BATCH_SIZE
-						  : remaining;
+		chunk_t *chunk = state.chunks[i];
 
-		/* set the uniforms for this batch */
 		vs_params_t vs_params;
-		vs_params.u_mvp = em_mul_mat4(state.cam.view_proj, em_new_mat4_diagonal(1.0));
-		vs_params.u_cnt = batch_size;
-		for (size_t i = 0; i < batch_size; i++)
-		{
-			const cube_instance_t *tmp = &instances[offset + i];
-			vs_params.u_data[i][0] = tmp->pos.x;
-			vs_params.u_data[i][1] = tmp->pos.y;
-			vs_params.u_data[i][2] = tmp->pos.z;
-			vs_params.u_data[i][3] = tmp->type;
-		}
+		vs_params.u_mvp = em_mul_mat4(state.cam.view_proj, em_translate_mat4(chunk->pos));
+		vs_params.u_chnk_pos[0] = (float) chunk->mesh.x;
+		vs_params.u_chnk_pos[1] = (float) chunk->mesh.y;
+		vs_params.u_chnk_pos[2] = (float) chunk->mesh.z;
 
-		sg_apply_bindings(&state.bind);
 		sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
-		sg_draw(0, 36, batch_size);
 
-		remaining -= batch_size;
-		offset += batch_size;
+		/* Draw each submesh making up the chunk */
+		for (size_t j = 0; j < chunk->mesh.submesh_cnt; j++)
+		{
+			mesh_t mesh = chunk->mesh.submeshes[j];
+			sg_apply_bindings(&(sg_bindings) {
+				.vertex_buffers[0] = mesh.v_buf,
+				.index_buffer = mesh.i_buf,
+				.samplers[0] = state.bind.samplers[0],
+				.images[0] = state.bind.images[0],
+			});
+			sg_draw(0, mesh.i_cnt, 1);
+		}
 	}
+}
+
+static void tick(void)
+{
 }
 
 static void frame(void)
 {
+	state.tick++;
+	if (state.tick == 5)
+	{
+		state.tick = 0;
+		tick();
+	}
+
 	double dt = sapp_frame_duration();
 	cam_frame(&state.cam, state.key_down, &state.mouse_dx, &state.mouse_dy, dt);
 
@@ -94,15 +98,9 @@ static void frame(void)
 		.swapchain = sglue_swapchain()
 	});
 
-	fs_params_t fs_params;
-	memcpy(fs_params.u_uv_rects, state.uv_lookup.uv_rects, sizeof(state.uv_lookup.uv_rects));
-
 	sg_apply_pipeline(state.pip);
-	sg_apply_uniforms(UB_fs_params, &SG_RANGE(fs_params));
 
-	/* Draw blocks with transparency (deferred instances) last */
-	draw_instances(state.instance_count, state.instances);
-	draw_instances(state.deferred_count, state.deferred);
+	render();
 
 	sg_end_pass();
 	sg_commit();
@@ -110,7 +108,13 @@ static void frame(void)
 
 static void cleanup(void)
 {
-	free(state.instances);
+	for (size_t i = 0; i < state.chunk_count; i++) 
+	{
+		free(state.chunks[i]->data);
+		free(state.chunks[i]->mesh.submeshes);
+		free(state.chunks[i]);
+	}
+	free(state.chunks);
 	sg_shutdown();
 }
 

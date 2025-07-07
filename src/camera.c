@@ -77,16 +77,17 @@ camera_t cam_setup(const camera_desc_t *desc)
 	em_mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(desc->rotation));
 	em_mat4 trans = em_translate_mat4(em_mul_vec3_f(desc->position, -1.0));
 	camera_t cam = {
-		.near_dist   = desc->near_dist,
-		.far_dist    = desc->far_dist,
-		.aspect	     = desc->aspect,
-		.fov 	     = desc->fov,
-		.turn_sens   = desc->turn_sens,
-		.move_sens   = desc->move_sens,
-		.rotation    = em_normalize_quaternion(desc->rotation),
-		.position    = desc->position,
-		.view 		 = em_mul_mat4(rot, trans),
-		.proj 		 = em_perspective(desc->fov, desc->aspect, desc->near_dist, desc->far_dist)
+		.render_distance = desc->render_distance,
+		.near_dist   	 = desc->near_dist,
+		.far_dist    	 = desc->far_dist,
+		.aspect	     	 = desc->aspect,
+		.fov 	     	 = desc->fov,
+		.turn_sens   	 = desc->turn_sens,
+		.move_sens   	 = desc->move_sens,
+		.rotation    	 = em_normalize_quaternion(desc->rotation),
+		.position    	 = desc->position,
+		.view 		 	 = em_mul_mat4(rot, trans),
+		.proj 		 	 = em_perspective(desc->fov, desc->aspect, desc->near_dist, desc->far_dist)
 	};
 
 	cam_update(&cam);
