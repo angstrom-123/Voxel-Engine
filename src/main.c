@@ -1,7 +1,5 @@
 #define SOKOL_IMPL
 
-#define TEXTURE_PATH "res/minecraft_remake_texture_atlas.bmp"
-
 #include "sokol_gfx.h"
 #include "sokol_app.h"
 #include "sokol_glue.h"
@@ -28,7 +26,7 @@ static void init(void)
 
 	state_init_pipeline(&state);
 	state_init_bindings(&state);
-	state_init_textures(&state, TEXTURE_PATH);
+	state_init_textures(&state);
 	state_init_cam(&state);
 
 	state.pass_action = (sg_pass_action) {
@@ -50,6 +48,13 @@ static void init(void)
  */
 static void render(void)
 {
+	sg_begin_pass(&(sg_pass) {
+		.action = state.pass_action,
+		.swapchain = sglue_swapchain()
+	});
+
+	sg_apply_pipeline(state.pip);
+
 	for (size_t i = 0; i < state.chunk_count; i++)
 	{
 		chunk_t *chunk = state.chunks[i];
@@ -75,35 +80,27 @@ static void render(void)
 			sg_draw(0, mesh.i_cnt, 1);
 		}
 	}
+
+	sg_end_pass();
+	sg_commit();
 }
 
 static void tick(void)
 {
 }
 
+#define MAX_TIME 240
+
 static void frame(void)
 {
 	state.tick++;
-	if (state.tick == 5)
-	{
-		state.tick = 0;
-		tick();
-	}
+	if (state.tick == 5) tick();
 
+	/* Apply user inputs. */
 	double dt = sapp_frame_duration();
 	cam_frame(&state.cam, state.key_down, &state.mouse_dx, &state.mouse_dy, dt);
 
-	sg_begin_pass(&(sg_pass) {
-		.action = state.pass_action,
-		.swapchain = sglue_swapchain()
-	});
-
-	sg_apply_pipeline(state.pip);
-
 	render();
-
-	sg_end_pass();
-	sg_commit();
 }
 
 static void cleanup(void)

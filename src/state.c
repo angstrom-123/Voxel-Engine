@@ -42,35 +42,48 @@ void state_init_bindings(state_t *state)
 		.samplers[0] = sg_make_sampler(&(sg_sampler_desc) {
 			.min_filter = SG_FILTER_NEAREST,
 			.mag_filter = SG_FILTER_NEAREST,
-			// .mipmap_filter = SG_FILTER_NEAREST,
-			// .max_lod = 4.0
+			.mipmap_filter = SG_FILTER_NEAREST,
+			.wrap_u = SG_WRAP_CLAMP_TO_EDGE,
+			.wrap_v = SG_WRAP_CLAMP_TO_EDGE,
+			.max_lod = 1.0,
 		}),
 		.images[0] = sg_alloc_image()
 	};
 }
 
-void state_init_textures(state_t *state, char* tex_path)
+void state_init_textures(state_t *state)
 {
-	bmp_image_t *atlas = bmp_load_file(tex_path);
-	if (atlas)
+	/* Full-res atlas and mipmap levels */
+	bmp_image_t *atlas = bmp_load_file("res/minecraft_remake_texture_atlas.bmp");
+	bmp_image_t *atlas_mm1 = bmp_load_file("res/minecraft_remake_texture_atlas-mm1.bmp");
+
+	if (atlas && atlas_mm1)
 	{
 		sg_init_image(state->bind.images[0], &(sg_image_desc) {
 			.width = atlas->info_header.width,
 			.height = atlas->info_header.height,
 			.pixel_format = SG_PIXELFORMAT_RGBA8,
+			.num_mipmaps = 2,
 			.data.subimage[0][0] = {
 				.ptr = atlas->pixel_data,
 				.size = (size_t) atlas->info_header.img_size
+			},
+			.data.subimage[0][1] = {
+				.ptr = atlas_mm1->pixel_data,
+				.size = (size_t) atlas_mm1->info_header.img_size
 			}
 		});
 
 		free(atlas->pixel_data);
+		free(atlas_mm1->pixel_data);
 		free(atlas);
+		free(atlas_mm1);
 	} 
 	else 
 	{
 		free(atlas);
-		fprintf(stderr, "Failed to load texture atlas at: %s\n", tex_path);
+		free(atlas_mm1);
+		fprintf(stderr, "Failed to load texture atlas or mipmaps.");
 		exit(1);
 	}
 }
@@ -86,6 +99,6 @@ void state_init_cam(state_t *state)
 		.turn_sens = 0.04,
 		.move_sens = 10.0,
 		.rotation = {0.0, 0.0, 0.0, 1.0}, /* Identity quaternion */
-		.position = {0.0, 1.5, 6.0},
+		.position = {8.0, 34.0, 8.0},
 	});
 }

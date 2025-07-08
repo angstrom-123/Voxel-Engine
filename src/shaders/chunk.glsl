@@ -108,7 +108,9 @@ void main() {
 	if (frag_color.a < 0.01) discard;
 
 	frag_color = texture(sampler2D(u_tex, u_smp), v_uv);
-	frag_color.rgb *= (0.7 + 0.3 * dot(v_norm, vec3(0.707, 1.0, 0.707)));
+
+	// Directional lighting:
+	// frag_color.rgb *= (0.7 + 0.3 * dot(v_norm, vec3(0.707, 0.707, 0.707)));
 }
 @end
 

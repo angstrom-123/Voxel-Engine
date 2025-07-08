@@ -19,7 +19,7 @@
 
 typedef struct state {
 	/* Global state */
-	size_t tick;
+	uint8_t tick;
 
 	/* Player */
 	camera_t cam;
@@ -42,7 +42,7 @@ typedef struct state {
 
 extern void state_init_pipeline(state_t *state);
 extern void state_init_bindings(state_t *state);
-extern void state_init_textures(state_t *state, char* tex_path);
+extern void state_init_textures(state_t *state);
 extern void state_init_cam(state_t *state);
 
 #endif
