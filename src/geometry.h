@@ -1,5 +1,5 @@
-#ifndef OBJECT_H
-#define OBJECT_H 
+#ifndef GEOMETRY_H
+#define GEOMETRY_H 
 
 #if !defined(SOKOL_APP_INCLUDED) 
 #include "sokol_app.h"
@@ -57,8 +57,8 @@ typedef struct mesh {
 typedef struct vbo_data {
 	size_t v_offset;
 	size_t i_offset;
-	size_t v_size;
-	size_t i_size;
+	size_t v_len;
+	size_t i_len;
 } vbo_data_t;
 
 typedef struct chunk {

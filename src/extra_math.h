@@ -9,9 +9,10 @@
 #define em_deg_to_rad(t) (t * (em_PI / 180.0))
 #define em_rad_to_deg(t) (t * (180.0 / em_PI))
 
-#define em_min(x, y) (x) > (y) ? (y) : (x)
-#define em_max(x, y) (x) < (y) ? (y) : (x)
-#define em_abs(x) (x) < 0.0 ? -(x) : (x)
+#define em_min(x, y) ((x) > (y) ? (y) : (x))
+#define em_max(x, y) ((x) < (y) ? (y) : (x))
+#define em_absf(x) ((x) < 0.0 ? -(x) : (x))
+#define em_abs(x) ((x) < 0 ? -(x) : (x))
 #define em_sqr(x) ((x) * (x))
 
 typedef union em_vec2 {
@@ -43,8 +44,6 @@ typedef em_vec4 em_quaternion;
 typedef struct em_mat4 {
 	float elements[4][4];
 } em_mat4;
-
-extern bool em_equals_vec2(em_vec2 a, em_vec2 b);
 
 extern em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, float w);
 extern em_mat4 em_new_mat4(void);

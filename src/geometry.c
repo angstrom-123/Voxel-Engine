@@ -1,4 +1,4 @@
-#include "object.h"
+#include "geometry.h"
 
 static float* _unpack(uint32_t packed)
 {
@@ -117,8 +117,6 @@ void chunk_generate_mesh(chunk_t *chunk)
 
 			v_buf = realloc(v_buf, max_v * sizeof(vertex_t));
 			i_buf = realloc(i_buf, max_i * sizeof(uint16_t));
-
-			// TODO: Handle failure of allocation
 		}
 
 		const uint8_t x = i / (CHUNK_HEIGHT * CHUNK_SIZE);

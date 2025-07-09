@@ -13,7 +13,7 @@
 
 #include "camera.h"
 #include "bmp.h"
-#include "object.h"
+#include "geometry.h"
 
 #include "shaders/chunk.glsl.h"
 

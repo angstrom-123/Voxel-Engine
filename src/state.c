@@ -116,9 +116,9 @@ void state_init_textures(state_t *state)
 void state_init_cam(state_t *state)
 {
 	state->cam = cam_setup(&(camera_desc_t) {
-		.render_distance = 2,
+		.render_distance = 6,
 		.near_dist = 0.1,
-		.far_dist = (5 * 16),
+		.far_dist = 200.0,
 		.aspect = (sapp_widthf() / sapp_heightf()),
 		.fov = 60.0,
 		.turn_sens = 0.04,

@@ -23,6 +23,7 @@ static void init(void)
 	state.v_cnt = 0;
 	state.i_cnt = 0;
 
+	/* Vertex buffer. */
 	state.vbo = sg_make_buffer(&(sg_buffer_desc) {
 		.size = 256 * 256 * 1024,
 		.usage = {
@@ -31,6 +32,7 @@ static void init(void)
 		}
 	});
 
+	/* Index buffer. */
 	state.ibo = sg_make_buffer(&(sg_buffer_desc) {
 		.size = 256 * 256 * 1024,
 		.usage = {
@@ -55,14 +57,9 @@ static void init(void)
 		}
 	};
 
-	state.chunks = realloc(state.chunks, 5 * sizeof(chunk_t *));
-	state.chunk_count = 5;
-
-	state.chunks[0] = gen_new_chunk((em_vec3) {0.0, 0.0, 0.0});
-	state.chunks[1] = gen_new_chunk((em_vec3) {8.0, 0.0, 0.0});
-	state.chunks[2] = gen_new_chunk((em_vec3) {-8.0, 0.0, 0.0});
-	state.chunks[3] = gen_new_chunk((em_vec3) {0.0, 0.0, 8.0});
-	state.chunks[4] = gen_new_chunk((em_vec3) {0.0, 0.0, -8.0});
+	chunk_set_t tmp = gen_chunks_around(state.cam.position, state.cam.render_distance);
+	state.chunks = tmp.chunks;
+	state.chunk_count = tmp.count;
 }
 
 static void render(void)
@@ -73,55 +70,27 @@ static void render(void)
 	});
 
 	sg_apply_pipeline(state.pip);
+	sg_apply_bindings(&(sg_bindings) {
+		.vertex_buffers[0] = state.vbo,
+		.index_buffer = state.ibo,
+		.samplers[0] = state.bind.samplers[0],
+		.images[0] = state.bind.images[0],
+	});
 
-
+	/* Apply per-chunk uniforms. */
 	for (size_t i = 0; i < state.chunk_count; i++)
 	{
-		/* Apply per-chunk uniforms */
 		chunk_t *chunk = state.chunks[i];
 
 		vs_params_t vs_params;
+
 		vs_params.u_mvp = em_mul_mat4(state.cam.view_proj, em_translate_mat4(chunk->pos));
 		vs_params.u_chnk_pos[0] = (float) chunk->mesh.x;
 		vs_params.u_chnk_pos[1] = (float) chunk->mesh.y;
 		vs_params.u_chnk_pos[2] = (float) chunk->mesh.z;
 
 		sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
-
-		if (!chunk->loaded)
-		{
-			size_t v_size = (size_t) (chunk->mesh.v_cnt * sizeof(vertex_t));
-			size_t i_size = (size_t) (chunk->mesh.i_cnt * sizeof(uint16_t));
-
-			size_t v_ofst = sg_append_buffer(state.vbo, &(sg_range) {
-				.ptr = chunk->mesh.v_buf,
-				.size = v_size
-			});
-			size_t i_ofst = sg_append_buffer(state.ibo, &(sg_range) {
-				.ptr = chunk->mesh.i_buf,
-				.size = i_size
-			});
-
-			state.v_cnt += chunk->mesh.v_cnt;
-			state.i_cnt += chunk->mesh.i_cnt;
-
-			chunk->vbo_offsets = (vbo_data_t) {
-				.v_size = v_size,
-				.i_size = i_size,
-				.v_offset = v_ofst,
-				.i_offset = i_ofst
-			};
-
-			chunk->loaded = true;
-		}
-		
-		sg_apply_bindings(&(sg_bindings) {
-			.vertex_buffers[0] = state.vbo,
-			.index_buffer = state.ibo,
-			.samplers[0] = state.bind.samplers[0],
-			.images[0] = state.bind.images[0],
-		});
-		sg_draw(0, state.i_cnt, 1);
+		sg_draw(chunk->vbo_offsets.i_offset, chunk->vbo_offsets.i_len, 1);
 	}
 
 	sg_end_pass();
@@ -130,6 +99,34 @@ static void render(void)
 
 static void tick(void)
 {
+	/* Update state's buffers to include newly loaded chunks. */
+	for (size_t i = 0; i < state.chunk_count; i++)
+	{
+		chunk_t *chunk = state.chunks[i];
+		if (!chunk->loaded)
+		{
+			sg_append_buffer(state.vbo, &(sg_range) {
+				.ptr = chunk->mesh.v_buf,
+				.size = (size_t) (chunk->mesh.v_cnt * sizeof(vertex_t))
+			});
+			sg_append_buffer(state.ibo, &(sg_range) {
+				.ptr = chunk->mesh.i_buf,
+				.size = (size_t) (chunk->mesh.i_cnt * sizeof(uint16_t))
+			});
+
+			chunk->vbo_offsets = (vbo_data_t) {
+				.v_len = chunk->mesh.v_cnt,
+				.i_len = chunk->mesh.i_cnt,
+				.v_offset = state.v_cnt,
+				.i_offset = state.i_cnt
+			};
+
+			state.v_cnt += chunk->mesh.v_cnt;
+			state.i_cnt += chunk->mesh.i_cnt;
+
+			chunk->loaded = true;
+		}
+	}
 }
 
 static void frame(void)
