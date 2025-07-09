@@ -31,6 +31,10 @@ typedef struct state {
 	cube_uv_lookup_t uv_lookup;
 
 	/* World */
+	uint32_t v_cnt;
+	uint32_t i_cnt;
+	sg_buffer vbo;
+	sg_buffer ibo;
 	size_t chunk_count;
 	chunk_t **chunks;
 

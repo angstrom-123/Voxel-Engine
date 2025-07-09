@@ -24,8 +24,6 @@
 
 #define CHUNK_SIZE 16 
 #define CHUNK_HEIGHT 64
-#define SUBMESH_VERTEX_COUNT 1024
-#define SUBMESH_INDEX_COUNT 1536
 
 typedef struct vertex { 
 	uint8_t x;
@@ -36,7 +34,7 @@ typedef struct vertex {
 } vertex_t;
 
 typedef struct chunk_data {
-	int8_t block_types[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE];
+	int8_t types[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE];
 } chunk_data_t;
 
 typedef struct mesh_desc {
@@ -47,24 +45,28 @@ typedef struct mesh_desc {
 } mesh_desc_t;
 
 typedef struct mesh {
-	uint16_t v_cnt;
-	uint16_t i_cnt;
-	sg_buffer v_buf;
-	sg_buffer i_buf;
-} mesh_t;
-
-typedef struct chunk_mesh {
 	int32_t x;
 	int32_t y;
 	int32_t z;
-	uint8_t submesh_cnt;
-	mesh_t *submeshes;
-} chunk_mesh_t;
+	uint16_t v_cnt;
+	uint16_t i_cnt;
+	vertex_t *v_buf;
+	uint16_t *i_buf;
+} mesh_t;
+
+typedef struct vbo_data {
+	size_t v_offset;
+	size_t i_offset;
+	size_t v_size;
+	size_t i_size;
+} vbo_data_t;
 
 typedef struct chunk {
 	em_vec3 pos;
-	chunk_data_t *data;
-	chunk_mesh_t mesh;
+	chunk_data_t *blocks;
+	vbo_data_t vbo_offsets;
+	mesh_t mesh;
+	bool loaded;
 } chunk_t;
 
 typedef struct quad_desc {
