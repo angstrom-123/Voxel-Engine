@@ -31,16 +31,16 @@ void cam_handle_mouse(camera_t *cam, float mouse_dx, float mouse_dy)
 	em_quaternion pitch_q = em_quaternion_from_axis_angle(right, cam->pitch);
 
 	// apply quaternions
-	cam->rotation = em_normalize_quaternion(em_mul_quaternion(pitch_q, yaw_q));
+	cam->rot = em_normalize_quaternion(em_mul_quaternion(pitch_q, yaw_q));
 
 	// recalculate basis vectors
-	cam->forward = _get_forward(cam->rotation);
-	cam->right = _get_right(cam->rotation);
-	cam->up = _get_up(cam->rotation);
+	cam->fwd = _get_forward(cam->rot);
+	cam->right = _get_right(cam->rot);
+	cam->up = _get_up(cam->rot);
 
 	// recalculate view matrix
-	em_mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(cam->rotation));
-	em_mat4 trans = em_translate_mat4(em_mul_vec3_f(cam->position, -1.0));
+	em_mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(cam->rot));
+	em_mat4 trans = em_translate_mat4(em_mul_vec3_f(cam->pos, -1.0));
 	cam->view = em_mul_mat4(rot, trans);
 }
 
@@ -49,45 +49,45 @@ void cam_handle_keyboard(camera_t *cam, bool *key_down, double dt)
 	// movement
 	em_vec3 move = {0};
 
-	em_vec3 forward = cam->forward;
+	em_vec3 fwd = cam->fwd;
 	em_vec3 right = cam->right;
 
-	forward.y = 0.0;
+	fwd.y = 0.0;
 	right.y = 0.0;
 
-	forward = em_normalize_vec3(forward);
+	fwd = em_normalize_vec3(fwd);
 	right = em_normalize_vec3(right);
 
-	if (key_down[SAPP_KEYCODE_W]) 			 move = em_add_vec3(move, forward);
-	if (key_down[SAPP_KEYCODE_S]) 			 move = em_sub_vec3(move, forward);
-	if (key_down[SAPP_KEYCODE_D]) 			 move = em_add_vec3(move, right);
-	if (key_down[SAPP_KEYCODE_A]) 			 move = em_sub_vec3(move, right);
-	if (key_down[SAPP_KEYCODE_SPACE]) 		 move = em_add_vec3(move, WORLD_Y);
+	if (key_down[SAPP_KEYCODE_W			  ]) move = em_add_vec3(move, fwd);
+	if (key_down[SAPP_KEYCODE_S			  ]) move = em_sub_vec3(move, fwd);
+	if (key_down[SAPP_KEYCODE_D			  ]) move = em_add_vec3(move, right);
+	if (key_down[SAPP_KEYCODE_A			  ]) move = em_sub_vec3(move, right);
+	if (key_down[SAPP_KEYCODE_SPACE		  ]) move = em_add_vec3(move, WORLD_Y);
 	if (key_down[SAPP_KEYCODE_LEFT_CONTROL]) move = em_sub_vec3(move, WORLD_Y);
 
 	if (em_length_squared_vec3(move) > 0.0)
 	{
 		move = em_mul_vec3_f(em_mul_vec3_f(move, cam->move_sens), dt);
-		cam->position = em_add_vec3(cam->position, move);
+		cam->pos = em_add_vec3(cam->pos, move);
 	}
 }
 
 camera_t cam_setup(const camera_desc_t *desc) 
 {
-	em_mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(desc->rotation));
-	em_mat4 trans = em_translate_mat4(em_mul_vec3_f(desc->position, -1.0));
+	em_mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(desc->rot));
+	em_mat4 trans = em_translate_mat4(em_mul_vec3_f(desc->pos, -1.0));
 	camera_t cam = {
-		.render_distance = desc->render_distance,
-		.near_dist   	 = desc->near_dist,
-		.far_dist    	 = desc->far_dist,
-		.aspect	     	 = desc->aspect,
-		.fov 	     	 = desc->fov,
-		.turn_sens   	 = desc->turn_sens,
-		.move_sens   	 = desc->move_sens,
-		.rotation    	 = em_normalize_quaternion(desc->rotation),
-		.position    	 = desc->position,
-		.view 		 	 = em_mul_mat4(rot, trans),
-		.proj 		 	 = em_perspective(desc->fov, desc->aspect, desc->near_dist, desc->far_dist)
+		.rndr_dist = desc->rndr_dist,
+		.near      = desc->near,
+		.far       = desc->far,
+		.aspect	   = desc->aspect,
+		.fov 	   = desc->fov,
+		.turn_sens = desc->turn_sens,
+		.move_sens = desc->move_sens,
+		.rot       = em_normalize_quaternion(desc->rot),
+		.pos       = desc->pos,
+		.view 	   = em_mul_mat4(rot, trans),
+		.proj 	   = em_perspective(desc->fov, desc->aspect, desc->near, desc->far)
 	};
 
 	cam_update(&cam);
@@ -96,7 +96,7 @@ camera_t cam_setup(const camera_desc_t *desc)
 
 void cam_update(camera_t *cam)
 {
-	cam->view_proj = em_mul_mat4(cam->proj, cam->view);
+	cam->vp = em_mul_mat4(cam->proj, cam->view);
 }
 
 void cam_frame(camera_t *cam, bool *key_down, float *mouse_dx, float *mouse_dy, double dt)

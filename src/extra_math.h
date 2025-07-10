@@ -3,7 +3,6 @@
 
 #include <math.h> /* trig */
 #include <stdbool.h>
-#include <stdlib.h> /* size_t */
 
 #define em_PI acosf(-1.0)
 #define em_deg_to_rad(t) (t * (em_PI / 180.0))
@@ -14,6 +13,54 @@
 #define em_absf(x) ((x) < 0.0 ? -(x) : (x))
 #define em_abs(x) ((x) < 0 ? -(x) : (x))
 #define em_sqr(x) ((x) * (x))
+
+typedef union em_uvec2 {
+	struct {
+		unsigned x, y;
+	};
+
+	unsigned elements[2];
+} em_uvec2;
+
+typedef union em_uvec3 {
+	struct {
+		unsigned x, y, z;
+	};
+
+	unsigned elements[3];
+} em_uvec3;
+
+typedef union em_uvec4 {
+	struct {
+		unsigned x, y, z, w;
+	};
+
+	unsigned elements[4];
+} em_uvec4;
+
+typedef union em_ivec2 {
+	struct {
+		int x, y;
+	};
+
+	int elements[2];
+} em_ivec2;
+
+typedef union em_ivec3 {
+	struct {
+		int x, y, z;
+	};
+
+	int elements[3];
+} em_ivec3;
+
+typedef union em_ivec4 {
+	struct {
+		int x, y, z, w;
+	};
+
+	int elements[4];
+} em_ivec4;
 
 typedef union em_vec2 {
 	struct {
@@ -44,6 +91,8 @@ typedef em_vec4 em_quaternion;
 typedef struct em_mat4 {
 	float elements[4][4];
 } em_mat4;
+
+extern bool em_equals_ivec3(em_ivec3 a, em_ivec3 b);
 
 extern em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, float w);
 extern em_mat4 em_new_mat4(void);

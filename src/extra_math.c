@@ -1,5 +1,10 @@
 #include "extra_math.h"
 
+bool em_equals_ivec3(em_ivec3 a, em_ivec3 b)
+{
+	return (a.x == b.x) && (a.y == b.y) && (a.z == b.z);
+}
+
 em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, float w)
 {
 	return (em_vec4) {xyz.x, xyz.y, xyz.z, w};
@@ -279,12 +284,12 @@ em_mat4 em_mul_mat4(em_mat4 a, em_mat4 b)
 {
 	em_mat4 res = {0};
 
-	for (size_t i = 0; i < 4; i++)
+	for (unsigned i = 0; i < 4; i++)
 	{
-		for (size_t j = 0; j < 4; j++)
+		for (unsigned j = 0; j < 4; j++)
 		{
 			float sum = 0.0;
-			for (size_t k = 0; k < 4; k++)
+			for (unsigned k = 0; k < 4; k++)
 			{
 				sum += (a.elements[k][j] * b.elements[i][k]);
 			}
@@ -299,9 +304,9 @@ em_mat4 em_mul_mat4_f(em_mat4 a, float b)
 {
 	em_mat4 res = {0};
 
-	for (size_t i = 0; i < 4; i++)
+	for (unsigned i = 0; i < 4; i++)
 	{
-		for (size_t j = 0; j < 4; j++)
+		for (unsigned j = 0; j < 4; j++)
 		{
 			res.elements[i][j] = a.elements[i][j] * b;
 		}
@@ -313,10 +318,10 @@ em_vec4 em_mul_mat4_v4(em_mat4 a, em_vec4 b)
 {
 	em_vec4 res = {0};
 
-	for (size_t i = 0; i < 4; i++)
+	for (unsigned i = 0; i < 4; i++)
 	{
 		float sum = 0.0;
-		for (size_t j = 0; j < 4; j++)
+		for (unsigned j = 0; j < 4; j++)
 		{
 			sum += a.elements[j][i] * b.elements[j];
 		}
@@ -351,9 +356,9 @@ em_mat4 em_transpose_mat4(em_mat4 matrix)
 {
 	em_mat4 res = {0};
 
-	for (size_t i = 0; i < 4; i++)
+	for (unsigned i = 0; i < 4; i++)
 	{
-		for (size_t j = 0; j < 4; j++)
+		for (unsigned j = 0; j < 4; j++)
 		{
 			res.elements[i][j] = matrix.elements[j][i];
 		}

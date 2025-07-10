@@ -1,4 +1,5 @@
 #include "geometry.h"
+#include <stdio.h>
 
 static float* _unpack(uint32_t packed)
 {
@@ -44,16 +45,16 @@ static void _add_face_to_mesh(quad_desc_t *desc,
 					   uint16_t *indices, vertex_t *vertices)
 {
 	vertex_t verts[4] = {
-		face_vertices[desc->face_idx][0],
-		face_vertices[desc->face_idx][1],
-		face_vertices[desc->face_idx][2],
-		face_vertices[desc->face_idx][3]
+		face_vertices[desc->face][0],
+		face_vertices[desc->face][1],
+		face_vertices[desc->face][2],
+		face_vertices[desc->face][3]
 	};
 	for (size_t i = 0; i < 4; i++)
 	{
 		float *uv = _unpack(verts[i].uv);
-		uv[0] += uv_lookup[(desc->cube_type * 6) + desc->face_idx].x;
-		uv[1] += uv_lookup[(desc->cube_type * 6) + desc->face_idx].y;
+		uv[0] += uv_lookup[(desc->type * 6) + desc->face].x;
+		uv[1] += uv_lookup[(desc->type * 6) + desc->face].y;
 
 		verts[i].uv = PACK(uv[0], uv[1]);
 		verts[i].x += desc->x;
@@ -91,8 +92,14 @@ bool is_transparent(cube_type_e type)
 
 void chunk_generate_mesh(chunk_t *chunk)
 {
-	uint32_t max_v = 10240;
-	uint32_t max_i = (max_v / 4) * 6;
+	/* 
+	 * NOTE: Resources for the chunk are intentionally overallocated to safely 
+	 * 		 accomodate the worst-case chunk mesh. This is so all chunks take 
+	 * 		 up the same amount of space in memory and can be more easily replaced
+	 * 		 when they have low priority.
+	 */
+	uint32_t max_v = 15360;
+	uint32_t max_i = (max_v / 4) * 6; // Each cube face (4 verts) needs 6 indices
 
 	uint32_t v_cnt = 0;
 	uint32_t i_cnt = 0;
@@ -109,14 +116,10 @@ void chunk_generate_mesh(chunk_t *chunk)
 		const cube_type_e type = *ptr;
 		if (type == CUBETYPE_AIR) continue; /* Ignore air blocks */
 
-		/* A maximum of 24 verts can be added in each pass. */
 		if (v_cnt + 24 >= max_v)
 		{
-			max_v += max_v / 2;
-			max_i = (max_v / 4) * 6;
-
-			v_buf = realloc(v_buf, max_v * sizeof(vertex_t));
-			i_buf = realloc(i_buf, max_i * sizeof(uint16_t));
+			fprintf(stderr, "Chunk buffer overflow.\n");
+			exit(1);
 		}
 
 		const uint8_t x = i / (CHUNK_HEIGHT * CHUNK_SIZE);
@@ -137,8 +140,8 @@ void chunk_generate_mesh(chunk_t *chunk)
 				.x = x,
 				.y = y,
 				.z = z,
-				.cube_type = type,
-				.face_idx = face
+				.type = type,
+				.face = face
 			}, &i_cnt, &v_cnt, i_buf, v_buf);
 		}
 	}
@@ -146,9 +149,6 @@ void chunk_generate_mesh(chunk_t *chunk)
 	/* Ignore empty chunks. */
 	if (v_cnt == 0)
 		chunk->mesh = (mesh_t) {
-			.x = 0,
-			.y = 0,
-			.z = 0,
 			.v_cnt = 0,
 			.i_cnt = 0,
 			.v_buf = NULL,
@@ -156,9 +156,6 @@ void chunk_generate_mesh(chunk_t *chunk)
 		};
 	else 
 		chunk->mesh = (mesh_t) {
-			.x = chunk->pos.x,
-			.y = chunk->pos.y,
-			.z = chunk->pos.z,
 			.v_cnt = v_cnt,
 			.i_cnt = i_cnt,
 			.v_buf = v_buf,

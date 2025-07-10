@@ -11,7 +11,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <memory.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #include "extra_math.h"
 
@@ -37,44 +38,42 @@ typedef struct chunk_data {
 	int8_t types[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE];
 } chunk_data_t;
 
-typedef struct mesh_desc {
-	uint16_t v_cnt;
-	uint16_t i_cnt;
-	vertex_t *vertices;
-	uint16_t *indices;
-} mesh_desc_t;
-
 typedef struct mesh {
-	int32_t x;
-	int32_t y;
-	int32_t z;
 	uint16_t v_cnt;
 	uint16_t i_cnt;
 	vertex_t *v_buf;
 	uint16_t *i_buf;
 } mesh_t;
 
-typedef struct vbo_data {
-	size_t v_offset;
-	size_t i_offset;
+typedef struct buf_offsets {
+	size_t v_ofst;
+	size_t i_ofst;
 	size_t v_len;
 	size_t i_len;
-} vbo_data_t;
+} buf_offsets_t;
 
 typedef struct chunk {
-	em_vec3 pos;
+	int32_t x;
+	int32_t y;
+	int32_t z;
+
 	chunk_data_t *blocks;
-	vbo_data_t vbo_offsets;
+	buf_offsets_t buf_data;
 	mesh_t mesh;
+	
 	bool loaded;
+	bool staged;
+	bool visible;
+
+	uint8_t age;
 } chunk_t;
 
 typedef struct quad_desc {
 	uint8_t x;
 	uint8_t y;
 	uint8_t z;
-	uint8_t cube_type;
-	uint8_t face_idx;
+	uint8_t type;
+	uint8_t face;
 } quad_desc_t;
 
 typedef enum cube_face_idx {

@@ -2,3 +2,4 @@
 - Dynamic world loading with chunking
 - Terrain generation using noise
 - Fix drawing order (transparent blocks last)
+- Frustum culling chunks 

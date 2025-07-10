@@ -80,29 +80,29 @@ void state_init_textures(state_t *state)
 	}
 
 	sg_init_image(state->bind.images[0], &(sg_image_desc) {
-		.width = atlases[0]->info_header.width,
-		.height = atlases[0]->info_header.height,
+		.width = atlases[0]->ih.width,
+		.height = atlases[0]->ih.height,
 		.pixel_format = SG_PIXELFORMAT_RGBA8,
 		.num_mipmaps = 5,
 		.data.subimage[0][0] = {
 			.ptr = atlases[0]->pixel_data,
-			.size = (size_t) atlases[0]->info_header.img_size
+			.size = (size_t) atlases[0]->ih.img_size
 		},
 		.data.subimage[0][1] = {
 			.ptr = atlases[1]->pixel_data,
-			.size = (size_t) atlases[1]->info_header.img_size
+			.size = (size_t) atlases[1]->ih.img_size
 		},
 		.data.subimage[0][2] = {
 			.ptr = atlases[2]->pixel_data,
-			.size = (size_t) atlases[2]->info_header.img_size
+			.size = (size_t) atlases[2]->ih.img_size
 		},
 		.data.subimage[0][3] = {
 			.ptr = atlases[3]->pixel_data,
-			.size = (size_t) atlases[3]->info_header.img_size
+			.size = (size_t) atlases[3]->ih.img_size
 		},
 		.data.subimage[0][4] = {
 			.ptr = atlases[4]->pixel_data,
-			.size = (size_t) atlases[4]->info_header.img_size
+			.size = (size_t) atlases[4]->ih.img_size
 		},
 	});
 
@@ -116,14 +116,40 @@ void state_init_textures(state_t *state)
 void state_init_cam(state_t *state)
 {
 	state->cam = cam_setup(&(camera_desc_t) {
-		.render_distance = 6,
-		.near_dist = 0.1,
-		.far_dist = 200.0,
-		.aspect = (sapp_widthf() / sapp_heightf()),
-		.fov = 60.0,
+		.rndr_dist = 16,
+		.near 	   = 0.1,
+		.far 	   = 200.0,
+		.aspect    = (sapp_widthf() / sapp_heightf()),
+		.fov 	   = 60.0,
 		.turn_sens = 0.04,
 		.move_sens = 10.0,
-		.rotation = {0.0, 0.0, 0.0, 1.0}, /* Identity quaternion */
-		.position = {8.0, 34.0, 8.0},
+		.rot 	   = {0.0, 0.0, 0.0, 1.0},
+		.pos 	   = {8.0, 34.0, 8.0},
 	});
+}
+
+void state_init_chunk_buffer(state_t *state)
+{
+	const size_t MEGA_BUFFER_SIZE = 256 * 256 * 1024;
+
+	state->cb = (chunk_buffer_t) {
+		.vbo = sg_make_buffer(&(sg_buffer_desc) {
+			.size = MEGA_BUFFER_SIZE,
+			.usage = {
+				.vertex_buffer = true,
+				.dynamic_update = true
+			}
+		}),
+		.ibo = sg_make_buffer(&(sg_buffer_desc) {
+			.size = MEGA_BUFFER_SIZE,
+			.usage = {
+				.index_buffer = true,
+				.dynamic_update = true
+			}
+		}),
+		.v_stg = malloc(MEGA_BUFFER_SIZE),
+		.i_stg = malloc(MEGA_BUFFER_SIZE),
+		.v_cnt = 0,
+		.i_cnt = 0
+	};
 }
