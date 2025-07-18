@@ -5,18 +5,24 @@ void state_init_pipeline(state_t *state)
 	state->pip = sg_make_pipeline(&(sg_pipeline_desc) {
 		.shader = sg_make_shader(chunk_shader_desc(sg_query_backend())),
 		.layout = {
+			// .buffers[0] = {
+			// 	.stride = sizeof(vertex_t),
+			// 	.step_func = SG_VERTEXSTEP_PER_VERTEX 
+			// },
 			.attrs = {
-				[ATTR_chunk_a_xyzn] = {
+				[ATTR_chunk_a_xyzn] = { // Position within chunk and packed normals.
 					.format = SG_VERTEXFORMAT_UBYTE4,
-					.buffer_index = 0
+					// .buffer_index = 0,
+					// .offset = 0
 				},
-				[ATTR_chunk_a_uv] = {
+				[ATTR_chunk_a_uv] = { // Packed texture coords.
 					.format = SG_VERTEXFORMAT_UINT,
-					.buffer_index = 0
+					// .buffer_index = 0,
+					// .offset = 4
 				}
-			}
+			},
 		},
-		.index_type = SG_INDEXTYPE_UINT16,
+		.index_type = SG_INDEXTYPE_UINT32,
 		.cull_mode = SG_CULLMODE_BACK,
 		.depth = {
 			.compare = SG_COMPAREFUNC_LESS_EQUAL,
@@ -45,8 +51,6 @@ void state_init_bindings(state_t *state)
 			.min_filter = SG_FILTER_NEAREST,
 			.mag_filter = SG_FILTER_NEAREST,
 			.mipmap_filter = SG_FILTER_NEAREST,
-			.wrap_u = SG_WRAP_CLAMP_TO_EDGE,
-			.wrap_v = SG_WRAP_CLAMP_TO_EDGE,
 			.max_lod = 5.0,
 		}),
 		.images[0] = sg_alloc_image()
@@ -74,7 +78,7 @@ void state_init_textures(state_t *state)
 				free(atlases[i]);
 			}
 
-			fprintf(stderr, "Failed to load texture atlas or mipmaps.");
+			fprintf(stderr, "Failed to load texture atlas or mipmaps.\n");
 			exit(1);
 		}
 	}
@@ -84,25 +88,12 @@ void state_init_textures(state_t *state)
 		.height = atlases[0]->ih.height,
 		.pixel_format = SG_PIXELFORMAT_RGBA8,
 		.num_mipmaps = 5,
-		.data.subimage[0][0] = {
-			.ptr = atlases[0]->pixel_data,
-			.size = (size_t) atlases[0]->ih.img_size
-		},
-		.data.subimage[0][1] = {
-			.ptr = atlases[1]->pixel_data,
-			.size = (size_t) atlases[1]->ih.img_size
-		},
-		.data.subimage[0][2] = {
-			.ptr = atlases[2]->pixel_data,
-			.size = (size_t) atlases[2]->ih.img_size
-		},
-		.data.subimage[0][3] = {
-			.ptr = atlases[3]->pixel_data,
-			.size = (size_t) atlases[3]->ih.img_size
-		},
-		.data.subimage[0][4] = {
-			.ptr = atlases[4]->pixel_data,
-			.size = (size_t) atlases[4]->ih.img_size
+		.data.subimage[0] = {
+			{.ptr = atlases[0]->pixel_data, .size = atlases[0]->ih.img_size},
+			{.ptr = atlases[1]->pixel_data, .size = atlases[1]->ih.img_size},
+			{.ptr = atlases[2]->pixel_data, .size = atlases[2]->ih.img_size},
+			{.ptr = atlases[3]->pixel_data, .size = atlases[3]->ih.img_size},
+			{.ptr = atlases[4]->pixel_data, .size = atlases[4]->ih.img_size},
 		},
 	});
 
@@ -118,7 +109,7 @@ void state_init_cam(state_t *state)
 	state->cam = cam_setup(&(camera_desc_t) {
 		.rndr_dist = 16,
 		.near 	   = 0.1,
-		.far 	   = 200.0,
+		.far 	   = 300.0,
 		.aspect    = (sapp_widthf() / sapp_heightf()),
 		.fov 	   = 60.0,
 		.turn_sens = 0.04,
@@ -152,4 +143,13 @@ void state_init_chunk_buffer(state_t *state)
 		.v_cnt = 0,
 		.i_cnt = 0
 	};
+
+	if (!state->cb.v_stg 
+		|| !state->cb.i_stg 
+		|| (state->cb.vbo.id == SG_INVALID_ID) 
+		|| (state->cb.ibo.id == SG_INVALID_ID))
+	{
+		fprintf(stderr, "Failed to allocate mega buffers.\n");
+		exit(1);
+	}
 }

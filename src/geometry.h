@@ -26,6 +26,13 @@
 #define CHUNK_SIZE 16 
 #define CHUNK_HEIGHT 64
 
+#define V_MAX 12288
+#define I_MAX 18432
+
+#define START_CANARY_VAL 0xDEADBEEF
+#define MID_CANARY_VAL 0xFEEDBEAD
+#define END_CANARY_VAL 0xCAFEBABE
+
 typedef struct vertex { 
 	uint8_t x;
 	uint8_t y;
@@ -39,10 +46,15 @@ typedef struct chunk_data {
 } chunk_data_t;
 
 typedef struct mesh {
-	uint16_t v_cnt;
-	uint16_t i_cnt;
-	vertex_t *v_buf;
-	uint16_t *i_buf;
+	uint32_t v_rsrv;  // Size of buffer chunk reserved for vertices
+	uint32_t i_rsrv;  // Size of buffer chunk reserved for indices
+	uint32_t v_cnt;  // Actual length of vertex data 
+	uint32_t i_cnt;  // Actual length of index data
+	uint32_t __start_canary;
+	vertex_t *v_buf; // Pointer to vertex data
+	uint32_t __mid_canary;
+	uint32_t *i_buf; // Pointer to index data
+	uint32_t __end_canary;
 } mesh_t;
 
 typedef struct buf_offsets {
@@ -61,7 +73,6 @@ typedef struct chunk {
 	buf_offsets_t buf_data;
 	mesh_t mesh;
 	
-	bool loaded;
 	bool staged;
 	bool visible;
 
@@ -96,7 +107,7 @@ typedef enum cube_type {
 } cube_type_e;
 
 typedef struct cube_uv_lookup {
-	em_vec4 uv_rects[MAX_BLOCK_TYPES * 6];
+	vec4 uv_rects[MAX_BLOCK_TYPES * 6];
 } cube_uv_lookup_t;
 
 static const vertex_t face_vertices[6][4] = {
@@ -138,7 +149,7 @@ static const vertex_t face_vertices[6][4] = {
 	}
 };
 
-static const em_vec2 uv_lookup[MAX_BLOCK_TYPES * 6] = {
+static const vec2 uv_lookup[MAX_BLOCK_TYPES * 6] = {
 	[CUBETYPE_AIR * 6 + FACEIDX_BACK]   = {0.0, 0.0},
 	[CUBETYPE_AIR * 6 + FACEIDX_FRONT]  = {0.0, 0.0},
 	[CUBETYPE_AIR * 6 + FACEIDX_RIGHT]  = {0.0, 0.0},
@@ -189,6 +200,7 @@ static const em_vec2 uv_lookup[MAX_BLOCK_TYPES * 6] = {
 	[CUBETYPE_LEAF * 6 + FACEIDX_TOP]    = {TX(7), TX(15)},
 };
 
+extern bool canaries_failed(chunk_t *chunk);
 extern bool is_transparent(cube_type_e type);
 extern void chunk_generate_mesh(chunk_t *chunk);
 

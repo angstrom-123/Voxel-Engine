@@ -5,6 +5,36 @@ bool em_equals_ivec3(em_ivec3 a, em_ivec3 b)
 	return (a.x == b.x) && (a.y == b.y) && (a.z == b.z);
 }
 
+em_vec2 em_ivec2_as_vec2(em_ivec2 a)
+{
+	return (em_vec2) {(float) a.x, (float) a.y};
+}
+
+em_vec3 em_ivec3_as_vec3(em_ivec3 a)
+{
+	return (em_vec3) {(float) a.x, (float) a.y, (float) a.z};
+}
+
+em_vec4 em_ivec4_as_vec4(em_ivec4 a)
+{
+	return (em_vec4) {(float) a.x, (float) a.y, (float) a.z, (float) a.w};
+}
+
+em_ivec2 em_vec2_as_ivec2(em_vec2 a)
+{
+	return (em_ivec2) {(int) a.x, (int) a.y};
+}
+
+em_ivec3 em_vec3_as_ivec3(em_vec3 a)
+{
+	return (em_ivec3) {(int) a.x, (int) a.y, (int) a.z};
+}
+
+em_ivec4 em_vec4_as_ivec4(em_vec4 a)
+{
+	return (em_ivec4) {(int) a.x, (int) a.y, (int) a.z, (int) a.w};
+}
+
 em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, float w)
 {
 	return (em_vec4) {xyz.x, xyz.y, xyz.z, w};
@@ -108,6 +138,21 @@ float em_dot_vec4(em_vec4 a, em_vec4 b)
 	return (a.x * b.x) + (a.y * b.y) + (a.z * b.z) + (a.w * b.w);
 }
 
+float em_dot_ivec2(em_ivec2 a, em_ivec2 b) 
+{
+	return (a.x * b.x) + (a.y * b.y);
+}
+
+float em_dot_ivec3(em_ivec3 a, em_ivec3 b)
+{
+	return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
+}
+
+float em_dot_ivec4(em_ivec4 a, em_ivec4 b)
+{
+	return (a.x * b.x) + (a.y * b.y) + (a.z * b.z) + (a.w * b.w);
+}
+
 em_vec3 em_cross_vec3(em_vec3 a, em_vec3 b)
 {
 	return (em_vec3) {
@@ -144,6 +189,32 @@ em_vec4 em_add_vec4(em_vec4 a, em_vec4 b)
 	};
 }
 
+em_ivec2 em_add_ivec2(em_ivec2 a, em_ivec2 b)
+{
+	return (em_ivec2) {
+		a.x + b.x, 
+		a.y + b.y 
+	};
+}
+
+em_ivec3 em_add_ivec3(em_ivec3 a, em_ivec3 b) 
+{
+	return (em_ivec3) {
+		a.x + b.x,
+		a.y + b.y,
+		a.z + b.z
+	};
+}
+
+em_ivec4 em_add_ivec4(em_ivec4 a, em_ivec4 b)
+{
+	return (em_ivec4) {
+		a.x + b.x,
+		a.y + b.y,
+		a.z + b.z,
+		a.w + b.w
+	};
+}
 
 em_vec2 em_sub_vec2(em_vec2 a, em_vec2 b)
 {
@@ -165,6 +236,33 @@ em_vec3 em_sub_vec3(em_vec3 a, em_vec3 b)
 em_vec4 em_sub_vec4(em_vec4 a, em_vec4 b)
 {
 	return (em_vec4) {
+		a.x - b.x,
+		a.y - b.y,
+		a.z - b.z,
+		a.w - b.w
+	};
+}
+
+em_ivec2 em_sub_ivec2(em_ivec2 a, em_ivec2 b)
+{
+	return (em_ivec2) {
+		a.x - b.x, 
+		a.y - b.y 
+	};
+}
+
+em_ivec3 em_sub_ivec3(em_ivec3 a, em_ivec3 b) 
+{
+	return (em_ivec3) {
+		a.x - b.x,
+		a.y - b.y,
+		a.z - b.z
+	};
+}
+
+em_ivec4 em_sub_ivec4(em_ivec4 a, em_ivec4 b)
+{
+	return (em_ivec4) {
 		a.x - b.x,
 		a.y - b.y,
 		a.z - b.z,
@@ -226,6 +324,60 @@ em_vec4 em_mul_vec4_f(em_vec4 a, float b)
 	};
 }
 
+em_ivec2 em_mul_ivec2(em_ivec2 a, em_ivec2 b)
+{
+	return (em_ivec2) {
+		a.x * b.x, 
+		a.y * b.y 
+	};
+}
+
+em_ivec3 em_mul_ivec3(em_ivec3 a, em_ivec3 b) 
+{
+	return (em_ivec3) {
+		a.x * b.x,
+		a.y * b.y,
+		a.z * b.z
+	};
+}
+
+em_ivec4 em_mul_ivec4(em_ivec4 a, em_ivec4 b)
+{
+	return (em_ivec4) {
+		a.x * b.x,
+		a.y * b.y,
+		a.z * b.z,
+		a.w * b.w
+	};
+}
+
+em_ivec2 em_mul_ivec2_i(em_ivec2 a, int b)
+{
+	return (em_ivec2) {
+		a.x * b, 
+		a.y * b 
+	};
+}
+
+em_ivec3 em_mul_ivec3_i(em_ivec3 a, int b) 
+{
+	return (em_ivec3) {
+		a.x * b,
+		a.y * b,
+		a.z * b
+	};
+}
+
+em_ivec4 em_mul_ivec4_i(em_ivec4 a, int b)
+{
+	return (em_ivec4) {
+		a.x * b,
+		a.y * b,
+		a.z * b,
+		a.w * b
+	};
+}
+
 em_vec2 em_div_vec2(em_vec2 a, em_vec2 b)
 {
 	return (em_vec2) {
@@ -273,6 +425,60 @@ em_vec3 em_div_vec3_f(em_vec3 a, float b)
 em_vec4 em_div_vec4_f(em_vec4 a, float b)
 {
 	return (em_vec4) {
+		a.x / b,
+		a.y / b,
+		a.z / b,
+		a.w / b
+	};
+}
+
+em_ivec2 em_div_ivec2(em_ivec2 a, em_ivec2 b)
+{
+	return (em_ivec2) {
+		a.x / b.x, 
+		a.y / b.y 
+	};
+}
+
+em_ivec3 em_div_ivec3(em_ivec3 a, em_ivec3 b) 
+{
+	return (em_ivec3) {
+		a.x / b.x,
+		a.y / b.y,
+		a.z / b.z
+	};
+}
+
+em_ivec4 em_div_ivec4(em_ivec4 a, em_ivec4 b)
+{
+	return (em_ivec4) {
+		a.x / b.x,
+		a.y / b.y,
+		a.z / b.z,
+		a.w / b.w
+	};
+}
+
+em_ivec2 em_div_ivec2_i(em_ivec2 a, int b)
+{
+	return (em_ivec2) {
+		a.x / b, 
+		a.y / b 
+	};
+}
+
+em_ivec3 em_div_ivec3_i(em_ivec3 a, int b) 
+{
+	return (em_ivec3) {
+		a.x / b,
+		a.y / b,
+		a.z / b
+	};
+}
+
+em_ivec4 em_div_ivec4_i(em_ivec4 a, int b)
+{
+	return (em_ivec4) {
 		a.x / b,
 		a.y / b,
 		a.z / b,

@@ -1,18 +1,18 @@
 #include "camera.h"
 
-static em_vec3 _get_forward(em_quaternion camera_rotation)
+static vec3 _get_forward(quaternion camera_rotation)
 {
-	return em_quaternion_rotate_vec3((em_vec3) {0.0, 0.0, -1.0}, camera_rotation);
+	return em_quaternion_rotate_vec3((vec3) {0.0, 0.0, -1.0}, camera_rotation);
 }
 
-static em_vec3 _get_right(em_quaternion camera_rotation)
+static vec3 _get_right(quaternion camera_rotation)
 {
-	return em_quaternion_rotate_vec3((em_vec3) {1.0, 0.0, 0.0}, camera_rotation);
+	return em_quaternion_rotate_vec3((vec3) {1.0, 0.0, 0.0}, camera_rotation);
 }
 
-static em_vec3 _get_up(em_quaternion camera_rotation)
+static vec3 _get_up(quaternion camera_rotation)
 {
-	return em_quaternion_rotate_vec3((em_vec3) {0.0, 1.0, 0.0}, camera_rotation);
+	return em_quaternion_rotate_vec3((vec3) {0.0, 1.0, 0.0}, camera_rotation);
 }
 
 void cam_handle_mouse(camera_t *cam, float mouse_dx, float mouse_dy)
@@ -20,37 +20,34 @@ void cam_handle_mouse(camera_t *cam, float mouse_dx, float mouse_dy)
 	cam->pitch += -mouse_dy * cam->turn_sens;
 	cam->yaw += -mouse_dx * cam->turn_sens;
 
-	if (cam->pitch > MAX_PITCH) cam->pitch = MAX_PITCH;
-	if (cam->pitch < -MAX_PITCH) cam->pitch = -MAX_PITCH;
+	if (cam->pitch > MAX_PITCH) 
+		cam->pitch = MAX_PITCH;
 
-	// yaw around global y axis
-	em_quaternion yaw_q = em_quaternion_from_axis_angle(WORLD_Y, cam->yaw);
+	if (cam->pitch < -MAX_PITCH)
+		cam->pitch = -MAX_PITCH;
 
-	// pitch around relative x axis
-	em_vec3 right = em_quaternion_rotate_vec3(WORLD_X, yaw_q);
-	em_quaternion pitch_q = em_quaternion_from_axis_angle(right, cam->pitch);
+	quaternion yaw_q = em_quaternion_from_axis_angle(WORLD_Y, cam->yaw);
 
-	// apply quaternions
+	vec3 right = em_quaternion_rotate_vec3(WORLD_X, yaw_q);
+	quaternion pitch_q = em_quaternion_from_axis_angle(right, cam->pitch);
+
 	cam->rot = em_normalize_quaternion(em_mul_quaternion(pitch_q, yaw_q));
 
-	// recalculate basis vectors
 	cam->fwd = _get_forward(cam->rot);
 	cam->right = _get_right(cam->rot);
 	cam->up = _get_up(cam->rot);
 
-	// recalculate view matrix
-	em_mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(cam->rot));
-	em_mat4 trans = em_translate_mat4(em_mul_vec3_f(cam->pos, -1.0));
+	mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(cam->rot));
+	mat4 trans = em_translate_mat4(em_mul_vec3_f(cam->pos, -1.0));
 	cam->view = em_mul_mat4(rot, trans);
 }
 
 void cam_handle_keyboard(camera_t *cam, bool *key_down, double dt)
 {
-	// movement
-	em_vec3 move = {0};
+	vec3 move = {0};
 
-	em_vec3 fwd = cam->fwd;
-	em_vec3 right = cam->right;
+	vec3 fwd = cam->fwd;
+	vec3 right = cam->right;
 
 	fwd.y = 0.0;
 	right.y = 0.0;
@@ -74,8 +71,8 @@ void cam_handle_keyboard(camera_t *cam, bool *key_down, double dt)
 
 camera_t cam_setup(const camera_desc_t *desc) 
 {
-	em_mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(desc->rot));
-	em_mat4 trans = em_translate_mat4(em_mul_vec3_f(desc->pos, -1.0));
+	mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(desc->rot));
+	mat4 trans = em_translate_mat4(em_mul_vec3_f(desc->pos, -1.0));
 	camera_t cam = {
 		.rndr_dist = desc->rndr_dist,
 		.near      = desc->near,

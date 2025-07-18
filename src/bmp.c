@@ -7,7 +7,10 @@ static bool _read_bytes_to_buf(FILE *f_ptr, size_t offset, size_t len, u8 *buf)
 	for (size_t i = 0; i < len; i++)
 	{
 		int read = fgetc(f_ptr);
-		if (read == EOF) return false; /* Should not overrun file end */
+		if (read == EOF) 
+		{
+			return false; // Should not overrun file end.
+		}
 
 		buf[i] = (u8) read;
 	}
@@ -18,11 +21,14 @@ static bool _read_bytes_to_buf(FILE *f_ptr, size_t offset, size_t len, u8 *buf)
 static bool _load_file_header(FILE *f_ptr, bmp_file_header_t *fh)
 {
 	u8 buf[14];
-	if (!_read_bytes_to_buf(f_ptr, 0, 14, buf)) return false;
+	if (!_read_bytes_to_buf(f_ptr, 0, 14, buf)) 
+	{
+		return false;
+	}
 
 	size_t head = 0;
 	fh->sig 	   = READ_U16_MOVE(buf, head);
-	fh->sig 	   = htons(fh->sig); /* Signature is big endian so we use htons */
+	fh->sig 	   = htons(fh->sig); 		   // Signature is big endian so we use htons.
 	fh->file_size  = READ_U32_MOVE(buf, head);
 	fh->__reserved = READ_U32_MOVE(buf, head);
 	fh->data_ofst  = READ_U32_MOVE(buf, head);
@@ -33,7 +39,10 @@ static bool _load_file_header(FILE *f_ptr, bmp_file_header_t *fh)
 static bool _load_info_header(FILE *f_ptr, bmp_info_header_t *ih)
 {
 	u8 buf[40];
-	if (!_read_bytes_to_buf(f_ptr, 14, 40, buf)) return false;
+	if (!_read_bytes_to_buf(f_ptr, 14, 40, buf)) 
+	{
+		return false;
+	}
 
 	size_t head = 0;
 	ih->head_size = READ_U32_MOVE(buf, head);
@@ -62,7 +71,10 @@ static u8 *_load_pixel_data(FILE *f_ptr, bmp_file_header_t *fh, bmp_info_header_
 
 	size_t offset = fh->data_ofst;
 	size_t len = ih->img_size;
-	if (!_read_bytes_to_buf(f_ptr, offset, len, pixels)) return NULL;
+	if (!_read_bytes_to_buf(f_ptr, offset, len, pixels)) 
+	{
+		return NULL;
+	}
 
 	/* Rearrange from BGRA to RGBA */
 	u8 tmp;
@@ -118,7 +130,7 @@ bmp_image_t *bmp_load_file(char *path)
 
 	out->fh = fh;
 	out->ih = ih;
-	out->ct = (bmp_color_table_t) {0}; /* NOTE: empty until support added */
+	out->ct = (bmp_color_table_t) {0}; // NOTE: empty until support added.
 	out->pixel_data = pixels;
 
 	fclose(f_ptr);

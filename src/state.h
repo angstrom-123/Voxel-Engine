@@ -26,7 +26,7 @@ typedef struct chunk_buffer {
 	sg_buffer ibo;
 
 	vertex_t *v_stg;
-	uint16_t *i_stg;
+	uint32_t *i_stg;
 } chunk_buffer_t;
 
 typedef struct state {
@@ -35,7 +35,7 @@ typedef struct state {
 
 	/* Player */
 	camera_t cam;
-	em_ivec3 prev_chunk_pos;
+	ivec3 prev_chunk_pos;
 
 	/* Render */
 	sg_pipeline pip;

@@ -14,6 +14,7 @@ in uint a_uv;	 /* uint (packed uv) */
 
 out vec2 v_uv;
 out vec3 v_norm;
+out float v_h;
 
 /*
 	Packed format:
@@ -91,6 +92,7 @@ void main() {
 
 	v_uv = unpack_uv(a_uv);
 	v_norm = unpack_normal(uint(a_xyzn.w));
+	v_h = pos.y;
 }
 @end
 
@@ -101,13 +103,15 @@ layout(binding=0) uniform sampler u_smp;
 
 in vec2 v_uv;
 in vec3 v_norm;
+in float v_h;
 
 out vec4 frag_color;
 
 void main() {
-	if (frag_color.a < 0.01) discard;
-
-	frag_color = texture(sampler2D(u_tex, u_smp), v_uv);
+	frag_color = vec4(v_h / 64, v_h / 64, v_h / 64, 1.0);
+	// if (frag_color.a < 0.01) discard;
+	//
+	// frag_color = texture(sampler2D(u_tex, u_smp), v_uv);
 
 	// Directional lighting:
 	// frag_color.rgb *= (0.7 + 0.3 * dot(v_norm, vec3(0.707, 0.707, 0.707)));

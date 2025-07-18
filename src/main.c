@@ -1,12 +1,15 @@
+#include "src/geometry.h"
 #define SOKOL_IMPL
+#define SOKOL_TRACE_HOOKS
+#define SOKOL_DEBUG
 
 #include "sokol_gfx.h"
 #include "sokol_app.h"
 #include "sokol_glue.h"
 #include "sokol_log.h"
 
-#include "state.h"
 #include "extra_math.h"
+#include "state.h"
 #include "world_gen.h"
 
 #include "shaders/chunk.glsl.h"
@@ -22,37 +25,65 @@ static void upload_stage(void)
 
 	sg_update_buffer(state.cb.ibo, &(sg_range) {
 		.ptr = state.cb.i_stg,
-		.size = state.cb.i_cnt * sizeof(uint16_t)
+		.size = state.cb.i_cnt * sizeof(uint32_t)
 	});
+
+	state.bind.vertex_buffers[0] = state.cb.vbo;
+	state.bind.index_buffer = state.cb.ibo;
+
+	sg_resource_state v_state = sg_query_buffer_state(state.cb.vbo);
+	sg_resource_state i_state = sg_query_buffer_state(state.cb.vbo);
+
+	if ((v_state == SG_RESOURCESTATE_FAILED) 
+		|| (v_state == SG_RESOURCESTATE_INVALID)
+		|| (i_state == SG_RESOURCESTATE_FAILED)
+		|| (i_state == SG_RESOURCESTATE_INVALID))
+	{
+		fprintf(stderr, "Mega buffer failure\n");
+		exit(1);
+	}
 }
 
 static void stage_chunk(chunk_t *chunk)
 {
-	for (size_t i = 0; i < state.chunk_cnt; i++)
+	const uint8_t MAX_AGE = 3;
+
+	uint32_t v_slot = state.cb.v_cnt;
+	uint32_t i_slot = state.cb.i_cnt;
+
+	bool evicted = false;
+	for (uint16_t i = 0; i < state.chunk_cnt; i++)
 	{
-		// TODO: Implement
-		if (state.chunks[i]->age > 3) printf("evict\n");
+		if ((state.chunks[i]->age > MAX_AGE) && state.chunks[i]->staged)
+		{
+			v_slot = state.chunks[i]->buf_data.v_ofst;
+			i_slot = state.chunks[i]->buf_data.i_ofst;
+
+			state.chunks[i]->staged = false;
+			evicted = true;
+			break;
+		}
 	}
-	memcpy(&state.cb.v_stg[state.cb.v_cnt],
+
+	if (!evicted)
+	{
+		state.cb.v_cnt += chunk->mesh.v_rsrv;
+		state.cb.i_cnt += chunk->mesh.i_rsrv;
+	}
+
+	memcpy(&state.cb.v_stg[v_slot],
 		   chunk->mesh.v_buf, chunk->mesh.v_cnt * sizeof(vertex_t));
 
-	memcpy(&state.cb.i_stg[state.cb.i_cnt],
-		   chunk->mesh.i_buf, chunk->mesh.i_cnt * sizeof(uint16_t));
-
-	chunk->buf_data = (buf_offsets_t) {
-		.v_len = chunk->mesh.v_cnt,
-		.i_len = chunk->mesh.i_cnt,
-		.v_ofst = state.cb.v_cnt,
-		.i_ofst = state.cb.i_cnt
-	};
-
-	state.cb.v_cnt += chunk->mesh.v_cnt;
-	state.cb.i_cnt += chunk->mesh.i_cnt;
+	memcpy(&state.cb.i_stg[i_slot],
+		   chunk->mesh.i_buf, chunk->mesh.i_cnt * sizeof(uint32_t));
 
 	chunk->staged = true;
 	chunk->age = 0;
+	chunk->buf_data.v_len = chunk->mesh.v_cnt;
+	chunk->buf_data.i_len = chunk->mesh.i_cnt;
+	chunk->buf_data.v_ofst = v_slot;
+	chunk->buf_data.i_ofst = i_slot;
 }
-
 
 /* 
  * Loop over all chunks in memory. 
@@ -70,65 +101,77 @@ static void stage_chunk(chunk_t *chunk)
  * TODO: Very old chunks could be removed from memory and saved as a file
  * 		 to be loaded in when the player gets closer.
  */
-static void dynamic_gen(void)
+static void generate_chunks(void)
 {
-	size_t cnt;
-	em_ivec3 *coords = gen_get_required_coords(state.cam.pos, state.cam.rndr_dist, &cnt);
-	size_t num_to_gen = cnt;
+	size_t cnt; // Equal to number of required coords, assigned in func.
+	ivec3 *coords = gen_get_required_coords(state.cam.pos, state.cam.rndr_dist, &cnt);
+	size_t new_chunk_cnt = cnt;
 
-	uint16_t *in_state = malloc(cnt * sizeof(uint32_t));
-	memset(in_state, UINT16_MAX, cnt * sizeof(uint32_t)); /* Sentinel value. */
+	bool *chunk_needed = calloc(state.chunk_cnt, sizeof(bool));
 
-	bool *visible = calloc(state.chunk_cnt, sizeof(bool));
-	for (size_t i = 0; i < state.chunk_cnt; i++)
+	uint32_t *idx_of_coord = malloc(cnt * sizeof(uint32_t));
+	memset(idx_of_coord, UINT32_MAX, cnt * sizeof(uint32_t)); // Sentinel value.
+
+	for (uint16_t i = 0; i < state.chunk_cnt; i++)
 	{
-		em_ivec3 pos = {
-			state.chunks[i]->x,
-			0.0,
-			state.chunks[i]->z
+		chunk_t *c = state.chunks[i];
+		ivec3 pos = {
+			c->x,
+			0.0,  // One chunk per column, Y not needed for world pos.
+			c->z
 		};
 		for (size_t j = 0; j < cnt; j++)
 		{
-			if (em_equals_ivec3(pos, coords[j]))
+			/* If a chunk at this coord is already loaded, then it is prepared to render. */
+			if (em_equals_ivec3(pos, coords[j])) 
 			{
-				num_to_gen--;
+				new_chunk_cnt--;
+				chunk_needed[i] = true;
+				idx_of_coord[j] = i;
 
-				in_state[j] = i;
-				visible[i] = true;
-
-				if (!state.chunks[i]->staged) stage_chunk(state.chunks[i]);
-				state.chunks[i]->visible = true;
-				state.chunks[i]->age = 0;
+				c->visible = true;
+				c->age = 0;
+				if (!c->staged) 
+					stage_chunk(state.chunks[i]);
 				
 				break;
 			}
 		}
 	}
 
-	for (size_t i = 0; i < state.chunk_cnt; i++) 
+	/* 
+	 * Increment age of all loaded, non-visible chunks before generating the new 
+	 * ones to avoid looping over the new chunks here (they will all be visible).
+	 */
+	for (uint16_t i = 0; i < state.chunk_cnt; i++) 
 	{
-		state.chunks[i]->visible = visible[i];
-		if (!visible[i]) state.chunks[i]->age++;
+		chunk_t *c = state.chunks[i];
+		c->visible = chunk_needed[i];
+		if (!chunk_needed[i]) 
+			c->age++;
 	}
 
-	if (num_to_gen > 0)
+	if (new_chunk_cnt > 0) // Need to generate new chunks.
 	{
-		chunk_t **tmp = malloc(num_to_gen * sizeof(chunk_t));
-		size_t tmp_cnt = 0;
+		size_t new_size = (state.chunk_cnt + new_chunk_cnt) * sizeof(chunk_t);
+		state.chunks = realloc(state.chunks, new_size);
+
 		for (size_t i = 0; i < cnt; i++)
 		{
-			if (in_state[i] == UINT16_MAX)
+			/* UINT32_MAX means no chunk with the coordinates coords[i] is loaded. */
+			if (idx_of_coord[i] == UINT32_MAX)
 			{
-				tmp[tmp_cnt] = gen_new_chunk(coords[i].x, coords[i].y, coords[i].z);
-				stage_chunk(tmp[tmp_cnt]);
-				tmp_cnt++;
+				chunk_t *chunk = gen_new_chunk(coords[i].x, coords[i].y, coords[i].z);
+				state.chunks[state.chunk_cnt] = chunk;
+				stage_chunk(state.chunks[state.chunk_cnt++]);
 			}
 		}
-		state.chunks = realloc(state.chunks, (state.chunk_cnt + num_to_gen) * sizeof(chunk_t));
-		memcpy(&state.chunks[state.chunk_cnt], tmp, tmp_cnt * sizeof(chunk_t));
-		state.chunk_cnt += tmp_cnt;
 	}
 
+	free(chunk_needed);
+	free(idx_of_coord);
+
+	upload_stage();
 }
 
 static void init(void)
@@ -138,59 +181,58 @@ static void init(void)
 		.logger.func = slog_func,
 	});
 
-	state.tick = 0;
-	state.chunk_cnt = 0;
-	state.chunks = NULL;
-
 	state_init_pipeline(&state);
 	state_init_bindings(&state);
 	state_init_textures(&state);
 	state_init_cam(&state);
 	state_init_chunk_buffer(&state);
 
-	/* Initialize to sentinel value to force initial chunk load when entering the game. */
-	state.prev_chunk_pos = (em_ivec3) {UINT_MAX, UINT_MAX, UINT_MAX};
-
-	state.pass_act = (sg_pass_action) {
-		.colors[0] = {
-			.load_action = SG_LOADACTION_CLEAR,
-			.clear_value = {0.25, 0.5, 0.75, 1.0}
-		}
-	};
+	/* Chunk load triggered when moving to new chunk, this forces initial chunk load. */
+	state.prev_chunk_pos = (ivec3) {INT32_MAX, INT32_MAX, INT32_MAX};
+	state.tick = 0;
+	state.chunk_cnt = 0;
+	state.chunks = NULL; // Reallocced as necessary.
 }
 
 static void render(void)
 {
 	sg_begin_pass(&(sg_pass) {
-		.action = state.pass_act,
+		.action = (sg_pass_action) {
+			.colors[0] = {
+				.load_action = SG_LOADACTION_CLEAR,
+				.clear_value = {0.25, 0.5, 0.75, 1.0}
+			}
+		},
 		.swapchain = sglue_swapchain()
 	});
-	sg_apply_pipeline(state.pip);
-	sg_apply_bindings(&(sg_bindings) {
-		.vertex_buffers[0] = state.cb.vbo,
-		.index_buffer = state.cb.ibo,
-		.samplers[0] = state.bind.samplers[0],
-		.images[0] = state.bind.images[0],
-	});
 
-	/* Apply per-chunk uniforms. */
+	sg_apply_pipeline(state.pip);
+
+	/* Apply uniforms and draw each chunk. */
 	for (size_t i = 0; i < state.chunk_cnt; i++)
 	{
-		chunk_t *chunk = state.chunks[i];
+		chunk_t *c = state.chunks[i];
+		if (!c->visible || !c->staged)
+			continue;
 
-		if (!chunk->visible || !chunk->staged) continue;
-
-		vs_params_t vs_params;
-
-		em_vec3 pos = {chunk->x, chunk->y, chunk->z};
-		vs_params.u_mvp = em_mul_mat4(state.cam.vp, em_translate_mat4(pos));
-		vs_params.u_chnk_pos[0] = (float) chunk->x;
-		vs_params.u_chnk_pos[1] = (float) chunk->y;
-		vs_params.u_chnk_pos[2] = (float) chunk->z;
+		mat4 translation = em_translate_mat4((vec3) {c->x, c->y, c->z});
+		vs_params_t vs_params = {
+			.u_mvp = em_mul_mat4(state.cam.vp, translation),
+			.u_chnk_pos = {
+				(float) c->x,
+				(float) c->y,
+				(float) c->z
+			}
+		};
 
 		sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
 
-		sg_draw(chunk->buf_data.i_ofst, chunk->buf_data.i_len, 1);
+		state.bind.index_buffer_offset = c->buf_data.i_ofst * sizeof(uint32_t);
+		state.bind.vertex_buffer_offsets[0] = c->buf_data.v_ofst * sizeof(vertex_t);
+
+		sg_apply_bindings(&state.bind);
+
+		sg_draw(0, c->buf_data.i_len, 1);
 	}
 
 	sg_end_pass();
@@ -199,7 +241,7 @@ static void render(void)
 
 static void tick(void)
 {
-	upload_stage();
+	// TODO: Do something here.
 }
 
 static void frame(void)
@@ -212,17 +254,19 @@ static void frame(void)
 	}
 
 	/* Check if player has entered new chunk and generate new chunks if they have. */
-	em_ivec3 curr_chunk_pos = {
+	ivec3 curr_chunk_pos = {
 		floor(state.cam.pos.x / (float) CHUNK_SIZE) * 8,
 		floor(0.0),
-		floor(state.cam.pos.z / (float) CHUNK_SIZE) * 8,
+		floor(state.cam.pos.z / (float) CHUNK_SIZE) * 8
 	};
-	if (!em_equals_ivec3(state.prev_chunk_pos, curr_chunk_pos)) dynamic_gen();
-
-	state.prev_chunk_pos = curr_chunk_pos;
+	if (!em_equals_ivec3(state.prev_chunk_pos, curr_chunk_pos)) 
+	{
+		generate_chunks();
+		state.prev_chunk_pos = curr_chunk_pos;
+	}
 
 	/* Apply player inputs. */
-	double dt = sapp_frame_duration();
+	double dt = sapp_frame_duration(); // Frame time scaling.
 	cam_frame(&state.cam, state.key_down, &state.mouse_dx, &state.mouse_dy, dt);
 
 	render();
@@ -237,10 +281,11 @@ static void cleanup(void)
 		free(state.chunks[i]->mesh.i_buf);
 		free(state.chunks[i]);
 	}
-	free(state.chunks);
 
+	free(state.chunks);
 	free(state.cb.v_stg);
 	free(state.cb.i_stg);
+
 	sg_destroy_buffer(state.cb.vbo);
 	sg_destroy_buffer(state.cb.ibo);
 
@@ -256,8 +301,10 @@ static void event(const sapp_event *event)
 
 	case SAPP_EVENTTYPE_KEY_DOWN:
 		state.key_down[event->key_code] = true;
-		if (event->key_code == SAPP_KEYCODE_CAPS_LOCK)
+		if (event->key_code == SAPP_KEYCODE_CAPS_LOCK) // I remapped caps lock to esc
+		{
 			sapp_lock_mouse(false);
+		}
 		break;
 
 	case SAPP_EVENTTYPE_MOUSE_MOVE:
@@ -277,19 +324,20 @@ static void event(const sapp_event *event)
 
 sapp_desc sokol_main(int argc, char* argv[])
 {
+	/* Not accepting cmdline args, this avoid the compiler warning. */
 	(void) argc;
 	(void) argv;
 
 	return (sapp_desc) {
-		.init_cb = init,
-		.frame_cb = frame,
-		.cleanup_cb = cleanup,
-		.event_cb = event,
-		.logger.func = slog_func,
-		.width = 1280,
-		.height = 720,
-		.sample_count = 1,
-		.window_title = "Minecraft Remake",
+		.init_cb            = init,
+		.frame_cb           = frame,
+		.cleanup_cb         = cleanup,
+		.event_cb           = event,
+		.logger.func        = slog_func,
+		.width              = 1280,
+		.height             = 720,
+		.sample_count       = 1,
+		.window_title       = "Minecraft Remake",
 		.icon.sokol_default = true
 	};
 }

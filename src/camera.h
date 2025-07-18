@@ -8,8 +8,8 @@
 #include "extra_math.h"
 
 #define MAX_PITCH 89.0
-#define WORLD_X ((em_vec3) {1.0, 0.0, 0.0})
-#define WORLD_Y ((em_vec3) {0.0, 1.0, 0.0})
+#define WORLD_X ((vec3) {1.0, 0.0, 0.0})
+#define WORLD_Y ((vec3) {0.0, 1.0, 0.0})
 
 typedef struct camera_desc {
 	uint8_t rndr_dist;
@@ -19,8 +19,8 @@ typedef struct camera_desc {
 	float fov;
 	float turn_sens;
 	float move_sens;
-	em_quaternion rot;
-	em_vec3 pos;
+	quaternion rot;
+	vec3 pos;
 } camera_desc_t;
 
 typedef struct camera {
@@ -35,16 +35,16 @@ typedef struct camera {
 	// transform
 	float pitch;	   // current pitch (up / down) angle (degrees)
 	float yaw;		   // current yaw (left / right) angle (degrees)
-	em_quaternion rot; // current rotation
-	em_vec3 pos;	   // current position
+	quaternion rot;    // current rotation
+	vec3 pos;	       // current position
 	// basis vectors
-	em_vec3 fwd;	   // basis forward vector
-	em_vec3 right;	   // basis right vector
-	em_vec3 up;		   // basis up vector
+	vec3 fwd;	       // basis forward vector
+	vec3 right;	       // basis right vector
+	vec3 up;		   // basis up vector
 	// matrices
-	em_mat4 view;	   // view matrix
-	em_mat4 proj;	   // projection matrix
-	em_mat4 vp;		   // projection matrix * view matrix
+	mat4 view;	       // view matrix
+	mat4 proj;	       // projection matrix
+	mat4 vp;		   // projection matrix * view matrix
 } camera_t;
 
 camera_t cam_setup(const camera_desc_t *desc);

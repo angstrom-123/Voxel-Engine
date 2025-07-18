@@ -1,113 +1,88 @@
 #import "world_gen.h"
-#include "src/extra_math.h"
+#include "src/geometry.h"
 
-#define STONE_Y 26
-#define DIRT_Y 30
-#define GRASS_Y 31
-
-size_t push_to_state(state_t *state, chunk_set_t data)
+ivec3 *gen_get_required_coords(vec3 c, uint8_t rd, size_t *cnt)
 {
-	size_t new_size = (state->chunk_cnt + data.cnt) * sizeof(chunk_t);
-	state->chunks = realloc(state->chunks, new_size);
+	srand(273912312);
+	/* Formula gives number of chunks within manhattan distance rd. */
+	size_t num = ((2 * rd * rd) + (2 * rd) + 1);
+	ivec3 *out = malloc(sizeof(ivec3) * num);
 
-	memcpy(&(state->chunks[state->chunk_cnt]), data.chunks, data.cnt * sizeof(chunk_t));
-
-	size_t ofst = (size_t) state->chunk_cnt;
-	state->chunk_cnt += data.cnt;
-
-	return ofst;
-}
-
-em_ivec3 *gen_get_required_coords(em_vec3 centre, uint8_t rd, size_t *cnt)
-{
-	size_t coord_cnt = ((2 * rd * rd) + (2 * rd) + 1);
-	em_ivec3 *out = malloc(sizeof(em_ivec3) * coord_cnt);
-
-	int32_t x_pos = floorf(centre.x / (float) CHUNK_SIZE);
-	int32_t y_pos = 0.0;
-	int32_t z_pos = floorf(centre.z / (float) CHUNK_SIZE);
+	/* Coords of chunk containing c. */
+	int32_t x0 = floorf(c.x / (float) CHUNK_SIZE);
+	int32_t y0 = 0.0;
+	int32_t z0 = floorf(c.z / (float) CHUNK_SIZE);
 
 	size_t ctr = 0;
-	for (int32_t x = x_pos - rd - 1; x < x_pos + rd + 1; x++)
+	for (int32_t x = x0 - rd - 1; x < x0 + rd + 1; x++)
 	{
-		for (int32_t z = z_pos - rd - 1; z < z_pos + rd + 1; z++)
+		for (int32_t z = z0 - rd - 1; z < z0 + rd + 1; z++)
 		{
-			int32_t mhttn = em_abs(z - z_pos) + em_abs(x - x_pos);
-			if (mhttn > rd) continue;
-			
-			out[ctr++] = (em_ivec3) {x * 8, y_pos, z * 8};
+			/* Calculate manhattan distance. */
+			int32_t m = em_abs(z - z0) + em_abs(x - x0);
+			if (m > rd) 
+			{
+				continue; // Outside of render distance.
+			}
+
+			out[ctr++] = (ivec3) {x * 8, y0, z * 8};
 		}
 	}
 
-	*cnt = coord_cnt;
+	*cnt = num;
+
 	return out;
-}
-
-chunk_set_t gen_chunks_around(em_vec3 centre, uint8_t rd)
-{
-	size_t count = ((2 * rd * rd) + (2 * rd) + 1);
-	chunk_t **chunks = malloc(sizeof(chunk_t *) * count);
-	size_t cnt = 0;
-
-	int32_t x_pos = floorf(centre.x / (float) CHUNK_SIZE);
-	int32_t y_pos = 0.0;
-	int32_t z_pos = floorf(centre.z / (float) CHUNK_SIZE);
-
-	for (int32_t x = x_pos - rd - 1; x < x_pos + rd + 1; x++)
-	{
-		for (int32_t z = z_pos - rd - 1; z < z_pos + rd + 1; z++)
-		{
-			int32_t mhttn = em_abs(z - z_pos) + em_abs(x - x_pos);
-			if (mhttn > rd) continue;
-
-			chunks[cnt++] = gen_new_chunk(x * 8, y_pos, z * 8);
-		}
-	}
-
-	return (chunk_set_t) {
-		.chunks = chunks,
-		.cnt = count
-	};
 }
 
 chunk_t *gen_new_chunk(int32_t x, int32_t y, int32_t z)
 {
-	chunk_t *out = malloc(sizeof(chunk_t));
-
-	out->blocks = malloc(sizeof(chunk_data_t));
-	memset(out->blocks->types, 0, sizeof(out->blocks->types));
-
-	out->x = x;
-	out->y = y;
-	out->z = z;
-
-	out->loaded = false;
-	out->staged = false;
-	out->visible = true;
-	out->age = 0;
-
-	out->buf_data.v_ofst = 0;
-	out->buf_data.i_ofst = 0;
-	out->buf_data.v_len = 0;
-	out->buf_data.i_len = 0;
-
-	for (size_t x = 0; x < CHUNK_SIZE; x++)
+	chunk_t *chunk = malloc(sizeof(chunk_t));
+	chunk->blocks = malloc(sizeof(chunk_data_t));
+	
+	if (!chunk || !chunk->blocks) 
 	{
-		for (size_t y = 0; y < CHUNK_HEIGHT / 2; y++)
-		{
-			for (size_t z = 0; z < CHUNK_SIZE; z++)
-			{
-				cube_type_e type;
-				if (y <= STONE_Y) type = CUBETYPE_STONE;
-				else if (y <= DIRT_Y) type = CUBETYPE_DIRT;
-				else type = CUBETYPE_GRASS;
+		fprintf(stderr, "Failed to allocate new chunk.\n");
+		exit(1);
+	}
 
-				out->blocks->types[x][y][z] = type;
-			}
+	memset(chunk->blocks->types, CUBETYPE_AIR, sizeof(chunk->blocks->types));
+
+	/* Defaults. */
+	chunk->x = x;
+	chunk->y = y;
+	chunk->z = z;
+
+	chunk->staged = false;
+	chunk->visible = true;
+
+	chunk->age = 0;
+
+	chunk->buf_data.v_ofst = 0;
+	chunk->buf_data.i_ofst = 0;
+	chunk->buf_data.v_len = 0;
+	chunk->buf_data.i_len = 0;
+	
+	// float r = (float) rand() / (float) INT_MAX;
+
+	// uint8_t h = roundf(r * (CHUNK_HEIGHT - 1) / 10);
+	// printf("%hhu\n", h);
+	// uint8_t h;
+	// if (x < 0) h = 10;
+	// else h = 20;
+	for (int32_t x1 = 0; x1 < CHUNK_SIZE; x1++)
+	{
+		for (int32_t z1 = 0; z1 < CHUNK_SIZE; z1++)
+		{
+			float p = perlin_2d(x + x1, z + z1, 0.02);
+			// float p = perlin_octave_2d(x + x1, z + z1, 4);
+			float n = (p + 1.0) / 2.0;
+			uint8_t h = roundf(n * (CHUNK_HEIGHT - 1));
+			chunk->blocks->types[x1][h][z1] = CUBETYPE_GRASS;
 		}
 	}
 
-	chunk_generate_mesh(out);
+	printf("%i %i\n", x, z);
 
-	return out;
+	chunk_generate_mesh(chunk);
+	return chunk;
 }
