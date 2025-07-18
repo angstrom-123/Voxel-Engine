@@ -112,42 +112,81 @@ typedef struct cube_uv_lookup {
 
 static const vertex_t face_vertices[6][4] = {
 	[FACEIDX_BACK] = {
-		{1, 0, 0, 16, PACK(0.0, 0.0)},
+		{2, 0, 0, 16, PACK(0.0, 0.0)},
 		{0, 0, 0, 16, PACK(SIZ, 0.0)},
-		{0, 1, 0, 16, PACK(SIZ, SIZ)},
-		{1, 1, 0, 16, PACK(0.0, SIZ)}
+		{0, 2, 0, 16, PACK(SIZ, SIZ)},
+		{2, 2, 0, 16, PACK(0.0, SIZ)}
 	},
 	[FACEIDX_FRONT] = {
-		{0, 0, 1, 32, PACK(0.0, 0.0)},
-		{1, 0, 1, 32, PACK(SIZ, 0.0)},
-		{1, 1, 1, 32, PACK(SIZ, SIZ)},
-		{0, 1, 1, 32, PACK(0.0, SIZ)}
+		{0, 0, 2, 32, PACK(0.0, 0.0)},
+		{2, 0, 2, 32, PACK(SIZ, 0.0)},
+		{2, 2, 2, 32, PACK(SIZ, SIZ)},
+		{0, 2, 2, 32, PACK(0.0, SIZ)}
 	},
 	[FACEIDX_LEFT] = {
 		{0, 0, 0,  1, PACK(0.0, 0.0)},
-		{0, 0, 1,  1, PACK(SIZ, 0.0)},
-		{0, 1, 1,  1, PACK(SIZ, SIZ)},
-		{0, 1, 0,  1, PACK(0.0, SIZ)}
+		{0, 0, 2,  1, PACK(SIZ, 0.0)},
+		{0, 2, 2,  1, PACK(SIZ, SIZ)},
+		{0, 2, 0,  1, PACK(0.0, SIZ)}
 	},
 	[FACEIDX_RIGHT] = {
-		{1, 0, 1,  2, PACK(0.0, 0.0)},
-		{1, 0, 0,  2, PACK(SIZ, 0.0)},
-		{1, 1, 0,  2, PACK(SIZ, SIZ)},
-		{1, 1, 1,  2, PACK(0.0, SIZ)}
+		{2, 0, 2,  2, PACK(0.0, 0.0)},
+		{2, 0, 0,  2, PACK(SIZ, 0.0)},
+		{2, 2, 0,  2, PACK(SIZ, SIZ)},
+		{2, 2, 2,  2, PACK(0.0, SIZ)}
 	},
 	[FACEIDX_BOTTOM] = {
 		{0, 0, 0,  8, PACK(0.0, 0.0)},
-		{1, 0, 0,  8, PACK(SIZ, 0.0)},
-		{1, 0, 1,  8, PACK(SIZ, SIZ)},
-		{0, 0, 1,  8, PACK(0.0, SIZ)}
+		{2, 0, 0,  8, PACK(SIZ, 0.0)},
+		{2, 0, 2,  8, PACK(SIZ, SIZ)},
+		{0, 0, 2,  8, PACK(0.0, SIZ)}
 	},
 	[FACEIDX_TOP] = {
-		{0, 1, 1,  4, PACK(0.0, 0.0)},
-		{1, 1, 1,  4, PACK(SIZ, 0.0)},
-		{1, 1, 0,  4, PACK(SIZ, SIZ)},
-		{0, 1, 0,  4, PACK(0.0, SIZ)}
+		{0, 2, 2,  4, PACK(0.0, 0.0)},
+		{2, 2, 2,  4, PACK(SIZ, 0.0)},
+		{2, 2, 0,  4, PACK(SIZ, SIZ)},
+		{0, 2, 0,  4, PACK(0.0, SIZ)}
 	}
 };
+
+// static const vertex_t face_vertices[6][4] = {
+// 	[FACEIDX_BACK] = {
+// 		{1, 0, 0, 16, PACK(0.0, 0.0)},
+// 		{0, 0, 0, 16, PACK(SIZ, 0.0)},
+// 		{0, 1, 0, 16, PACK(SIZ, SIZ)},
+// 		{1, 1, 0, 16, PACK(0.0, SIZ)}
+// 	},
+// 	[FACEIDX_FRONT] = {
+// 		{0, 0, 1, 32, PACK(0.0, 0.0)},
+// 		{1, 0, 1, 32, PACK(SIZ, 0.0)},
+// 		{1, 1, 1, 32, PACK(SIZ, SIZ)},
+// 		{0, 1, 1, 32, PACK(0.0, SIZ)}
+// 	},
+// 	[FACEIDX_LEFT] = {
+// 		{0, 0, 0,  1, PACK(0.0, 0.0)},
+// 		{0, 0, 1,  1, PACK(SIZ, 0.0)},
+// 		{0, 1, 1,  1, PACK(SIZ, SIZ)},
+// 		{0, 1, 0,  1, PACK(0.0, SIZ)}
+// 	},
+// 	[FACEIDX_RIGHT] = {
+// 		{1, 0, 1,  2, PACK(0.0, 0.0)},
+// 		{1, 0, 0,  2, PACK(SIZ, 0.0)},
+// 		{1, 1, 0,  2, PACK(SIZ, SIZ)},
+// 		{1, 1, 1,  2, PACK(0.0, SIZ)}
+// 	},
+// 	[FACEIDX_BOTTOM] = {
+// 		{0, 0, 0,  8, PACK(0.0, 0.0)},
+// 		{1, 0, 0,  8, PACK(SIZ, 0.0)},
+// 		{1, 0, 1,  8, PACK(SIZ, SIZ)},
+// 		{0, 0, 1,  8, PACK(0.0, SIZ)}
+// 	},
+// 	[FACEIDX_TOP] = {
+// 		{0, 1, 1,  4, PACK(0.0, 0.0)},
+// 		{1, 1, 1,  4, PACK(SIZ, 0.0)},
+// 		{1, 1, 0,  4, PACK(SIZ, SIZ)},
+// 		{0, 1, 0,  4, PACK(0.0, SIZ)}
+// 	}
+// };
 
 static const vec2 uv_lookup[MAX_BLOCK_TYPES * 6] = {
 	[CUBETYPE_AIR * 6 + FACEIDX_BACK]   = {0.0, 0.0},

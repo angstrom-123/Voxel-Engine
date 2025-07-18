@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "src/extra_math.h"
 
 static vec3 _get_forward(quaternion camera_rotation)
 {

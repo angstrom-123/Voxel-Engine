@@ -114,8 +114,7 @@ float perlin_octave_2d(float x, float y, uint8_t num)
 {
 	float res = 0.0;
 	float amp = 1.0;
-	// float freq = 0.005;
-	float freq = 1.0 / 16.0;
+	float freq = 0.005;
 
 	for (size_t i = 0; i < num; i++)
 	{

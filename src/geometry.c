@@ -63,9 +63,9 @@ static void _add_face_to_mesh(quad_desc_t *desc,
 		uv[1] += uv_lookup[(desc->type * 6) + desc->face].y;
 
 		verts[i].uv = PACK(uv[0], uv[1]);
-		verts[i].x += desc->x;
-		verts[i].y += desc->y;
-		verts[i].z += desc->z;
+		verts[i].x += (desc->x * 2);
+		verts[i].y += (desc->y * 2);
+		verts[i].z += (desc->z * 2);
 	}
 
 	const uint32_t v_ofst = *v_cnt;

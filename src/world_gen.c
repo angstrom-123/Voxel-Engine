@@ -25,7 +25,8 @@ ivec3 *gen_get_required_coords(vec3 c, uint8_t rd, size_t *cnt)
 				continue; // Outside of render distance.
 			}
 
-			out[ctr++] = (ivec3) {x * 8, y0, z * 8};
+			// out[ctr++] = (ivec3) {x * 8, y0, z * 8};
+			out[ctr++] = (ivec3) {x * 16, y0, z * 16};
 		}
 	}
 
@@ -73,15 +74,14 @@ chunk_t *gen_new_chunk(int32_t x, int32_t y, int32_t z)
 	{
 		for (int32_t z1 = 0; z1 < CHUNK_SIZE; z1++)
 		{
-			float p = perlin_2d(x + x1, z + z1, 0.02);
-			// float p = perlin_octave_2d(x + x1, z + z1, 4);
+			// float p = perlin_2d(x + x1, z + z1, 0.02);
+			float p = perlin_octave_2d(x + x1, z + z1, 8);
 			float n = (p + 1.0) / 2.0;
-			uint8_t h = roundf(n * (CHUNK_HEIGHT - 1));
+			uint8_t h = roundf(n * (CHUNK_HEIGHT - 1) * 1.0);
+			// uint8_t h = 32;
 			chunk->blocks->types[x1][h][z1] = CUBETYPE_GRASS;
 		}
 	}
-
-	printf("%i %i\n", x, z);
 
 	chunk_generate_mesh(chunk);
 	return chunk;

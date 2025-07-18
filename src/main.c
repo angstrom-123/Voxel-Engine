@@ -192,6 +192,12 @@ static void init(void)
 	state.tick = 0;
 	state.chunk_cnt = 0;
 	state.chunks = NULL; // Reallocced as necessary.
+
+	// state.chunks = realloc(state.chunks, sizeof(chunk_t));
+	// state.chunks[0] = gen_new_chunk(0, 0, 0);
+	// stage_chunk(state.chunks[0]);
+	//
+	// state.chunk_cnt = 1;
 }
 
 static void render(void)
@@ -215,9 +221,10 @@ static void render(void)
 		if (!c->visible || !c->staged)
 			continue;
 
-		mat4 translation = em_translate_mat4((vec3) {c->x, c->y, c->z});
+		mat4 translation = em_translate_mat4((vec3) {c->x / 2.0, c->y / 2.0, c->z / 2.0});
+		mat4 scale = em_scale_mat4((vec3) {0.5, 0.5, 0.5});
 		vs_params_t vs_params = {
-			.u_mvp = em_mul_mat4(state.cam.vp, translation),
+			.u_mvp = em_mul_mat4(em_mul_mat4(state.cam.vp, translation), scale),
 			.u_chnk_pos = {
 				(float) c->x,
 				(float) c->y,

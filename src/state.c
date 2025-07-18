@@ -108,6 +108,7 @@ void state_init_cam(state_t *state)
 {
 	state->cam = cam_setup(&(camera_desc_t) {
 		.rndr_dist = 16,
+		// .rndr_dist = 2,
 		.near 	   = 0.1,
 		.far 	   = 300.0,
 		.aspect    = (sapp_widthf() / sapp_heightf()),
@@ -115,7 +116,7 @@ void state_init_cam(state_t *state)
 		.turn_sens = 0.04,
 		.move_sens = 10.0,
 		.rot 	   = {0.0, 0.0, 0.0, 1.0},
-		.pos 	   = {8.0, 34.0, 8.0},
+		.pos 	   = {0.0, 34.0, 0.0},
 	});
 }
 
