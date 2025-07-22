@@ -1,10 +1,11 @@
 #include "perlin.h"
+#include "src/romu_random.h"
 
 vec2 _grad_2d(int32_t x, int32_t y)
 {
-	srand(em_abs(perlin_pair(x, y)));
-	float x_01 = (float) rand() / (float) RAND_MAX;
-	float y_01 = (float) rand() / (float) RAND_MAX;
+	romu_mono32_init(em_abs(perlin_pair(x, y)));
+	float x_01 = (float) romu_mono32_random() / (float) MONO32_MAX;
+	float y_01 = (float) romu_mono32_random() / (float) MONO32_MAX;
 
 	float x_cmp = (2 * x_01) - 1.0;
 	float y_cmp = (2 * y_01) - 1.0;
@@ -14,10 +15,10 @@ vec2 _grad_2d(int32_t x, int32_t y)
 
 vec3 _grad_3d(int32_t x, int32_t y, int32_t z)
 {
-	srand(em_abs(perlin_pair(perlin_pair(x, y), z)));
-	float x_01 = (float) rand() / (float) RAND_MAX;
-	float y_01 = (float) rand() / (float) RAND_MAX;
-	float z_01 = (float) rand() / (float) RAND_MAX;
+	romu_mono32_init(em_abs(perlin_pair(x, perlin_pair(y, z))));
+	float x_01 = (float) romu_mono32_random() / (float) MONO32_MAX;
+	float y_01 = (float) romu_mono32_random() / (float) MONO32_MAX;
+	float z_01 = (float) romu_mono32_random() / (float) MONO32_MAX;
 
 	float x_cmp = (2 * x_01) - 1.0;
 	float y_cmp = (2 * y_01) - 1.0;

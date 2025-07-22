@@ -108,7 +108,6 @@ void state_init_cam(state_t *state)
 {
 	state->cam = cam_setup(&(camera_desc_t) {
 		.rndr_dist = 16,
-		// .rndr_dist = 2,
 		.near 	   = 0.1,
 		.far 	   = 300.0,
 		.aspect    = (sapp_widthf() / sapp_heightf()),

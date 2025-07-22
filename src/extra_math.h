@@ -6,8 +6,7 @@
 #include <math.h> // Trigonometry
 #include <stdbool.h>
 
-#define em_PI acosf(-1.0)
-
+#define em_PI 3.14159265359
 #define em_deg_to_rad(t) (t * (em_PI / 180.0))
 #define em_rad_to_deg(t) (t * (180.0 / em_PI))
 

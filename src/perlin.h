@@ -1,11 +1,14 @@
 #ifndef PERLIN_H
 #define PERLIN_H
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
+// TODO: Implement simplex noise because apparently it's better in every way
 
-#include "extra_math.h"
+#include <stdint.h>
+#include <stddef.h> // size_t
+// #include <threads.h> // TODO: make the noise multithreaded for performance :)
+
+#include "extra_math.h" // vectors
+#include "romu_random.h" // fast random
 
 extern int32_t perlin_hash(int32_t x);
 extern int32_t perlin_pair(int32_t a, int32_t b);
