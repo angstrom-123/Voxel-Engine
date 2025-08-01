@@ -1734,7 +1734,6 @@
         void sg_destroy_pipeline(sg_pipeline pip)
         void sg_destroy_attachments(sg_attachments atts)
 
-    The 'destroy functions' can be called on resources in any state and generally
     do the right thing (for instance if the resource is in ALLOC state, the destroy
     function will be equivalent to the 'dealloc function' and skip the 'uninit part').
 

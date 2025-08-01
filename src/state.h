@@ -1,20 +1,19 @@
 #ifndef STATE_H
 #define STATE_H
 
-#if !defined(SOKOL_APP_INCLUDED) 
-#include "sokol_app.h"
-#endif
-
 #if !defined(SOKOL_GFX_INCLUDED) 
-#include "sokol_gfx.h"
+#include <sokol/sokol_gfx.h>
 #endif
 
-#define MAX_INSTANCES 10000
+#include <stdlib.h> // fprintf, stderr, exit
 
-#include <stdlib.h> // stderr
 #include "camera.h"
-#include "bmp.h"
-#include "geometry.h"
+#include "geometry_types.h"
+
+#undef MY_HASHMAP_IMPL
+#include "hashmap.h"
+
+#include <libem/em_bmp.h>
 
 #include "shaders/chunk.glsl.h"
 
@@ -36,6 +35,7 @@ typedef struct state {
 	/* Player */
 	camera_t cam;
 	ivec3 prev_chunk_pos;
+	uint16_t player_chunk_idx;
 
 	/* Render */
 	sg_pipeline pip;
@@ -46,6 +46,7 @@ typedef struct state {
 	uint16_t chunk_cnt;
 	chunk_t **chunks;
 	chunk_buffer_t cb;
+    HASHMAP(ivec2_chunk) *chunk_map;
 
 	/* Input */
 	bool key_down[SAPP_KEYCODE_MENU + 1];
@@ -58,5 +59,6 @@ extern void state_init_bindings(state_t *state);
 extern void state_init_textures(state_t *state);
 extern void state_init_cam(state_t *state);
 extern void state_init_chunk_buffer(state_t *state);
+extern void state_init_data(state_t *state);
 
 #endif

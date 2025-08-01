@@ -1,4 +1,6 @@
 CFILES		= $(wildcard ./src/*.c)
+LIBSOKOL	= $(wildcard ./lib/sokol/*)
+LIBEM		= $(wildcard ./lib/libem/*)
 SHADERS		= $(wildcard ./src/shaders/*.glsl)
 SHDR_HEADS	= $(wildcard ./src/shaders/*.glsl.h)
 
@@ -11,17 +13,17 @@ DEFS		= -DSOKOL_GLES3
 OUTPUT		= ./build/minecraft
 
 .PHONY: release
-release: $(CFILES)
+release: $(CFILES) $(LIBSOKOL) $(LIBEM)
 	rm -f $(OUTPUT)
 	$(CC) $(CFILES) -o $(OUTPUT) $(INCLUDE) $(DEFS) $(CFLAGS) -O1 $(LX_LIBS)
 
 .PHONY: install
-install: $(CFILES)
+install: $(CFILES) $(LIBSOKOL) $(LIBEM)
 	rm -f $(OUTPUT)
 	$(CC) -g $(CFILES) -o $(OUTPUT) $(INCLUDE) $(DEFS) $(CFLAGS) $(LX_LIBS) 
 
 .PHONY: database
-database: $(CFILES)
+database: $(CFILES) $(LIBSOKOL) $(LIBEM)
 	rm -f compile_commands.json
 	bear -- $(CC) $(CFILES) -o $(OUTPUT) $(INCLUDE) $(DEFS) $(CFLAGS) $(LX_LIBS) 
 
