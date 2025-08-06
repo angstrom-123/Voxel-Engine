@@ -54,6 +54,7 @@ typedef struct chunk {
     bool meshed;
 
 	uint8_t age;
+    uint64_t creation_frame;
 } chunk_t;
 
 typedef struct quad_desc {

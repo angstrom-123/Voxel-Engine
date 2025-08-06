@@ -10,8 +10,8 @@
 
 #include "geometry.h"
 
+extern ivec2 *gen_get_required_coords_2(vec3 centre, uint8_t rndr_dist, size_t *coords_len);
 extern ivec3 *gen_get_required_coords(vec3 centre, uint8_t rndr_dist, size_t *coords_len);
-extern chunk_t *gen_new_chunk(int32_t x, int32_t y, int32_t z, 
-                              chunk_t **chunks, uint16_t chunk_cnt);
+extern chunk_t *gen_new_chunk(int32_t x, int32_t z);
 
 #endif

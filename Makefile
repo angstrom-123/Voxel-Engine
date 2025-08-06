@@ -1,4 +1,5 @@
-CFILES		= $(wildcard ./src/*.c)
+TESTFILES	= ./src/test.c ./src/main.c
+CFILES		= $(filter-out ./src/test.c,  $(wildcard ./src/*.c))
 LIBSOKOL	= $(wildcard ./lib/sokol/*)
 LIBEM		= $(wildcard ./lib/libem/*)
 SHADERS		= $(wildcard ./src/shaders/*.glsl)
@@ -9,8 +10,10 @@ CFLAGS		= -Wall -Wextra -Wno-missing-braces -pthread
 INCLUDE		= -I./lib -I.
 LX_LIBS		= -lX11 -lXi -lXcursor -lGL -ldl -lm -lEGL
 DEFS		= -DSOKOL_GLES3
+TEST_DEFS	= -DTEST
 
 OUTPUT		= ./build/minecraft
+TEST_OUTPUT	= ./build/minecraft_test
 
 .PHONY: release
 release: $(CFILES) $(LIBSOKOL) $(LIBEM)
@@ -21,6 +24,11 @@ release: $(CFILES) $(LIBSOKOL) $(LIBEM)
 install: $(CFILES) $(LIBSOKOL) $(LIBEM)
 	rm -f $(OUTPUT)
 	$(CC) -g $(CFILES) -o $(OUTPUT) $(INCLUDE) $(DEFS) $(CFLAGS) $(LX_LIBS) 
+
+.PHONY: test
+test: $(TESTFILES) $(LIBEM)
+	rm -f $(TEST_OUTPUT)
+	$(CC) -g $(TESTFILES) -o $(TEST_OUTPUT) $(INCLUDE) $(TEST_DEFS) $(CFLAGS) $(LX_LIBS)
 
 .PHONY: database
 database: $(CFILES) $(LIBSOKOL) $(LIBEM)

@@ -1,6 +1,7 @@
 #ifndef STATE_H
 #define STATE_H
 
+#include <stdint.h>
 #if !defined(SOKOL_GFX_INCLUDED) 
 #include <sokol/sokol_gfx.h>
 #endif
@@ -31,6 +32,7 @@ typedef struct chunk_buffer {
 typedef struct state {
 	/* Global state */
 	uint8_t tick;
+    uint64_t frame;
 
 	/* Player */
 	camera_t cam;

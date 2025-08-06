@@ -10,10 +10,13 @@
 #define EM_PERLIN_IMPL
 #include "em_perlin.h"
 
+#define EM_BMP_IMPL
+#include "em_bmp.h"
+
 #define EM_HASHMAP_IMPL
 #include "em_hashmap.h"
 
-#define EM_BMP_IMPL
-#include "em_bmp.h"
+#define EM_DLL_IMPL
+#include "em_list.h"
 
 #endif

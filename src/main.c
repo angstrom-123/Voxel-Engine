@@ -1,32 +1,42 @@
+#if defined(TEST)
+#include <libem/em_impl.h>
+#define MY_HASHMAP_IMPL
+#include "hashmap.h"
+#define MY_DLL_IMPL
+#include "list.h"
+
+#define TEST_IMPL
+#include "test.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void)
+{
+    test_main();
+    return 0;
+}
+
+#else
+
+/* Provide all definitions for sokol in main for simplicity. */
 #define SOKOL_IMPL
 #include <sokol/sokol_gfx.h>
 #include <sokol/sokol_app.h>
 #include <sokol/sokol_glue.h>
 #include <sokol/sokol_log.h>
 
-/* Providing all definitions in main. */
+/* Providing all definitions for libem also. */
 #include <libem/em_impl.h>
-
 #define MY_HASHMAP_IMPL
 #include "hashmap.h"
+#define MY_DLL_IMPL
+#include "list.h"
 
 #include "state.h"
 #include "world_gen.h"
 
 #include "shaders/chunk.glsl.h"
-
-/*
- * TODO:
- *         Find the position in the current chunk that the player occupies, 
- *         test that the correct chunk is returned when moving between them
- *         
- *         find the y value of the block that the player is on 
- *             NEED TO ACCOUNT FOR MULTIPLE BLOCKS AT Y LEVEL, USE PLAYER'S Y TO GET RIGHT ONE 
- *             PLAYER IS 2 UNITS TALL, SO NEEDS A SPACE OF 2 TO OCCUPY
- *         use this as a baseline, for now just snap the player to the height to see if it works 
- *         in future, stop them at an increasing height, else fall 
- *         then allow jumps
- */
 
 static state_t state = {0};
 
@@ -106,6 +116,7 @@ static void stage_chunk(chunk_t *chunk)
 
     chunk->staged = true;
     chunk->age = 0;
+    chunk->creation_frame = state.frame;
     chunk->buf_data.v_len = chunk->mesh.v_cnt;
     chunk->buf_data.i_len = chunk->mesh.i_cnt;
     chunk->buf_data.v_ofst = v_slot;
@@ -130,76 +141,103 @@ static void stage_chunk(chunk_t *chunk)
  */
 static void generate_chunks(void)
 {
-    size_t coords_len;
-    ivec3 *coords = gen_get_required_coords(state.cam.pos, state.cam.rndr_dist, &coords_len);
-    size_t new_chunk_cnt = coords_len;
+    size_t num_coords;
+    ivec2 *coords = gen_get_required_coords_2(state.cam.pos, state.cam.rndr_dist, &num_coords);
 
-    bool *chunk_needed = calloc(state.chunk_cnt, sizeof(bool));
-
-    uint32_t *idx_of_coord = malloc(coords_len * sizeof(uint32_t));
-    memset(idx_of_coord, UINT32_MAX, coords_len * sizeof(uint32_t));
-
-    for (uint16_t i = 0; i < state.chunk_cnt; i++)
+    for (size_t i = 0; i < num_coords; i++)
     {
-        chunk_t *c = state.chunks[i];
-        ivec3 pos = {
-            c->x,
-            0.0,  // One chunk per column so Y not needed for world pos.
-            c->z
-        };
-        for (size_t j = 0; j < coords_len; j++)
+        chunk_t *c = state.chunk_map->get_or_default(state.chunk_map, coords[i], NULL);
+        if (c) // chunk was found in the hashmap
         {
-            /* If a chunk at this coord is already loaded it is prepared to render. */
-            if (em_equals_ivec3(pos, coords[j])) 
-            {
-                new_chunk_cnt--;
-                chunk_needed[i] = true;
-                idx_of_coord[j] = i;
+            c->visible = true;
+            if (!c->staged)
+                stage_chunk(c);
+        }
+        else // else
+        {
+            int32_t x = coords[i].x;
+            int32_t z = coords[i].y;
+            c = gen_new_chunk(x, z);
 
-                c->visible = true;
-                c->age = 0;
-                if (!c->staged) 
-                    stage_chunk(state.chunks[i]);
-                
-                break;
-            }
+            state.chunk_map->put_ptr(state.chunk_map, (ivec2) {x, z}, c);
+            stage_chunk(c);
         }
     }
-
-    /* 
-     * Increment age of all loaded, non-visible chunks before generating the new 
-     * ones to avoid looping over the new chunks here (they will all be visible).
-     */
-    for (uint16_t i = 0; i < state.chunk_cnt; i++) 
-    {
-        chunk_t *c = state.chunks[i];
-        c->visible = chunk_needed[i];
-        if (!chunk_needed[i]) 
-            c->age++;
-    }
-
-    if (new_chunk_cnt > 0) // Need to generate new chunks.
-    {
-        size_t new_size = (state.chunk_cnt + new_chunk_cnt) * sizeof(chunk_t);
-        state.chunks = realloc(state.chunks, new_size);
-        for (size_t i = 0; i < coords_len; i++)
-        {
-            /* UINT32_MAX means no chunk with the coordinates coords[i] is loaded. */
-            if (idx_of_coord[i] == UINT32_MAX)
-            {
-                chunk_t *chunk = gen_new_chunk(coords[i].x, coords[i].y, coords[i].z, 
-                                               state.chunks, state.chunk_cnt);
-                state.chunks[state.chunk_cnt] = chunk;
-                stage_chunk(state.chunks[state.chunk_cnt++]);
-            }
-        }
-    }
-
-    free(chunk_needed);
-    free(idx_of_coord);
 
     upload_stage();
 }
+// static void generate_chunks(void)
+// {
+//     size_t coords_len;
+//     ivec3 *coords = gen_get_required_coords(state.cam.pos, state.cam.rndr_dist, &coords_len);
+//     size_t new_chunk_cnt = coords_len;
+//
+//     bool *chunk_needed = calloc(state.chunk_cnt, sizeof(bool));
+//
+//     uint32_t *idx_of_coord = malloc(coords_len * sizeof(uint32_t));
+//     memset(idx_of_coord, UINT32_MAX, coords_len * sizeof(uint32_t));
+//
+//     for (uint16_t i = 0; i < state.chunk_cnt; i++)
+//     {
+//         chunk_t *c = state.chunks[i];
+//         ivec3 pos = {
+//             c->x,
+//             0.0,  // One chunk per column so Y not needed for world pos.
+//             c->z
+//         };
+//         for (size_t j = 0; j < coords_len; j++)
+//         {
+//             /* If a chunk at this coord is already loaded it is prepared to render. */
+//             if (em_equals_ivec3(pos, coords[j])) 
+//             {
+//                 new_chunk_cnt--;
+//                 chunk_needed[i] = true;
+//                 idx_of_coord[j] = i;
+//
+//                 c->visible = true;
+//                 c->age = 0;
+//                 if (!c->staged) 
+//                     stage_chunk(state.chunks[i]);
+//
+//                 break;
+//             }
+//         }
+//     }
+//
+//     /* 
+//      * Increment age of all loaded, non-visible chunks before generating the new 
+//      * ones to avoid looping over the new chunks here (they will all be visible).
+//      */
+//     for (uint16_t i = 0; i < state.chunk_cnt; i++) 
+//     {
+//         chunk_t *c = state.chunks[i];
+//         c->visible = chunk_needed[i];
+//         if (!chunk_needed[i]) 
+//             c->age++;
+//     }
+//
+//     if (new_chunk_cnt > 0) // Need to generate new chunks.
+//     {
+//         size_t new_size = (state.chunk_cnt + new_chunk_cnt) * sizeof(chunk_t);
+//         state.chunks = realloc(state.chunks, new_size);
+//         for (size_t i = 0; i < coords_len; i++)
+//         {
+//             /* UINT32_MAX means no chunk with the coordinates coords[i] is loaded. */
+//             if (idx_of_coord[i] == UINT32_MAX)
+//             {
+//                 chunk_t *chunk = gen_new_chunk(coords[i].x, coords[i].y, coords[i].z, 
+//                                                state.chunks, state.chunk_cnt);
+//                 state.chunks[state.chunk_cnt] = chunk;
+//                 stage_chunk(state.chunks[state.chunk_cnt++]);
+//             }
+//         }
+//     }
+//
+//     free(chunk_needed);
+//     free(idx_of_coord);
+//
+//     upload_stage();
+// }
 
 static void init(void)
 {
@@ -233,11 +271,15 @@ static void render(void)
     sg_apply_pipeline(state.pip);
 
     /* Apply uniforms and draw each chunk. */
-    for (size_t i = 0; i < state.chunk_cnt; i++)
+    em_hashmap_iter_t *iter = state.chunk_map->iterator(state.chunk_map);
+    while (iter->has_next)
     {
-        chunk_t *c = state.chunks[i];
+        chunk_t *c = iter->next(iter);
         if (!c->visible || !c->staged)
+        {
+
             continue;
+        }
 
         mat4 translation = em_translate_mat4((vec3) {c->x / 2.0, c->y / 2.0, c->z / 2.0});
         mat4 scale = em_scale_mat4((vec3) {0.5, 0.5, 0.5});
@@ -259,6 +301,35 @@ static void render(void)
 
         sg_draw(0, c->buf_data.i_len, 1);
     }
+    //
+    // TODO: What is a fast way to iterate over a hashmap??? (ALSO, CHUNK AGING BASED ON FRAME)
+    //
+    // for (size_t i = 0; i < state.chunk_cnt; i++)
+    // {
+    //     chunk_t *c = state.chunks[i];
+    //     if (!c->visible || !c->staged)
+    //         continue;
+    //
+    //     mat4 translation = em_translate_mat4((vec3) {c->x / 2.0, c->y / 2.0, c->z / 2.0});
+    //     mat4 scale = em_scale_mat4((vec3) {0.5, 0.5, 0.5});
+    //     vs_params_t vs_params = {
+    //         .u_mvp = em_mul_mat4(em_mul_mat4(state.cam.vp, translation), scale),
+    //         .u_chnk_pos = {
+    //             (float) c->x,
+    //             (float) c->y,
+    //             (float) c->z
+    //         }
+    //     };
+    //
+    //     sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
+    //
+    //     state.bind.index_buffer_offset = c->buf_data.i_ofst * sizeof(uint32_t);
+    //     state.bind.vertex_buffer_offsets[0] = c->buf_data.v_ofst * sizeof(vertex_t);
+    //
+    //     sg_apply_bindings(&state.bind);
+    //
+    //     sg_draw(0, c->buf_data.i_len, 1);
+    // }
 
     sg_end_pass();
     sg_commit();
@@ -271,6 +342,7 @@ static void tick(void)
 
 static void frame(void)
 {
+    state.frame++; // Don't worry, this lasts 9 billion years at 60fps before overflow.
     state.tick++;
     if (state.tick == 5) 
     {
@@ -372,3 +444,4 @@ sapp_desc sokol_main(int argc, char* argv[])
         .icon.sokol_default = true
     };
 }
+#endif // TEST

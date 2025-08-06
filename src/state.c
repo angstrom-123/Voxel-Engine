@@ -161,6 +161,7 @@ void state_init_data(state_t *state)
     #endif
 
     state->prev_chunk_pos = (ivec3) {0, 0, 0};
+    state->frame = 0;
     state->tick = 0;
     state->chunk_cnt = 0;
     state->chunks = NULL;

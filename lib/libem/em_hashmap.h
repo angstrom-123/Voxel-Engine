@@ -21,8 +21,12 @@ typedef struct em_hashmap_##NAME {\
     size_t count;\
     em_hashmap_t *_hashmap;\
     /* Methods. */\
+    /* Get a new iterator for this hashmap. */\
+    em_hashmap_iter_t *(*iterator)(struct em_hashmap_##NAME *this);\
+    /* Place a key/value pair into the hashmap. */\
+    void (*put)(struct em_hashmap_##NAME *this, KTYP key, VTYP value);\
     /* Place a key/value pair into the hashmap. NOTE: value must be a heap pointer. */\
-    void (*put)(struct em_hashmap_##NAME *this, KTYP key, VTYP *value_ptr);\
+    void (*put_ptr)(struct em_hashmap_##NAME *this, KTYP key, VTYP *value_ptr);\
     /* Get the value stored at key from the hashmap. If there is none, runtime error. */\
     VTYP (*get)(struct em_hashmap_##NAME *this, KTYP key);\
     /* Get the pointer stored at key from the hashmap. If there is none, runtime error. */\
@@ -35,11 +39,13 @@ typedef struct em_hashmap_##NAME {\
     VTYP (*remove)(struct em_hashmap_##NAME *this, KTYP key);\
     /* Doubles the capacity of the hashmap and rehashes all keys. WARN: Expensive operation. */\
     void (*resize)(struct em_hashmap_##NAME *this);\
+    /* Frees all resources associated with this hashmap. */\
+    void (*destroy)(struct em_hashmap_##NAME *this);\
 } em_hashmap_##NAME##_t;\
 \
-extern em_hashmap_##NAME##_t *em_hashmap_##NAME##_new(size_t init_size,\
+em_hashmap_##NAME##_t *em_hashmap_##NAME##_new(size_t init_size,\
                                                       bool (*cmp_func)(KTYP *lhs, KTYP *rhs),\
-                                                      uint32_t (*hsh_func)(KTYP *seed));
+                                                      uint32_t (*hsh_func)(KTYP *seed));\
 
 /* Definition template. */
 #define HASHMAP(NAME) em_hashmap_##NAME##_t
@@ -56,49 +62,72 @@ static void _update_##NAME(em_hashmap_##NAME##_t *this)\
     this->count = this->_hashmap->count;\
 }\
 \
-static void _put_##NAME(em_hashmap_##NAME##_t *this, KTYP k, VTYP *v)\
+static em_hashmap_iter_t *_iterator_##NAME(em_hashmap_##NAME##_t *this)\
+{\
+    return em_hashmap_iterator(this->_hashmap);\
+}\
+\
+static void _put_##NAME(em_hashmap_##NAME##_t *this, KTYP k, VTYP v)\
 {\
     KTYP *k_ptr = malloc(sizeof(KTYP));\
     *k_ptr = k;\
-    hashmap_put(this->_hashmap, k_ptr, v);\
+    VTYP *v_ptr = malloc(sizeof(VTYP));\
+    *v_ptr = v;\
+    em_hashmap_put(this->_hashmap, k_ptr, v_ptr);\
+    _update_##NAME(this);\
+}\
+\
+static void _put_ptr_##NAME(em_hashmap_##NAME##_t *this, KTYP k, VTYP *v)\
+{\
+    KTYP *k_ptr = malloc(sizeof(KTYP));\
+    *k_ptr = k;\
+    em_hashmap_put(this->_hashmap, k_ptr, v);\
     _update_##NAME(this);\
 }\
 \
 static VTYP _get_##NAME(em_hashmap_##NAME##_t *this, KTYP k)\
 {\
-    VTYP *res = (VTYP *) hashmap_get(this->_hashmap, &k);\
+    VTYP *res = em_hashmap_get(this->_hashmap, &k);\
     return *res;\
 }\
 \
 static VTYP *_get_ptr_##NAME(em_hashmap_##NAME##_t *this, KTYP k)\
 {\
-    VTYP *res = (VTYP *) hashmap_get(this->_hashmap, &k);\
+    VTYP *res = (VTYP *) em_hashmap_get(this->_hashmap, &k);\
     return res;\
 }\
 \
 static VTYP *_get_or_default_##NAME(em_hashmap_##NAME##_t *this, KTYP k, VTYP *dflt)\
 {\
-    VTYP *res = hashmap_get_or_default(this->_hashmap, &k, dflt);\
+    VTYP *res = em_hashmap_get_or_default(this->_hashmap, &k, dflt);\
     return res;\
 }\
 \
 static bool _contains_key_##NAME(em_hashmap_##NAME##_t *this, KTYP k)\
 {\
-    bool res = hashmap_contains_key(this->_hashmap, &k);\
+    bool res = em_hashmap_contains_key(this->_hashmap, &k);\
     return res;\
 }\
 \
 static VTYP _remove_##NAME(em_hashmap_##NAME##_t *this, KTYP k)\
 {\
-    VTYP *res = (VTYP *) hashmap_remove(this->_hashmap, &k);\
+    VTYP *pop = (VTYP *) em_hashmap_remove(this->_hashmap, &k);\
+    VTYP res = *pop;\
+    free(pop);\
     _update_##NAME(this);\
-    return *res;\
+    return res;\
 }\
 \
 static void _resize_##NAME(em_hashmap_##NAME##_t *this)\
 {\
-    hashmap_resize(this->_hashmap);\
+    em_hashmap_resize(this->_hashmap);\
     _update_##NAME(this);\
+}\
+\
+static void _destroy_##NAME(em_hashmap_##NAME##_t *this)\
+{\
+    em_hashmap_destroy(this->_hashmap);\
+    free(this);\
 }\
 \
 em_hashmap_##NAME##_t *em_hashmap_##NAME##_new(size_t init_size,\
@@ -118,19 +147,22 @@ em_hashmap_##NAME##_t *em_hashmap_##NAME##_new(size_t init_size,\
         exit(1);\
     }\
     \
-    res->_hashmap       = hashmap_new(init_size,\
+    res->_hashmap       = em_hashmap_new(init_size,\
                                       (void_cmp_func) cmp_func,\
                                       (void_hsh_func) hsh_func);\
     res->size           = init_size;\
     res->count          = 0;\
     \
+    res->iterator       = _iterator_##NAME;\
     res->put            = _put_##NAME;\
+    res->put_ptr        = _put_ptr_##NAME;\
     res->get            = _get_##NAME;\
     res->get_ptr        = _get_ptr_##NAME;\
     res->get_or_default = _get_or_default_##NAME;\
     res->contains_key   = _contains_key_##NAME;\
     res->remove         = _remove_##NAME;\
     res->resize         = _resize_##NAME;\
+    res->destroy        = _destroy_##NAME;\
     \
     return res;\
 }
@@ -138,11 +170,12 @@ em_hashmap_##NAME##_t *em_hashmap_##NAME##_new(size_t init_size,\
 typedef bool (*void_cmp_func)(const void *, const void *);
 typedef uint32_t (*void_hsh_func)(const void *);
 
-typedef struct em_entry {
+typedef struct em_hashmap_entry {
     void *key;
     void *val;
-    struct em_entry *next;
-} em_entry_t;
+
+    struct em_hashmap_entry *_next;
+} em_hashmap_entry_t;
 
 typedef struct em_hashmap {
     size_t size;
@@ -150,24 +183,39 @@ typedef struct em_hashmap {
 
     void_cmp_func _cmp_func;
     void_hsh_func _hsh_func;
-    em_entry_t **_entries;
+    em_hashmap_entry_t **_entries;
 } em_hashmap_t;
 
-extern uint32_t em_hash(int32_t key);
+typedef struct em_hashmap_iter {
+    bool has_next;
+    void (*next)(struct em_hashmap_iter *this);
+    em_hashmap_entry_t *(*get)(struct em_hashmap_iter *this);
 
-extern em_hashmap_t *hashmap_new(size_t init_size, void_cmp_func cmp, void_hsh_func hsh);
-extern void hashmap_put(em_hashmap_t *this, void *key, void *val);
-extern void *hashmap_get(em_hashmap_t *this, void *key);
-extern void *hashmap_get_or_default(em_hashmap_t *this, void *key, void *val);
-extern bool hashmap_contains_key(em_hashmap_t *this, void *key);
-extern void *hashmap_remove(em_hashmap_t *this, void *key);
-extern void hashmap_resize(em_hashmap_t *this);
+    em_hashmap_t *_map;
+    em_hashmap_entry_t *_curr;
+    size_t _idx;
+    size_t _count;
+} em_hashmap_iter_t;
+
+uint32_t em_hash(int32_t key);
+
+em_hashmap_entry_t *_hashmap_iter_get(em_hashmap_iter_t *iter);
+void _hashmap_iter_next(em_hashmap_iter_t *iter);
+em_hashmap_iter_t *hashmap_iterator(em_hashmap_t *this);
+
+em_hashmap_t *hashmap_new(size_t init_size, void_cmp_func cmp, void_hsh_func hsh);
+void hashmap_put(em_hashmap_t *this, void *key, void *val);
+void *hashmap_get(em_hashmap_t *this, void *key);
+void *hashmap_get_or_default(em_hashmap_t *this, void *key, void *val);
+bool hashmap_contains_key(em_hashmap_t *this, void *key);
+void *hashmap_remove(em_hashmap_t *this, void *key);
+void hashmap_resize(em_hashmap_t *this);
 
 #endif // EM_HASHMAP_INCLUDED
 
 /*     ______  _______  __    ________  __________   ___________  ______________  _   __
  *    /   /  |/  / __ \/ /   / ____/  |/  / ____/ | / /_  __/   |/_  __/   / __ \/ | / /
- *    / // /|_/ / /_/ / /   / __/ / /\_/ / __/ /  |/ / / / / /| | / /  / // / / /  |/ /
+ *    / // /|_/ / /_/ / /   / __/ / /|_/ / __/ /  |/ / / / / /| | / /  / // / / /  |/ /
  *   / // /  / / ____/ /___/ /___/ /  / / /___/ /|  / / / / ___ |/ /  / // /_/ / /|  /
  * /___/_/  /_/_/   /_____/_____/_/  /_/_____/_/ |_/ /_/ /_/  |_/_/ /___/\____/_/ |_/
  *
@@ -187,7 +235,78 @@ uint32_t em_hash(int32_t k)
     return k;
 }
 
-em_hashmap_t *hashmap_new(size_t init_size, void_cmp_func cmp, void_hsh_func hsh)
+em_hashmap_entry_t *_hashmap_iter_get(em_hashmap_iter_t *iter)
+{
+    return iter->_curr;
+}
+
+void _hashmap_iter_next(em_hashmap_iter_t *iter)
+{
+    if (!iter->has_next)
+        return;
+
+    em_hashmap_entry_t *bin_e = iter->_map->_entries[iter->_idx];
+    if (bin_e)
+    {
+        if (iter->_curr->key) // Must search for current node in the chain by key.
+        {
+            em_hashmap_entry_t *curr = bin_e;
+            while (!iter->_map->_cmp_func(curr->key, iter->_curr->key))
+                curr = curr->_next;
+
+            if (curr->_next) // If there is another in the chain we move to that.
+            {
+                iter->_curr = curr->_next;
+                iter->_count++;
+                iter->has_next = iter->_count < iter->_map->count;
+                return;
+            }
+        }
+    }
+
+    /* 
+     * We either had no prior node or did not find another in the chain,
+     * need to search for another bin with nodes.
+     */
+    for (iter->_idx++; iter->_idx < iter->_map->size; iter->_idx++)
+    {
+        bin_e = iter->_map->_entries[iter->_idx];
+        if (bin_e)
+        {
+            iter->_curr = bin_e;
+            iter->_count++;
+            iter->has_next = iter->_count < iter->_map->count;
+            return;
+        }
+    }
+
+    iter->has_next = false;
+}
+
+em_hashmap_iter_t *em_hashmap_iterator(em_hashmap_t *this)
+{
+    em_hashmap_iter_t *res = malloc(sizeof(em_hashmap_iter_t));
+    res->has_next = (this->count > 0);
+    res->get = _hashmap_iter_get;
+    res->next = _hashmap_iter_next;
+
+    res->_map = this;
+    res->_idx = 0;
+    res->_count = 0;
+
+    res->_curr = NULL;
+    for (size_t i = 0; i < this->size; i++)
+    {
+        if (this->_entries[i])
+        {
+            res->_curr = this->_entries[i];
+            break;
+        }
+    }
+    return res;
+}
+
+em_hashmap_t *em_hashmap_new(size_t init_size, void_cmp_func cmp, void_hsh_func hsh)
 {
     if (init_size == 0) 
     {
@@ -199,79 +318,83 @@ em_hashmap_t *hashmap_new(size_t init_size, void_cmp_func cmp, void_hsh_func hsh
     res->count = 0;
     res->_hsh_func = hsh;
     res->_cmp_func = cmp;
-    res->_entries = calloc(init_size,  sizeof(void *));
+    res->_entries = calloc(init_size, sizeof(em_hashmap_entry_t *));
+    if (!res->_entries)
+    {
+        fprintf(stderr, "Failed to allocate hashmap entries at init.\n");
+        exit(1);
+    }
+
     return res;
 }
 
-void hashmap_resize(em_hashmap_t *this)
+void em_hashmap_resize(em_hashmap_t *this)
 {
     size_t new_size = this->size * 2;
-    em_entry_t **entries = calloc(new_size, sizeof(em_entry_t *));
+    em_hashmap_entry_t **entries = calloc(new_size, sizeof(em_hashmap_entry_t *));
+    if (!entries)
+    {
+        fprintf(stderr, "Failed to reallocate hashmap entries at resize.\n");
+        exit(1);
+    }
 
-    /* Rehash entries into larger table. */
     for (size_t i = 0; i < this->size; i++)
     {
-        em_entry_t *e = this->_entries[i];
-        em_entry_t *head = NULL;
-
-        /* Add all entries in the chain to the table. */
+        em_hashmap_entry_t *e = this->_entries[i];
         while (e)
         {
+            em_hashmap_entry_t *next = e->_next;
+
             size_t idx = this->_hsh_func(e->key) % new_size;
-            if (!head)
-            {
-                entries[idx] = e;
-                head = e;
-            }
-            else
-            {
-                head->next = e;
-                head = head->next;
-            }
-            e = e->next;
+
+            e->_next = entries[idx];
+            entries[idx] = e;
+
+            e = next;
         }
     }
+
     free(this->_entries);
     this->_entries = entries;
     this->size = new_size;
 }
 
-void hashmap_put(em_hashmap_t *this, void *key, void *val)
+void em_hashmap_put(em_hashmap_t *this, void *key, void *val)
 {
-    em_entry_t *e = malloc(sizeof(em_entry_t));
+    em_hashmap_entry_t *e = malloc(sizeof(em_hashmap_entry_t));
     e->key = key;
     e->val = val;
-    e->next = NULL;
+    e->_next = NULL;
 
     size_t idx = this->_hsh_func(key) % this->size;
-    em_entry_t *curr = this->_entries[idx];
+    em_hashmap_entry_t *curr = this->_entries[idx];
     if (!curr) // No elements in bin yet.
     {
         this->_entries[idx] = e;
     }
-    else // Hash colission, add entry to end of linked list.
+    else // Hash colission, add entry to start of linked list.
     {
-        em_entry_t *prev = NULL;
+        em_hashmap_entry_t *prev = NULL;
         while (curr)
         {
             prev = curr;
-            curr = curr->next;
+            curr = curr->_next;
         }
-        prev->next = e;
+        prev->_next = e;
     }
 
     this->count++;
 
     /* Grow table if load factor above threshold. */
     if (((float) this->count) / ((float) this->size) >= MAX_LOAD_FACTOR)
-        hashmap_resize(this);
+        em_hashmap_resize(this);
 }
 
-void *hashmap_get(em_hashmap_t *this, void *key)
+void *em_hashmap_get(em_hashmap_t *this, void *key)
 {
     /* Search through linked list of elements in the key's bucket for matching key. */
     size_t idx = this->_hsh_func(key) % this->size;
-    em_entry_t *e = this->_entries[idx];
+    em_hashmap_entry_t *e = this->_entries[idx];
     while (e)
     {
         if (!e)
@@ -280,7 +403,7 @@ void *hashmap_get(em_hashmap_t *this, void *key)
         if (this->_cmp_func(e->key, key))
             return e->val;
 
-        e = e->next;
+        e = e->_next;
     }
 
     /* Hashmap does not contain the key, no default provided so crash. */
@@ -288,11 +411,11 @@ void *hashmap_get(em_hashmap_t *this, void *key)
     exit(1);
 }
 
-void *hashmap_get_or_default(em_hashmap_t *this, void *key, void *dflt)
+void *em_hashmap_get_or_default(em_hashmap_t *this, void *key, void *dflt)
 {
     /* Search through linked list of elements in the key's bucket for matching key. */
     size_t idx = this->_hsh_func(key) % this->size;
-    em_entry_t *e = this->_entries[idx];
+    em_hashmap_entry_t *e = this->_entries[idx];
     while (e)
     {
         if (!e)
@@ -301,18 +424,18 @@ void *hashmap_get_or_default(em_hashmap_t *this, void *key, void *dflt)
         if (this->_cmp_func(e->key, key))
             return e->val;
 
-        e = e->next;
+        e = e->_next;
     }
 
     /* Hashmap does not contain the key, return default . */
     return dflt;
 }
 
-bool hashmap_contains_key(em_hashmap_t *this, void *key)
+bool em_hashmap_contains_key(em_hashmap_t *this, void *key)
 {
     /* Search through linked list of elements in the key's bucket for matching key. */
     size_t idx = this->_hsh_func(key) % this->size;
-    em_entry_t *e = this->_entries[idx];
+    em_hashmap_entry_t *e = this->_entries[idx];
     while (e)
     {
         if (!e)
@@ -321,41 +444,72 @@ bool hashmap_contains_key(em_hashmap_t *this, void *key)
         if (this->_cmp_func(e->key, key))
             return true;
 
-        e = e->next;
+        e = e->_next;
     }
 
     /* Hashmap does not contain the key. */
     return false;
 }
 
-void *hashmap_remove(em_hashmap_t *this, void *key)
+void *em_hashmap_remove(em_hashmap_t *this, void *key)
 {
     /* Search through linked list of elements in the key's bucket for matching key. */
-    size_t idx = this->_hsh_func(key) % this->size;
-    em_entry_t *e = this->_entries[idx];
-    em_entry_t *prev = NULL;
-    while (e)
+    uint32_t idx = this->_hsh_func(key) % this->size;
+    em_hashmap_entry_t *e = this->_entries[idx];
+    em_hashmap_entry_t *prev = NULL;
+
+    while (e && !this->_cmp_func(key, e->key))
     {
-        if (!e)
-            break;
-
-        if (this->_cmp_func(e->key, key))
-        {
-            prev->next = e->next;
-            void *val = e->val;
-
-            free(e);
-            this->count--;
-
-            return val;
-        }
         prev = e;
-        e = e->next;
+        e = e->_next;
     }
 
-    /* Hashmap does not contain the key. */
-    fprintf(stderr, "Attempting to access invalid element in hashmap remove.\n");
-    exit(1);
+    if (!e)
+    {
+        /* Hashmap does not contain the key. */
+        fprintf(stderr, "Attempting to access invalid element in hashmap remove.\n");
+        exit(1);
+    }
+
+    void *res = e->val;
+    if (!e->_next)
+    {
+        if (!prev)
+            this->_entries[idx] = NULL;
+        else 
+            prev->_next = NULL;
+    }
+    else 
+    {
+        if (!prev)
+            this->_entries[idx] = e->_next;
+        else 
+            prev->_next = e->_next;
+    }
+
+    this->count--;
+    free(e->key);
+    free(e);
+    return res;
+}
+
+void em_hashmap_destroy(em_hashmap_t *this)
+{
+    for (size_t i = 0; i < this->size; i++)
+    {
+        em_hashmap_entry_t *e = this->_entries[i];
+        em_hashmap_entry_t *next;
+        while (e)
+        {
+            next = e->_next;
+            free(e->val);
+            free(e->key);
+            free(e);
+            e = next;
+        }
+    }
+    free(this->_entries);
+    free(this);
 }
 #endif // EM_HASHMAP_IMPL
 

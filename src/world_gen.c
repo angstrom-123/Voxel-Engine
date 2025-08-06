@@ -1,5 +1,34 @@
 #import "world_gen.h"
 
+ivec2 *gen_get_required_coords_2(vec3 c, uint8_t rd, size_t *len)
+{
+    /* Formula gives number of chunks within manhattan distance rd. */
+    size_t num = ((2 * rd * rd) + (2 * rd) + 1);
+    ivec2 *out = malloc(sizeof(ivec3) * num);
+
+    /* Coords of chunk containing c. */
+    int32_t x0 = floorf(c.x / (float) CHUNK_SIZE);
+    int32_t z0 = floorf(c.z / (float) CHUNK_SIZE);
+
+    size_t ctr = 0;
+    for (int32_t x = x0 - rd - 1; x < x0 + rd + 1; x++)
+    {
+        for (int32_t z = z0 - rd - 1; z < z0 + rd + 1; z++)
+        {
+            /* Calculate manhattan distance. */
+            int32_t m = em_abs(z - z0) + em_abs(x - x0);
+            if (m > rd) 
+                continue; // Outside of render distance.
+
+            out[ctr++] = (ivec2) {x * 16, z * 16};
+        }
+    }
+
+    *len = num;
+
+    return out;
+}
+
 ivec3 *gen_get_required_coords(vec3 c, uint8_t rd, size_t *len)
 {
     /* Formula gives number of chunks within manhattan distance rd. */
@@ -30,7 +59,7 @@ ivec3 *gen_get_required_coords(vec3 c, uint8_t rd, size_t *len)
     return out;
 }
 
-chunk_t *gen_new_chunk(int32_t x, int32_t y, int32_t z, chunk_t **chunks, uint16_t cnt)
+chunk_t *gen_new_chunk(int32_t x, int32_t z)
 {
     chunk_t *chunk = malloc(sizeof(chunk_t));
     chunk->blocks = malloc(sizeof(chunk_data_t));
@@ -45,12 +74,13 @@ chunk_t *gen_new_chunk(int32_t x, int32_t y, int32_t z, chunk_t **chunks, uint16
 
     /* Defaults. */
     chunk->x = x;
-    chunk->y = y;
+    chunk->y = 0;
     chunk->z = z;
     chunk->staged = false;
     chunk->visible = true;
     chunk->meshed = false;
     chunk->age = 0;
+    chunk->creation_frame = 0; // This will be set externally.
     chunk->buf_data.v_ofst = 0;
     chunk->buf_data.i_ofst = 0;
     chunk->buf_data.v_len = 0;
