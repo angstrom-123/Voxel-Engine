@@ -6,7 +6,7 @@
 
 DECLARE_DLL(chunk_t, chunk)
 
-#ifndef MY_DLL_IMPL
+#ifdef MY_DLL_IMPL
 
 DEFINE_DLL(chunk_t, chunk);
 

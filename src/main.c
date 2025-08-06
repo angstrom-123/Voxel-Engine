@@ -303,6 +303,15 @@ static void render(void)
     }
     //
     // TODO: What is a fast way to iterate over a hashmap??? (ALSO, CHUNK AGING BASED ON FRAME)
+
+    em_hashmap_iter_t *it = state.chunk_map->iterator(state.chunk_map);
+    while (it->has_next)
+    {
+        em_hashmap_entry_t *e = it->get(it);
+
+        it->next(it);
+    }
+
     //
     // for (size_t i = 0; i < state.chunk_cnt; i++)
     // {
@@ -388,6 +397,11 @@ static void cleanup(void)
     free(state.chunks);
     free(state.cb.v_stg);
     free(state.cb.i_stg);
+
+    for (size_t i = 0; i < NUM_BUCKETS; i++)
+        state.buckets[i].list->destroy(state.buckets[i].list);
+
+    state.chunk_map->destroy(state.chunk_map);
 
     sg_destroy_buffer(state.cb.vbo);
     sg_destroy_buffer(state.cb.ibo);

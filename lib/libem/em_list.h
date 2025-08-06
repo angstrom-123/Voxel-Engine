@@ -259,13 +259,15 @@ typedef struct em_dll {
 
 typedef struct em_dll_iter {
     bool has_next;
-    void *(*next)(struct em_dll_iter *this);
+    void (*next)(struct em_dll_iter *this);
+    em_dll_node_t *(*get)(struct em_dll_iter *this);
 
     em_dll_node_t *_curr;
     em_dll_t *_dll;
 } em_dll_iter_t;
 
-void *_dll_iter_next(em_dll_iter_t *iter);
+em_dll_node_t *_dll_iter_get(em_dll_iter_t *iter);
+void _dll_iter_next(em_dll_iter_t *iter);
 em_dll_iter_t *em_dll_iterator(em_dll_t *dll);
 
 em_dll_t *em_dll_new(void);
@@ -296,33 +298,27 @@ void em_dll_destroy(em_dll_t *this);
 #include <stdlib.h> // exit
 #include <stdio.h> // fprintf, stderr
 
-void *_dll_iter_next(em_dll_iter_t *iter)
+em_dll_node_t *_dll_iter_get(em_dll_iter_t *iter)
+{
+    return iter->_curr;
+}
+
+void _dll_iter_next(em_dll_iter_t *iter)
 {
     if (!iter->has_next)
-        return NULL;
+        return;
 
-    if (!iter->_curr) // First call of iter next, from starting sentinel "NULL"
-    {
-        iter->_curr = iter->_dll->head;
-        iter->has_next = (iter->_curr != iter->_dll->tail);
-        if (iter->_curr)
-            return iter->_curr->val;
-        return NULL;
-    }
-    else 
-    {
-        iter->_curr = iter->_curr->_next;
-        iter->has_next = (iter->_curr != iter->_dll->tail);
-        return iter->_curr->val;
-    }
+    iter->_curr = iter->_curr->_next;
+    iter->has_next = iter->_curr && (iter->_curr != iter->_dll->tail);
 }
 
 em_dll_iter_t *em_dll_iterator(em_dll_t *dll)
 {
     em_dll_iter_t *res = malloc(sizeof(em_dll_iter_t));
     res->has_next = dll->count > 0;
+    res->get = _dll_iter_get;
     res->next = _dll_iter_next;
-    res->_curr = NULL;
+    res->_curr = dll->head;
     res->_dll = dll;
     return res;
 }

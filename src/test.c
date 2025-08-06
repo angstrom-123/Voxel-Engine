@@ -20,13 +20,16 @@ bool _list_equals(em_dll_int_t *l, const int32_t *e, size_t len)
             free(it);
             return false;
         }
-        if (*(int32_t *) it->next(it) != e[idx++])
+
+        int32_t v = *(int32_t *) it->get(it)->val;
+        if (v != e[idx++])
         {
-            fprintf(stderr, "List values not equal: %i vs %i\n", 
-                    *(int32_t *) it->_curr->val, e[idx - 1]);
+            fprintf(stderr, "List values not equal: %i vs %i\n", v, e[idx - 1]);
             free(it);
             return false;
         }
+
+        it->next(it);
     }
 
     free(it);
@@ -45,7 +48,9 @@ void _assert_list(em_dll_int_t *l, const int32_t *e, size_t len)
             if (idx >= len)
                 break;
 
-            res[idx++] = *(int32_t *) it->next(it);
+            int32_t v = *(int32_t *) it->get(it)->val;
+            res[idx++] = v;
+            it->next(it);
         }
 
         free(it);

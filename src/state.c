@@ -171,4 +171,13 @@ void state_init_data(state_t *state)
     state->chunk_map = HASHMAP_NEW(ivec2_chunk, max_chunks * 1.5, 
                                    HASHMAP_CMP(ivec2),
                                    HASHMAP_HSH(ivec2));
+
+    state->buckets = (chunk_bucket_t[NUM_BUCKETS]) {
+        [BUCKET_HOT] = {.list = NULL, .frame_min = 0, .frame_max = 10},
+        [BUCKET_WARM] = {.list = NULL, .frame_min = 11, .frame_max = 100},
+        [BUCKET_COOL] = {.list = NULL, .frame_min = 101, .frame_max = 1000},
+        [BUCKET_STALE] = {.list = NULL, .frame_min = 1001, .frame_max = UINT16_MAX}
+    };
+    for (size_t i = 0; i < NUM_BUCKETS; i++)
+        state->buckets[i].list = DLL_NEW(chunk);
 }

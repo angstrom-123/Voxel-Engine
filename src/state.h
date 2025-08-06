@@ -14,9 +14,18 @@
 #undef MY_HASHMAP_IMPL
 #include "hashmap.h"
 
+#undef MY_DLL_IMPL
+#include "list.h"
+
 #include <libem/em_bmp.h>
 
 #include "shaders/chunk.glsl.h"
+
+#define NUM_BUCKETS 4
+#define BUCKET_HOT 0
+#define BUCKET_WARM 1
+#define BUCKET_COOL 2
+#define BUCKET_STALE 3
 
 typedef struct chunk_buffer {
 	uint32_t v_cnt;
@@ -28,6 +37,12 @@ typedef struct chunk_buffer {
 	vertex_t *v_stg;
 	uint32_t *i_stg;
 } chunk_buffer_t;
+
+typedef struct chunk_bucket {
+    DLL(chunk) *list;
+    uint16_t frame_min;
+    uint16_t frame_max;
+} chunk_bucket_t;
 
 typedef struct state {
 	/* Global state */
@@ -49,6 +64,7 @@ typedef struct state {
 	chunk_t **chunks;
 	chunk_buffer_t cb;
     HASHMAP(ivec2_chunk) *chunk_map;
+    chunk_bucket_t *buckets;
 
 	/* Input */
 	bool key_down[SAPP_KEYCODE_MENU + 1];
