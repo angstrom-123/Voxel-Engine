@@ -16,6 +16,14 @@ typedef struct em_dll_##NAME {\
     /* Methods. */\
     /* Get a new iterator for this dll. */\
     em_dll_iter_t *(*iterator)(struct em_dll_##NAME *this);\
+    /* Return the value of the head of the list. */\
+    TYPE (*get_first)(struct em_dll_##NAME *this);\
+    /* Return the value of the head of the list. */\
+    TYPE *(*get_ptr_first)(struct em_dll_##NAME *this);\
+    /* Return the value of the tail of the list. */\
+    TYPE (*get_last)(struct em_dll_##NAME *this);\
+    /* Return the value of the tail of the list. */\
+    TYPE *(*get_ptr_last)(struct em_dll_##NAME *this);\
     /* Get a value at an index in the linked list. WARN: Requires traversal. */\
     TYPE (*get)(struct em_dll_##NAME *this, size_t index);\
     /* Get a pointer to the value at an index in the linked list. WARN: Requires traversal. */\
@@ -62,7 +70,7 @@ em_dll_##NAME##_t *em_dll_##NAME##_new(void);
 
 /* Definition template. */
 #define DLL(NAME) em_dll_##NAME##_t
-#define DLL_NEW(NAME) em_dll_##NAME##_new();
+#define DLL_NEW(NAME) em_dll_##NAME##_new()
 #define DEFINE_DLL(TYPE, NAME)\
 \
 static void _update_##NAME(em_dll_##NAME##_t *this)\
@@ -73,6 +81,30 @@ static void _update_##NAME(em_dll_##NAME##_t *this)\
 static em_dll_iter_t *_iterator_##NAME(em_dll_##NAME##_t *this)\
 {\
     return em_dll_iterator(this->_dll);\
+}\
+\
+static TYPE _get_first_##NAME(em_dll_##NAME##_t *this)\
+{\
+    TYPE *res = em_dll_first(this->_dll);\
+    return *res;\
+}\
+\
+static TYPE *_get_ptr_first_##NAME(em_dll_##NAME##_t *this)\
+{\
+    TYPE *res = em_dll_first(this->_dll);\
+    return res;\
+}\
+\
+static TYPE _get_last_##NAME(em_dll_##NAME##_t *this)\
+{\
+    TYPE *res = em_dll_last(this->_dll);\
+    return *res;\
+}\
+\
+static TYPE *_get_ptr_last_##NAME(em_dll_##NAME##_t *this)\
+{\
+    TYPE *res = em_dll_last(this->_dll);\
+    return res;\
 }\
 \
 static TYPE _get_##NAME(em_dll_##NAME##_t *this, size_t index)\
@@ -271,6 +303,8 @@ void _dll_iter_next(em_dll_iter_t *iter);
 em_dll_iter_t *em_dll_iterator(em_dll_t *dll);
 
 em_dll_t *em_dll_new(void);
+void *em_dll_first(em_dll_t *this);
+void *em_dll_last(em_dll_t *this);
 void *em_dll_get(em_dll_t *this, size_t index);
 em_dll_node_t *em_dll_get_node(em_dll_t *this, size_t index);
 void em_dll_insert_after(em_dll_t *this, em_dll_node_t *node, void *val);
@@ -309,7 +343,7 @@ void _dll_iter_next(em_dll_iter_t *iter)
         return;
 
     iter->_curr = iter->_curr->_next;
-    iter->has_next = iter->_curr && (iter->_curr != iter->_dll->tail);
+    iter->has_next = iter->_curr;
 }
 
 em_dll_iter_t *em_dll_iterator(em_dll_t *dll)
@@ -330,6 +364,28 @@ em_dll_t *em_dll_new(void)
     res->head = NULL;
     res->tail = res->head;
     return res;
+}
+
+void *em_dll_first(em_dll_t *this)
+{   
+    if (this->count == 0)
+    {
+        fprintf(stderr, "Attempting to access invalid element in dll get.\n");
+        exit(1);
+    }
+
+    return this->head;
+}
+
+void *em_dll_last(em_dll_t *this)
+{   
+    if (this->count == 0)
+    {
+        fprintf(stderr, "Attempting to access invalid element in dll get.\n");
+        exit(1);
+    }
+
+    return this->tail;
 }
 
 void *em_dll_get(em_dll_t *this, size_t idx)

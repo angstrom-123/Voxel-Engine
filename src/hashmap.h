@@ -5,11 +5,19 @@
 #include <libem/em_math.h> // ivec2
 
 #include "geometry_types.h" // chunk_t
+#include "src/geometry.h"
 
 /* Declare new hashmap struct. */
 DECLARE_HASHMAP(ivec2, chunk_t, ivec2_chunk)
 DECLARE_HASHMAP_CMP(ivec2, ivec2)
 DECLARE_HASHMAP_HSH(ivec2, ivec2)
+
+typedef struct pred_c_age_args {
+    uint64_t current_frame;
+    size_t max_age;
+} pred_c_age_args_t;
+
+bool predicate_chunk_age(chunk_t *c, void *args);
 
 /* Provide function definitions in ONE source file. */
 #ifdef MY_HASHMAP_IMPL
@@ -35,6 +43,13 @@ DEFINE_HASHMAP_HSH(ivec2, ivec2)
         : em_sqr(y) + x;
 
     return em_hash(pair);
+}
+
+bool predicate_chunk_age(chunk_t *c, void *args)
+{
+    pred_c_age_args_t *a = (pred_c_age_args_t *) args;
+    size_t age = a->current_frame - c->creation_frame;
+    return age > a->max_age;
 }
 
 #endif // MY_HASHMAP_IMPL

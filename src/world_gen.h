@@ -5,13 +5,18 @@
 #include <memory.h> // memset
 #include <stdlib.h> // exit
 #include <math.h>
+#include <assert.h>
 
 #include <libem/em_perlin.h>
 
 #include "geometry.h"
 
-extern ivec2 *gen_get_required_coords_2(vec3 centre, uint8_t rndr_dist, size_t *coords_len);
-extern ivec3 *gen_get_required_coords(vec3 centre, uint8_t rndr_dist, size_t *coords_len);
+typedef struct ivec2_tuple {
+    ivec2 **arrays;
+    size_t *sizes;
+} ivec2_tuple_t;
+
+extern ivec2_tuple_t gen_get_coords(vec3 centre, uint8_t rndr_dist);
 extern chunk_t *gen_new_chunk(int32_t x, int32_t z);
 
 #endif

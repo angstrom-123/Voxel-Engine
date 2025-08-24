@@ -5,7 +5,9 @@
 #include "sokol/sokol_app.h"
 #endif
 
-#include "geometry.h"
+#include <libem/em_math.h>
+
+#include "geometry_types.h"
 
 #define CAM_HEIGHT 2.0
 #define MAX_PITCH 89.0

@@ -128,7 +128,7 @@ void _assert_hmap(em_hashmap_c2i_t *m, const char *ec,
 
 void _test_dll_i0(void)
 {
-    em_dll_int_t *list = DLL_NEW(int)
+    em_dll_int_t *list = DLL_NEW(int);
     printf("0/7 ");
 
     printf("\r1/7 ");
@@ -158,7 +158,7 @@ void _test_dll_i0(void)
 
 void _test_dll_i1(void)
 {
-    em_dll_int_t *list = DLL_NEW(int)
+    em_dll_int_t *list = DLL_NEW(int);
     printf("0/7 ");
 
     printf("\r1/7 ");
@@ -188,7 +188,7 @@ void _test_dll_i1(void)
 
 void _test_dll_d0(void)
 {
-    em_dll_int_t *list = DLL_NEW(int)
+    em_dll_int_t *list = DLL_NEW(int);
     printf("0/8 ");
 
     printf("\r1/8 ");
@@ -227,7 +227,7 @@ void _test_dll_d0(void)
 
 void _test_dll_d1(void)
 {
-    em_dll_int_t *list = DLL_NEW(int)
+    em_dll_int_t *list = DLL_NEW(int);
     printf("0/8 ");
 
     printf("\r1/8 ");
@@ -266,7 +266,7 @@ void _test_dll_d1(void)
 
 void _test_hmap_i0(void)
 {
-    em_hashmap_c2i_t *map = HASHMAP_NEW(c2i, 20, HASHMAP_CMP(c2i), HASHMAP_HSH(c2i))
+    em_hashmap_c2i_t *map = HASHMAP_NEW(c2i, 20, HASHMAP_CMP(c2i), HASHMAP_HSH(c2i), EM_DO_RESIZE);
     printf("0/4 ");
 
     printf("\r1/4 ");
@@ -287,7 +287,7 @@ void _test_hmap_i0(void)
 
 void _test_hmap_i1(void)
 {
-    em_hashmap_c2i_t *map = HASHMAP_NEW(c2i, 1, HASHMAP_CMP(c2i), HASHMAP_HSH(c2i))
+    em_hashmap_c2i_t *map = HASHMAP_NEW(c2i, 1, HASHMAP_CMP(c2i), HASHMAP_HSH(c2i), EM_DO_RESIZE);
     printf("0/4");
 
     printf("\r1/4 ");
@@ -308,7 +308,7 @@ void _test_hmap_i1(void)
 
 void _test_hmap_d0(void)
 {
-    em_hashmap_c2i_t *map = HASHMAP_NEW(c2i, 1, HASHMAP_CMP(c2i), HASHMAP_HSH(c2i))
+    em_hashmap_c2i_t *map = HASHMAP_NEW(c2i, 1, HASHMAP_CMP(c2i), HASHMAP_HSH(c2i), EM_DO_RESIZE);
     printf("0/5 ");
 
     printf("\r1/5 ");
@@ -335,7 +335,7 @@ void _test_hmap_d0(void)
 
 void _test_hmap_d1(void)
 {
-    em_hashmap_c2i_t *map = HASHMAP_NEW(c2i, 1, HASHMAP_CMP(c2i), HASHMAP_HSH(c2i))
+    em_hashmap_c2i_t *map = HASHMAP_NEW(c2i, 1, HASHMAP_CMP(c2i), HASHMAP_HSH(c2i), EM_DO_RESIZE);
     printf("0/5 ");
 
     printf("\r1/5 ");

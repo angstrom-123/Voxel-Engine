@@ -13,15 +13,15 @@ DEFS		= -DSOKOL_GLES3
 TEST_DEFS	= -DTEST
 
 OUTPUT		= ./build/minecraft
-TEST_OUTPUT	= ./build/minecraft_test
+TEST_OUTPUT	= ./build/test_minecraft
 
 .PHONY: release
-release: $(CFILES) $(LIBSOKOL) $(LIBEM)
+release: $(CFILES) $(LIBSOKOL) $(LIBEM) $(SHDR_HEADS)
 	rm -f $(OUTPUT)
 	$(CC) $(CFILES) -o $(OUTPUT) $(INCLUDE) $(DEFS) $(CFLAGS) -O1 $(LX_LIBS)
 
 .PHONY: install
-install: $(CFILES) $(LIBSOKOL) $(LIBEM)
+install: $(CFILES) $(LIBSOKOL) $(LIBEM) $(SHDR_HEADS)
 	rm -f $(OUTPUT)
 	$(CC) -g $(CFILES) -o $(OUTPUT) $(INCLUDE) $(DEFS) $(CFLAGS) $(LX_LIBS) 
 

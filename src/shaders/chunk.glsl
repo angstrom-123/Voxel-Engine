@@ -87,6 +87,7 @@ vec2 unpack_uv(uint packed) {
 
 void main() {
     vec3 pos = a_xyzn.xyz;
+
     gl_Position = u_mvp * vec4(pos + u_chnk_pos, 1.0);
 
     v_uv = unpack_uv(a_uv);

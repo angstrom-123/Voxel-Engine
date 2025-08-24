@@ -1,4 +1,5 @@
 # A simple remake of Minecraft in C
+Currently a work-in-progress, still contains many bugs and is incomplete.
 This project is intended as a way to test the graphics library "Sokol".
 
 # Build and Run

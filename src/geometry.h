@@ -19,17 +19,12 @@
 #define TX(n) (0.0625 * n)
 #define SIZ TX(1)
 
-#define MAX_BLOCK_TYPES 8
-
 /* 
  * Defined safe maximums for vertex and index count of newly generated chunk meshes. 
  * Once a chunk has been altered, its size may be much larger.
  */
-#define V_MAX 12288
-#define I_MAX 18432
-
-/* Maximum multplier to v_max and i_max for a chunk's mesh. */
-#define MAX_MULT 3
+#define V_MAX 32768
+#define I_MAX 49152
 
 #define START_CANARY_VAL 0xDEADBEEF
 #define MID_CANARY_VAL 0xFEEDBEAD
@@ -78,7 +73,7 @@ static const vertex_t face_vertices[6][4] = {
 	}
 };
 
-static const vec2 uv_lookup[MAX_BLOCK_TYPES * 6] = {
+static const vec2 uv_lookup[CUBETYPE_NUM * 6] = {
 	[CUBETYPE_AIR * 6 + FACEIDX_BACK]   = {0.0, 0.0},
 	[CUBETYPE_AIR * 6 + FACEIDX_FRONT]  = {0.0, 0.0},
 	[CUBETYPE_AIR * 6 + FACEIDX_RIGHT]  = {0.0, 0.0},
@@ -129,8 +124,12 @@ static const vec2 uv_lookup[MAX_BLOCK_TYPES * 6] = {
 	[CUBETYPE_LEAF * 6 + FACEIDX_TOP]    = {TX(7), TX(15)},
 };
 
-extern bool geom_canaries_failed(chunk_t *chunk);
+extern bool geom_canaries_failed(mesh_t *mesh);
 extern bool geom_cube_is_transparent(cube_type_e type);
-extern void geom_generate_chunk_mesh(chunk_t *chunk);
+extern mesh_t *geom_generate_mesh(chunk_data_t *blocks);
+extern mesh_t *geom_generate_full_mesh(chunk_data_t *chunk, 
+                                       chunk_data_t *n, chunk_data_t *e, 
+                                       chunk_data_t *s, chunk_data_t *w);
+extern void geom_destroy_chunk(chunk_t *chunk);
 
 #endif

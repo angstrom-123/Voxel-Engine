@@ -5,6 +5,7 @@
 #define EM_HASHMAP_INCLUDED
 
 #include <malloc.h>
+#include <memory.h>
 #include <stdlib.h> // exit
 #include <stddef.h> // size_t
 #include <stdint.h>
@@ -35,21 +36,35 @@ typedef struct em_hashmap_##NAME {\
     VTYP *(*get_or_default)(struct em_hashmap_##NAME *this, KTYP key, VTYP *dflt_ptr);\
     /* Checks if the hashmap contains the key. */\
     bool (*contains_key)(struct em_hashmap_##NAME *this, KTYP key);\
-    /* Removes and returns the value stored at key. */\
-    VTYP (*remove)(struct em_hashmap_##NAME *this, KTYP key);\
-    /* Doubles the capacity of the hashmap and rehashes all keys. WARN: Expensive operation. */\
+    /* Removes and returns the valuea t key. */\
+    VTYP (*pop)(struct em_hashmap_##NAME *this, KTYP key);\
+    /* Removes and returns the pointer at key. */\
+    VTYP *(*pop_ptr)(struct em_hashmap_##NAME *this, KTYP key);\
+    /* Removes the value at key. */\
+    void (*remove)(struct em_hashmap_##NAME *this, KTYP key);\
+    /* Doubles the capacity of the hashmap and rehashes all keys. WARN: Expensive. */\
     void (*resize)(struct em_hashmap_##NAME *this);\
     /* Frees all resources associated with this hashmap. */\
     void (*destroy)(struct em_hashmap_##NAME *this);\
+    /* Clears the hashmap. */\
+    void (*clear)(struct em_hashmap_##NAME *this);\
+    /* Removes all entries whose value matches the predicate. */\
+    void (*filter_out)(struct em_hashmap_##NAME *this, bool (*pred)(VTYP *val, void *args),\
+                       void *args);\
+    /* Removes and returns all entries that match the predicate from the map. */\
+    em_hashmap_entry_t **(*filter_get)(struct em_hashmap_##NAME *this, bool (*pred)(VTYP *val, void *args), void *args);\
 } em_hashmap_##NAME##_t;\
 \
 em_hashmap_##NAME##_t *em_hashmap_##NAME##_new(size_t init_size,\
-                                                      bool (*cmp_func)(KTYP *lhs, KTYP *rhs),\
-                                                      uint32_t (*hsh_func)(KTYP *seed));\
+                                               bool (*cmp_func)(KTYP *lhs, KTYP *rhs),\
+                                               uint32_t (*hsh_func)(KTYP *seed),\
+                                               bool no_resize);\
 
 /* Definition template. */
+#define EM_NO_RESIZE false
+#define EM_DO_RESIZE true
 #define HASHMAP(NAME) em_hashmap_##NAME##_t
-#define HASHMAP_NEW(NAME, size, cmp, hsh) em_hashmap_##NAME##_new(size, cmp, hsh);
+#define HASHMAP_NEW(NAME, size, cmp, hsh, rsz) em_hashmap_##NAME##_new(size, cmp, hsh, rsz)
 #define HASHMAP_CMP(NAME) em_hashmap_cmp_func_##NAME
 #define HASHMAP_HSH(NAME) em_hashmap_hsh_func_##NAME
 #define DEFINE_HASHMAP_CMP(KTYP, NAME) bool HASHMAP_CMP(NAME)(KTYP *lhs, KTYP *rhs)
@@ -109,13 +124,26 @@ static bool _contains_key_##NAME(em_hashmap_##NAME##_t *this, KTYP k)\
     return res;\
 }\
 \
-static VTYP _remove_##NAME(em_hashmap_##NAME##_t *this, KTYP k)\
+static VTYP _pop_##NAME(em_hashmap_##NAME##_t *this, KTYP k)\
 {\
-    VTYP *pop = (VTYP *) em_hashmap_remove(this->_hashmap, &k);\
+    VTYP *pop = em_hashmap_pop(this->_hashmap, &k);\
     VTYP res = *pop;\
     free(pop);\
     _update_##NAME(this);\
     return res;\
+}\
+\
+static VTYP *_pop_ptr_##NAME(em_hashmap_##NAME##_t *this, KTYP k)\
+{\
+    VTYP *res = em_hashmap_pop(this->_hashmap, &k);\
+    _update_##NAME(this);\
+    return res;\
+}\
+\
+static void _remove_##NAME(em_hashmap_##NAME##_t *this, KTYP k)\
+{\
+    em_hashmap_remove(this->_hashmap, &k);\
+    _update_##NAME(this);\
 }\
 \
 static void _resize_##NAME(em_hashmap_##NAME##_t *this)\
@@ -130,9 +158,33 @@ static void _destroy_##NAME(em_hashmap_##NAME##_t *this)\
     free(this);\
 }\
 \
+static void _clear_##NAME(em_hashmap_##NAME##_t *this)\
+{\
+    em_hashmap_clear(this->_hashmap);\
+    _update_##NAME(this);\
+}\
+\
+static void _filter_out_##NAME(em_hashmap_##NAME##_t *this,\
+                               bool (*predicate)(VTYP *val, void *args),\
+                               void *args)\
+{\
+    em_hashmap_filter_out(this->_hashmap, (void_fltr_func) predicate, args);\
+    _update_##NAME(this);\
+}\
+\
+static em_hashmap_entry_t **_filter_get_##NAME(em_hashmap_##NAME##_t *this,\
+                                               bool (*predicate)(VTYP *val, void *args),\
+                                               void *args)\
+{\
+    em_hashmap_entry_t **res = em_hashmap_filter_get(this->_hashmap, (void_fltr_func) predicate, args);\
+    _update_##NAME(this);\
+    return res;\
+}\
+\
 em_hashmap_##NAME##_t *em_hashmap_##NAME##_new(size_t init_size,\
                                                bool (*cmp_func)(KTYP *lhs, KTYP *rhs),\
-                                               uint32_t (*hsh_func)(KTYP *seed))\
+                                               uint32_t (*hsh_func)(KTYP *seed),\
+                                               bool no_resize)\
 {\
     if (init_size == 0 || !cmp_func || !hsh_func)\
     {\
@@ -147,9 +199,12 @@ em_hashmap_##NAME##_t *em_hashmap_##NAME##_new(size_t init_size,\
         exit(1);\
     }\
     \
-    res->_hashmap       = em_hashmap_new(init_size,\
-                                      (void_cmp_func) cmp_func,\
-                                      (void_hsh_func) hsh_func);\
+    res->_hashmap       = em_hashmap_new(&(em_hashmap_desc_t) {\
+                            .capacity = init_size,\
+                            .cmp_func = (void_cmp_func) cmp_func,\
+                            .hsh_func = (void_hsh_func) hsh_func,\
+                            .no_resize = no_resize\
+                        });\
     res->size           = init_size;\
     res->count          = 0;\
     \
@@ -160,15 +215,28 @@ em_hashmap_##NAME##_t *em_hashmap_##NAME##_new(size_t init_size,\
     res->get_ptr        = _get_ptr_##NAME;\
     res->get_or_default = _get_or_default_##NAME;\
     res->contains_key   = _contains_key_##NAME;\
+    res->pop            = _pop_##NAME;\
+    res->pop_ptr        = _pop_ptr_##NAME;\
     res->remove         = _remove_##NAME;\
     res->resize         = _resize_##NAME;\
     res->destroy        = _destroy_##NAME;\
+    res->clear          = _clear_##NAME;\
+    res->filter_out     = _filter_out_##NAME;\
+    res->filter_get     = _filter_get_##NAME;\
     \
     return res;\
 }
 
 typedef bool (*void_cmp_func)(const void *, const void *);
 typedef uint32_t (*void_hsh_func)(const void *);
+typedef bool (*void_fltr_func)(void *, void *);
+
+typedef struct em_hashmap_desc {
+    size_t capacity;
+    void_cmp_func cmp_func;
+    void_hsh_func hsh_func;
+    bool no_resize;
+} em_hashmap_desc_t;
 
 typedef struct em_hashmap_entry {
     void *key;
@@ -181,6 +249,7 @@ typedef struct em_hashmap {
     size_t size;
     size_t count;
 
+    bool _no_resize;
     void_cmp_func _cmp_func;
     void_hsh_func _hsh_func;
     em_hashmap_entry_t **_entries;
@@ -201,15 +270,20 @@ uint32_t em_hash(int32_t key);
 
 em_hashmap_entry_t *_hashmap_iter_get(em_hashmap_iter_t *iter);
 void _hashmap_iter_next(em_hashmap_iter_t *iter);
-em_hashmap_iter_t *hashmap_iterator(em_hashmap_t *this);
+em_hashmap_iter_t *em_hashmap_iterator(em_hashmap_t *this);
 
-em_hashmap_t *hashmap_new(size_t init_size, void_cmp_func cmp, void_hsh_func hsh);
-void hashmap_put(em_hashmap_t *this, void *key, void *val);
-void *hashmap_get(em_hashmap_t *this, void *key);
-void *hashmap_get_or_default(em_hashmap_t *this, void *key, void *val);
-bool hashmap_contains_key(em_hashmap_t *this, void *key);
-void *hashmap_remove(em_hashmap_t *this, void *key);
-void hashmap_resize(em_hashmap_t *this);
+em_hashmap_t *em_hashmap_new(const em_hashmap_desc_t *desc);
+void em_hashmap_resize(em_hashmap_t *this);
+void em_hashmap_put(em_hashmap_t *this, void *key, void *val);
+void *em_hashmap_get(em_hashmap_t *this, void *key);
+void *em_hashmap_get_or_default(em_hashmap_t *this, void *key, void *val);
+bool em_hashmap_contains_key(em_hashmap_t *this, void *key);
+void *em_hashmap_pop(em_hashmap_t *this, void *key);
+void em_hashmap_remove(em_hashmap_t *this, void *key);
+void em_hashmap_destroy(em_hashmap_t *this);
+void em_hashmap_clear(em_hashmap_t *this);
+void em_hashmap_filter_out(em_hashmap_t *this, void_fltr_func pred, void *args);
+void em_hashmap_filter_to(em_hashmap_t *this, em_hashmap_t *targ, void_fltr_func pred, void *args);
 
 #endif // EM_HASHMAP_INCLUDED
 
@@ -306,19 +380,20 @@ em_hashmap_iter_t *em_hashmap_iterator(em_hashmap_t *this)
     return res;
 }
 
-em_hashmap_t *em_hashmap_new(size_t init_size, void_cmp_func cmp, void_hsh_func hsh)
+em_hashmap_t *em_hashmap_new(const em_hashmap_desc_t *desc)
 {
-    if (init_size == 0) 
+    if (desc->capacity == 0) 
     {
         fprintf(stderr, "Initial hashmap size must be greater than 0.\n");
         exit(1);
     }
     em_hashmap_t *res = malloc(sizeof(em_hashmap_t));
-    res->size = init_size;
+    res->size = desc->capacity;
     res->count = 0;
-    res->_hsh_func = hsh;
-    res->_cmp_func = cmp;
-    res->_entries = calloc(init_size, sizeof(em_hashmap_entry_t *));
+    res->_no_resize = desc->no_resize;
+    res->_hsh_func = desc->hsh_func;
+    res->_cmp_func = desc->cmp_func;
+    res->_entries = calloc(desc->capacity, sizeof(em_hashmap_entry_t *));
     if (!res->_entries)
     {
         fprintf(stderr, "Failed to allocate hashmap entries at init.\n");
@@ -384,6 +459,9 @@ void em_hashmap_put(em_hashmap_t *this, void *key, void *val)
     }
 
     this->count++;
+
+    if (this->_no_resize)
+        return;
 
     /* Grow table if load factor above threshold. */
     if (((float) this->count) / ((float) this->size) >= MAX_LOAD_FACTOR)
@@ -451,7 +529,49 @@ bool em_hashmap_contains_key(em_hashmap_t *this, void *key)
     return false;
 }
 
-void *em_hashmap_remove(em_hashmap_t *this, void *key)
+void *em_hashmap_pop(em_hashmap_t *this, void *key)
+{
+    /* Search through linked list of elements in the key's bucket for matching key. */
+    uint32_t idx = this->_hsh_func(key) % this->size;
+    em_hashmap_entry_t *e = this->_entries[idx];
+    em_hashmap_entry_t *prev = NULL;
+
+    while (e && !this->_cmp_func(key, e->key))
+    {
+        prev = e;
+        e = e->_next;
+    }
+
+    if (!e)
+    {
+        /* Hashmap does not contain the key. */
+        fprintf(stderr, "Attempting to access invalid element in hashmap pop.\n");
+        exit(1);
+    }
+
+    if (!e->_next)
+    {
+        if (!prev)
+            this->_entries[idx] = NULL;
+        else 
+            prev->_next = NULL;
+    }
+    else 
+    {
+        if (!prev)
+            this->_entries[idx] = e->_next;
+        else 
+            prev->_next = e->_next;
+    }
+
+    void *res = e->val;
+    this->count--;
+    free(e->key);
+    free(e);
+    return res;
+}
+
+void em_hashmap_remove(em_hashmap_t *this, void *key)
 {
     /* Search through linked list of elements in the key's bucket for matching key. */
     uint32_t idx = this->_hsh_func(key) % this->size;
@@ -471,7 +591,6 @@ void *em_hashmap_remove(em_hashmap_t *this, void *key)
         exit(1);
     }
 
-    void *res = e->val;
     if (!e->_next)
     {
         if (!prev)
@@ -489,8 +608,8 @@ void *em_hashmap_remove(em_hashmap_t *this, void *key)
 
     this->count--;
     free(e->key);
+    free(e->val);
     free(e);
-    return res;
 }
 
 void em_hashmap_destroy(em_hashmap_t *this)
@@ -511,6 +630,118 @@ void em_hashmap_destroy(em_hashmap_t *this)
     free(this->_entries);
     free(this);
 }
+
+void em_hashmap_clear(em_hashmap_t *this)
+{
+    for (size_t i = 0; i < this->size; i++)
+    {
+        em_hashmap_entry_t *e = this->_entries[i];
+        em_hashmap_entry_t *next;
+        while (e)
+        {
+            next = e->_next;
+            free(e->val);
+            free(e->key);
+            free(e);
+            e = next;
+        }
+    }
+
+    memset(this->_entries, 0, this->size * sizeof(em_hashmap_entry_t *));
+    this->count = 0;
+}
+
+void em_hashmap_filter_out(em_hashmap_t *this, void_fltr_func pred, void *args)
+{
+    for (size_t i = 0; i < this->size; i++)
+    {
+        em_hashmap_entry_t *e = this->_entries[i];
+        em_hashmap_entry_t *next = NULL;
+        em_hashmap_entry_t *prev = NULL;
+        while (e)
+        {
+            next = e->_next;
+            if (pred(e->val, args))
+            {
+                if (prev)
+                {
+                    if (next)
+                        prev->_next = next;
+                    else
+                        prev->_next = NULL;
+                }
+                else 
+                {
+                    if (next)
+                        this->_entries[i] = next;
+                    else
+                        this->_entries[i] = NULL;
+                }
+
+                free(e->val);
+                free(e->key);
+                free(e);
+                this->count--;
+            }
+            else // Only update previous node if it the current was not removed.
+            {
+                prev = e;
+            }
+
+            e = next;
+        }
+    }
+}
+
+em_hashmap_entry_t **em_hashmap_filter_get(em_hashmap_t *this, void_fltr_func pred, void *args)
+{
+    size_t siz = this->size;
+    em_hashmap_entry_t **res = malloc(siz * sizeof(em_hashmap_entry_t *));
+    size_t ctr = 0;
+
+    for (size_t i = 0; i < this->size; i++)
+    {
+        em_hashmap_entry_t *e = this->_entries[i];
+        em_hashmap_entry_t *next = NULL;
+        em_hashmap_entry_t *prev = NULL;
+        while (e)
+        {
+            next = e->_next;
+            if (pred(e->val, args))
+            {
+                /* Remove the entry from the current hashmap. */
+                if (prev)
+                {
+                    if (next)
+                        prev->_next = next;
+                    else
+                        prev->_next = NULL;
+                }
+                else 
+                {
+                    if (next)
+                        this->_entries[i] = next;
+                    else
+                        this->_entries[i] = NULL;
+                }
+                this->count--;
+
+                /* Place into result array. */
+                res[ctr++] = e;
+            } 
+
+            e = next;
+        }
+    }
+
+    if (ctr == 0)
+        return NULL;
+
+    res = realloc(res, (ctr + 1) * sizeof(em_hashmap_entry_t *));
+    res[ctr] = NULL;
+    return res;
+}
+
 #endif // EM_HASHMAP_IMPL
 
 #endif

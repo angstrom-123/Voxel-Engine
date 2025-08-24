@@ -1,5 +1,14 @@
 #include "state.h"
 
+static bucket_t _new_bucket(size_t size, size_t upper)
+{
+    return (bucket_t) {
+        .chunks = HASHMAP_NEW(ivec2_chunk, size, HASHMAP_CMP(ivec2), 
+                              HASHMAP_HSH(ivec2), EM_NO_RESIZE),
+        .upper = upper
+    };
+}
+
 void state_init_pipeline(state_t *state)
 {
     state->pip = sg_make_pipeline(&(sg_pipeline_desc) {
@@ -105,7 +114,7 @@ void state_init_textures(state_t *state)
 void state_init_cam(state_t *state)
 {
     state->cam = cam_setup(&(camera_desc_t) {
-        .rndr_dist = 12, // NOTE: MAX = 16
+        .rndr_dist = 8,
         .near      = 0.1,
         .far       = 300.0,
         .aspect    = (sapp_widthf() / sapp_heightf()),
@@ -121,27 +130,23 @@ void state_init_cam(state_t *state)
 
 void state_init_chunk_buffer(state_t *state)
 {
-    const size_t MEGA_BUFFER_SIZE = 134217728; // 128 MebiBytes
-
     state->cb = (chunk_buffer_t) {
         .vbo = sg_make_buffer(&(sg_buffer_desc) {
-            .size = MEGA_BUFFER_SIZE,
+            .size = V_STG_SIZE,
             .usage = {
                 .vertex_buffer = true,
                 .dynamic_update = true
             }
         }),
         .ibo = sg_make_buffer(&(sg_buffer_desc) {
-            .size = MEGA_BUFFER_SIZE,
+            .size = I_STG_SIZE,
             .usage = {
                 .index_buffer = true,
                 .dynamic_update = true
             }
         }),
-        .v_stg = malloc(MEGA_BUFFER_SIZE),
-        .i_stg = malloc(MEGA_BUFFER_SIZE),
-        .v_cnt = 0,
-        .i_cnt = 0
+        .v_stg = malloc(V_STG_SIZE),
+        .i_stg = malloc(I_STG_SIZE),
     };
 
     if (!state->cb.v_stg || !state->cb.i_stg 
@@ -160,24 +165,23 @@ void state_init_data(state_t *state)
         exit(1);
     #endif
 
-    state->prev_chunk_pos = (ivec3) {0, 0, 0};
+    state->prev_chunk_pos = (ivec2) {0, 0};
     state->frame = 0;
     state->tick = 0;
-    state->chunk_cnt = 0;
-    state->chunks = NULL;
+    state->l_tick = 0;
 
-    size_t max_chunks = (2 * em_sqr(state->cam.rndr_dist)) 
-                      + (2 * state->cam.rndr_dist) + 1;
-    state->chunk_map = HASHMAP_NEW(ivec2_chunk, max_chunks * 1.5, 
-                                   HASHMAP_CMP(ivec2),
-                                   HASHMAP_HSH(ivec2));
+    size_t chnk_max = (2 * em_sqr(state->cam.rndr_dist)) 
+                    + (2 * state->cam.rndr_dist) + 1;
+    size_t req_size = chnk_max * 1.35; // < 0.75 hmap load when all chunks loaded.
 
-    state->buckets = (chunk_bucket_t[NUM_BUCKETS]) {
-        [BUCKET_HOT] = {.list = NULL, .frame_min = 0, .frame_max = 10},
-        [BUCKET_WARM] = {.list = NULL, .frame_min = 11, .frame_max = 100},
-        [BUCKET_COOL] = {.list = NULL, .frame_min = 101, .frame_max = 1000},
-        [BUCKET_STALE] = {.list = NULL, .frame_min = 1001, .frame_max = UINT16_MAX}
-    };
-    for (size_t i = 0; i < NUM_BUCKETS; i++)
-        state->buckets[i].list = DLL_NEW(chunk);
+    state->buckets[BUCKET_HOT] = _new_bucket(req_size, 0);
+    state->buckets[BUCKET_COLD] = _new_bucket(req_size, 180);
+    state->buckets[BUCKET_STALE] = _new_bucket(req_size, 420);
+
+    state->free_list = DLL_NEW(offset);
+    for (size_t i = 0; i < NUM_SLOTS; i++)
+    {
+        offset_t offset = {.v_ofst = i * V_MAX, .i_ofst = i * I_MAX};
+        state->free_list->append(state->free_list, offset);
+    }
 }

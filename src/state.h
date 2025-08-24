@@ -21,16 +21,23 @@
 
 #include "shaders/chunk.glsl.h"
 
-#define NUM_BUCKETS 4
-#define BUCKET_HOT 0
-#define BUCKET_WARM 1
-#define BUCKET_COOL 2
-#define BUCKET_STALE 3
+#define NUM_SLOTS 512
+#define V_STG_SIZE (V_MAX * NUM_SLOTS * sizeof(vertex_t))
+#define I_STG_SIZE (I_MAX * NUM_SLOTS * sizeof(uint32_t))
+
+typedef enum bucket_type {
+    BUCKET_HOT = 0,
+    BUCKET_COLD = 1,
+    BUCKET_STALE = 2,
+    NUM_BUCKETS = 3
+} bucket_type_e;
+
+typedef struct bucket {
+    HASHMAP(ivec2_chunk) *chunks;
+    size_t upper;
+} bucket_t;
 
 typedef struct chunk_buffer {
-	uint32_t v_cnt;
-	uint32_t i_cnt;
-
 	sg_buffer vbo;
 	sg_buffer ibo;
 
@@ -38,21 +45,15 @@ typedef struct chunk_buffer {
 	uint32_t *i_stg;
 } chunk_buffer_t;
 
-typedef struct chunk_bucket {
-    DLL(chunk) *list;
-    uint16_t frame_min;
-    uint16_t frame_max;
-} chunk_bucket_t;
-
 typedef struct state {
 	/* Global state */
 	uint8_t tick;
+    uint8_t l_tick;
     uint64_t frame;
 
 	/* Player */
 	camera_t cam;
-	ivec3 prev_chunk_pos;
-	uint16_t player_chunk_idx;
+	ivec2 prev_chunk_pos;
 
 	/* Render */
 	sg_pipeline pip;
@@ -60,11 +61,9 @@ typedef struct state {
 	sg_pass_action pass_act;
 
 	/* World */
-	uint16_t chunk_cnt;
-	chunk_t **chunks;
 	chunk_buffer_t cb;
-    HASHMAP(ivec2_chunk) *chunk_map;
-    chunk_bucket_t *buckets;
+    bucket_t buckets[NUM_BUCKETS];
+    DLL(offset) *free_list;
 
 	/* Input */
 	bool key_down[SAPP_KEYCODE_MENU + 1];

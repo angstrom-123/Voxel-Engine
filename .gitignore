@@ -2,3 +2,5 @@
 .cache/
 compile_commands.json
 sokol-shdc
+test_val.sh
+val-out.txt
