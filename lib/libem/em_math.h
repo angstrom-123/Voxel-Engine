@@ -124,6 +124,9 @@ extern em_vec4 em_ivec3_as_vec4(em_ivec4 a);
 extern em_ivec2 em_vec2_as_ivec2(em_vec2 a);
 extern em_ivec3 em_vec3_as_ivec3(em_vec3 a);
 extern em_ivec4 em_vec3_as_ivec4(em_vec4 a);
+extern em_vec2 em_uvec2_as_vec2(em_uvec2 a);
+extern em_vec3 em_uvec3_as_vec3(em_uvec3 a);
+extern em_vec4 em_uvec3_as_vec4(em_uvec4 a);
 
 extern em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, float w);
 extern em_mat4 em_new_mat4(void);
@@ -273,6 +276,21 @@ em_ivec3 em_vec3_as_ivec3(em_vec3 a)
 em_ivec4 em_vec4_as_ivec4(em_vec4 a)
 {
     return (em_ivec4) {(int) a.x, (int) a.y, (int) a.z, (int) a.w};
+}
+
+em_vec2 em_uvec2_as_vec2(em_uvec2 a)
+{
+    return (em_vec2) {(float) a.x, (float) a.y};
+}
+
+em_vec3 em_uvec3_as_vec3(em_uvec3 a)
+{
+    return (em_vec3) {(float) a.x, (float) a.y, (float) a.z};
+}
+
+em_vec4 em_uvec4_as_vec4(em_uvec4 a)
+{
+    return (em_vec4) {(float) a.x, (float) a.y, (float) a.z, (float) a.w};
 }
 
 em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, float w)

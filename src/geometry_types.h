@@ -43,7 +43,7 @@ typedef struct chunk {
 	offset_t offsets;
     size_t index_cnt;
 	
-    bool full_mesh;
+    bool dirty;
 
     uint64_t creation_frame;
 } chunk_t;

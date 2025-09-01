@@ -36,40 +36,40 @@
  */
 static const vertex_t face_vertices[6][4] = {
 	[FACEIDX_BACK] = {
-		{2, 0, 0, 16, PACK(0.0, 0.0)},
+		{1, 0, 0, 16, PACK(0.0, 0.0)},
 		{0, 0, 0, 16, PACK(SIZ, 0.0)},
-		{0, 2, 0, 16, PACK(SIZ, SIZ)},
-		{2, 2, 0, 16, PACK(0.0, SIZ)}
+		{0, 1, 0, 16, PACK(SIZ, SIZ)},
+		{1, 1, 0, 16, PACK(0.0, SIZ)}
 	},
 	[FACEIDX_FRONT] = {
-		{0, 0, 2, 32, PACK(0.0, 0.0)},
-		{2, 0, 2, 32, PACK(SIZ, 0.0)},
-		{2, 2, 2, 32, PACK(SIZ, SIZ)},
-		{0, 2, 2, 32, PACK(0.0, SIZ)}
+		{0, 0, 1, 32, PACK(0.0, 0.0)},
+		{1, 0, 1, 32, PACK(SIZ, 0.0)},
+		{1, 1, 1, 32, PACK(SIZ, SIZ)},
+		{0, 1, 1, 32, PACK(0.0, SIZ)}
 	},
 	[FACEIDX_LEFT] = {
 		{0, 0, 0,  1, PACK(0.0, 0.0)},
-		{0, 0, 2,  1, PACK(SIZ, 0.0)},
-		{0, 2, 2,  1, PACK(SIZ, SIZ)},
-		{0, 2, 0,  1, PACK(0.0, SIZ)}
+		{0, 0, 1,  1, PACK(SIZ, 0.0)},
+		{0, 1, 1,  1, PACK(SIZ, SIZ)},
+		{0, 1, 0,  1, PACK(0.0, SIZ)}
 	},
 	[FACEIDX_RIGHT] = {
-		{2, 0, 2,  2, PACK(0.0, 0.0)},
-		{2, 0, 0,  2, PACK(SIZ, 0.0)},
-		{2, 2, 0,  2, PACK(SIZ, SIZ)},
-		{2, 2, 2,  2, PACK(0.0, SIZ)}
+		{1, 0, 1,  2, PACK(0.0, 0.0)},
+		{1, 0, 0,  2, PACK(SIZ, 0.0)},
+		{1, 1, 0,  2, PACK(SIZ, SIZ)},
+		{1, 1, 1,  2, PACK(0.0, SIZ)}
 	},
 	[FACEIDX_BOTTOM] = {
 		{0, 0, 0,  8, PACK(0.0, 0.0)},
-		{2, 0, 0,  8, PACK(SIZ, 0.0)},
-		{2, 0, 2,  8, PACK(SIZ, SIZ)},
-		{0, 0, 2,  8, PACK(0.0, SIZ)}
+		{1, 0, 0,  8, PACK(SIZ, 0.0)},
+		{1, 0, 1,  8, PACK(SIZ, SIZ)},
+		{0, 0, 1,  8, PACK(0.0, SIZ)}
 	},
 	[FACEIDX_TOP] = {
-		{0, 2, 2,  4, PACK(0.0, 0.0)},
-		{2, 2, 2,  4, PACK(SIZ, 0.0)},
-		{2, 2, 0,  4, PACK(SIZ, SIZ)},
-		{0, 2, 0,  4, PACK(0.0, SIZ)}
+		{0, 1, 1,  4, PACK(0.0, 0.0)},
+		{1, 1, 1,  4, PACK(SIZ, 0.0)},
+		{1, 1, 0,  4, PACK(SIZ, SIZ)},
+		{0, 1, 0,  4, PACK(0.0, SIZ)}
 	}
 };
 
@@ -126,8 +126,7 @@ static const vec2 uv_lookup[CUBETYPE_NUM * 6] = {
 
 extern bool geom_canaries_failed(mesh_t *mesh);
 extern bool geom_cube_is_transparent(cube_type_e type);
-extern mesh_t *geom_generate_mesh(chunk_data_t *blocks);
-extern mesh_t *geom_generate_full_mesh(chunk_data_t *chunk, 
+extern mesh_t *geom_generate_full_mesh(chunk_data_t *blocks, 
                                        chunk_data_t *n, chunk_data_t *e, 
                                        chunk_data_t *s, chunk_data_t *w);
 extern void geom_destroy_chunk(chunk_t *chunk);

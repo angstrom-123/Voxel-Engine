@@ -102,9 +102,9 @@ static void _add_face_to_mesh(quad_desc_t *desc,
         uv[1] += uv_lookup[(desc->type * 6) + desc->face].y;
 
         verts[i].uv = PACK(uv[0], uv[1]);
-        verts[i].x += (desc->x * 2);
-        verts[i].y += (desc->y * 2);
-        verts[i].z += (desc->z * 2);
+        verts[i].x += (desc->x);
+        verts[i].y += (desc->y);
+        verts[i].z += (desc->z);
     }
 
     const uint32_t v_ofst = *v_cnt;
@@ -148,75 +148,6 @@ bool geom_cube_is_transparent(cube_type_e type)
             return false;
 
     };
-}
-
-mesh_t *geom_generate_mesh(chunk_data_t *blocks)
-{
-    mesh_t *res = malloc(sizeof(mesh_t));
-    res->__start_canary = START_CANARY_VAL;
-    res->__mid_canary = MID_CANARY_VAL;
-    res->__end_canary = END_CANARY_VAL;
-
-    uint32_t v_cnt = 0;
-    uint32_t i_cnt = 0;
-
-    vertex_t *v_buf = malloc(V_MAX * sizeof(vertex_t));
-    uint32_t *i_buf = malloc(I_MAX * sizeof(uint32_t));
-    if (!v_buf || !i_buf)
-    {
-        fprintf(stderr, "Failed to allocate chunk buffers.\n");
-        exit(1);
-    }
-
-    /* Iterating x, y, z, as one dimension in row-major order for less nesting. */
-    int8_t *ptr = (int8_t *) blocks->types;
-    for (size_t i = 0; i < CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE; i++)
-    {
-        const cube_type_e type = *ptr;
-        ptr++;
-
-        if (type == CUBETYPE_AIR) 
-            continue; // Ignore empty space.
-
-        const uint8_t x = i / (CHUNK_HEIGHT * CHUNK_SIZE);
-        const uint8_t y = (i / CHUNK_SIZE) % CHUNK_HEIGHT;
-        const uint8_t z = i % CHUNK_SIZE;
-
-        for (uint8_t face = 0; face < 6; face++)
-        {
-            const cube_type_e nhbr = _get_neighbour(x, y, z, face, blocks);
-            if (!geom_cube_is_transparent(nhbr)) 
-                continue; // Opaque neighbour on this side, block face not visible.
-
-            _add_face_to_mesh(&(quad_desc_t) {
-                .x = x,
-                .y = y,
-                .z = z,
-                .type = type,
-                .face = face
-            }, &i_cnt, &v_cnt, i_buf, v_buf);
-        }
-    }
-
-    if (geom_canaries_failed(res))
-    {
-        printf("Chunk buffer overrun in generate mesh.\n");
-        exit(1);
-    }
-
-    /* Ignore empty chunks. */
-    if (i_cnt == 0)
-    {
-        res->v_buf = NULL;
-        res->i_buf = NULL;
-    }
-    else 
-    {
-        res->v_buf = v_buf;
-        res->i_buf = i_buf;
-    }
-
-    return res;
 }
 
 mesh_t *geom_generate_full_mesh(chunk_data_t *blocks, 
@@ -282,15 +213,15 @@ mesh_t *geom_generate_full_mesh(chunk_data_t *blocks,
     {
         res->i_cnt = 0;
         res->v_cnt = 0;
-        res->v_buf = malloc(1); // Safe defaults to avoid crash during memcpy.
         res->i_buf = malloc(1);
+        res->v_buf = malloc(1);
     }
     else 
     {
         res->i_cnt = i_cnt;
         res->v_cnt = v_cnt;
-        res->v_buf = v_buf;
         res->i_buf = i_buf;
+        res->v_buf = v_buf;
     }
 
     return res;

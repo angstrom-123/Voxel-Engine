@@ -42,7 +42,8 @@ void cam_handle_mouse(camera_t *cam, float mouse_dx, float mouse_dy)
     cam->view = em_mul_mat4(rot, trans);
 }
 
-void cam_handle_keyboard(camera_t *cam, bool *key_down, double dt)
+void cam_handle_keyboard(camera_t *cam, bool *key_down, double dt, chunk_t *c, 
+                         chunk_t *n, chunk_t *e, chunk_t *s, chunk_t *w)
 {
     vec3 move = {0};
 
@@ -62,7 +63,8 @@ void cam_handle_keyboard(camera_t *cam, bool *key_down, double dt)
     if (key_down[SAPP_KEYCODE_LEFT_CONTROL]) move = em_sub_vec3(move, WORLD_Y);
 
     move = em_mul_vec3_f(em_mul_vec3_f(move, cam->move_sens), dt);
-    cam->pos = em_add_vec3(cam->pos, move);
+    vec3 next_pos = em_add_vec3(cam->pos, move);
+    cam->pos = next_pos;
 }
 
 camera_t cam_setup(const camera_desc_t *desc) 
@@ -95,7 +97,8 @@ void cam_update(camera_t *cam)
 void cam_frame(const frame_desc_t *desc)
 {
     cam_handle_mouse(desc->cam, *desc->mouse_dx, *desc->mouse_dy);
-    cam_handle_keyboard(desc->cam, desc->key_down, desc->dt);
+    cam_handle_keyboard(desc->cam, desc->key_down, desc->dt, desc->curr, 
+                        desc->north, desc->east, desc->south,desc->west);
     cam_update(desc->cam);
     
     *desc->mouse_dx = 0.0;

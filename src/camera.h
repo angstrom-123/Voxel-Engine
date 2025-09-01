@@ -1,11 +1,13 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#include <stdbool.h>
 #if !defined(SOKOL_APP_INCLUDED) 
 #include "sokol/sokol_app.h"
 #endif
 
 #include <libem/em_math.h>
+#include <math.h>
 
 #include "geometry_types.h"
 
@@ -52,17 +54,24 @@ typedef struct camera {
 
 typedef struct frame_desc {
     camera_t *cam;
+    bool *lmb;
+    bool *rmb;
     float *mouse_dx;
     float *mouse_dy;
     bool *key_down;
     double dt;
-    chunk_t *curr_chunk;
+    chunk_t *curr;
+    chunk_t *north;
+    chunk_t *east;
+    chunk_t *south;
+    chunk_t *west;
 } frame_desc_t;
 
 camera_t cam_setup(const camera_desc_t *desc);
 void cam_update(camera_t *cam);
 void cam_handle_mouse(camera_t *cam, float mouse_dx, float mouse_dy);
-void cam_handle_keyboard(camera_t *cam, bool *key_down, double dt);
+void cam_handle_keyboard(camera_t *cam, bool *key_down, double dt, chunk_t *curr,
+                         chunk_t *north, chunk_t *east, chunk_t *south, chunk_t *west);
 void cam_frame(const frame_desc_t *desc);
 
 #endif

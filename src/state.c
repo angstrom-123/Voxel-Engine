@@ -113,10 +113,13 @@ void state_init_textures(state_t *state)
 
 void state_init_cam(state_t *state)
 {
+    const uint8_t rndr_dist = 12;
+    // const uint8_t rndr_dist = 4;
     state->cam = cam_setup(&(camera_desc_t) {
-        .rndr_dist = 8,
+        .rndr_dist = rndr_dist,
         .near      = 0.1,
-        .far       = 300.0,
+        .far       = (rndr_dist - 4) * CHUNK_SIZE,
+        // .far       = (rndr_dist + 5) * CHUNK_SIZE,
         .aspect    = (sapp_widthf() / sapp_heightf()),
         .fov       = 60.0,
         .turn_sens = 0.04,
@@ -165,7 +168,6 @@ void state_init_data(state_t *state)
         exit(1);
     #endif
 
-    state->prev_chunk_pos = (ivec2) {0, 0};
     state->frame = 0;
     state->tick = 0;
     state->l_tick = 0;
@@ -175,8 +177,7 @@ void state_init_data(state_t *state)
     size_t req_size = chnk_max * 1.35; // < 0.75 hmap load when all chunks loaded.
 
     state->buckets[BUCKET_HOT] = _new_bucket(req_size, 0);
-    state->buckets[BUCKET_COLD] = _new_bucket(req_size, 180);
-    state->buckets[BUCKET_STALE] = _new_bucket(req_size, 420);
+    state->buckets[BUCKET_COLD] = _new_bucket(req_size, 240);
 
     state->free_list = DLL_NEW(offset);
     for (size_t i = 0; i < NUM_SLOTS; i++)

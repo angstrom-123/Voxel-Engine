@@ -79,39 +79,48 @@ bool _hmap_equals(em_hashmap_c2i_t *m, const char *ec,
         if (v != ei[i])
         {
             fprintf(stderr, "Map values not equal: %i vs %c->%i\n", 
-                v, ec[i], ei[i]);
+                    v, ec[i], ei[i]);
             return false;
         }
     }
 
+    bool *found = calloc(len, sizeof(bool));
     em_hashmap_iter_t *it = m->iterator(m);
-    size_t ctr = 0;
     while (it->has_next)
     {
         em_hashmap_entry_t *e = it->get(it);
+        char k = *(char *) e->key;
         int32_t v = *(int32_t *) e->val;
-        bool found = false;
-        for (size_t i = 0; i < len; i++) 
+
+        size_t i;
+        for (i = 0; i < len; i++)
         {
-            if (v == ei[i])
+            if (!found[i] && ec[i] == k && ei[i] == v)
             {
-                found = true;
-                ctr++;
+                found[i] = true;
+                break;
             }
         }
-
-        if (!found) 
+        if (!found[i])
         {
-            free(it);
+            fprintf(stderr, "HashMap iterator assertion failed.\n");
+            fprintf(stderr, "Expected: \n");
+            for (i = 0; i < len; i++)
+                fprintf(stderr, "%c->%i\n", ec[i], ei[i]);
+            fprintf(stderr, "Actual: \n");
+            em_hashmap_iter_t *it2 = m->iterator(m);
+            while (it2->has_next)
+            {
+                em_hashmap_entry_t *e2 = it2->get(it2);
+                fprintf(stderr, "%zu: %c->%i\n", it2->_idx, *(char *) e2->key, *(int32_t *) e2->val);
+                it2->next(it2);
+            }
             return false;
         }
 
         it->next(it);
     }
     free(it);
-
-    if (ctr != m->count)
-        return false;
 
     return true;
 }
@@ -369,6 +378,148 @@ void _test_hmap_d1(void)
     map->destroy(map);
 }
 
+void _test_hmap_f0(void)
+{
+    em_hashmap_c2i_t *map = HASHMAP_NEW(c2i, 1, HASHMAP_CMP(c2i), HASHMAP_HSH(c2i), EM_DO_RESIZE);
+    printf("0/2 ");
+
+    printf("\r1/2 ");
+    map->put(map, 'a', 1);
+    map->put(map, 'b', 2);
+    map->put(map, 'c', 3);
+    map->put(map, 'd', 4);
+    map->put(map, 'e', 5);
+    map->put(map, 'f', 6);
+    map->put(map, 'g', 7);
+    map->put(map, 'h', 8);
+    _assert_hmap(map, (char[]) {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}, 
+                 (int32_t[]) {1, 2, 3, 4, 5, 6, 7, 8}, 8);
+    printf("\r2/2 ");
+    test_predicate_args_t args = {
+        .max = 4
+    };
+    map->filter_out(map, test_predicate, &args);
+    _assert_hmap(map, (char[]) {'a', 'b', 'c', 'd'}, 
+                 (int32_t[]) {1, 2, 3, 4}, 4);
+
+    map->destroy(map);
+}
+
+void _test_hmap_f1(void)
+{
+    em_hashmap_c2i_t *map = HASHMAP_NEW(c2i, 1, HASHMAP_CMP(c2i), HASHMAP_HSH(c2i), EM_DO_RESIZE);
+    printf("0/2 ");
+
+    printf("\r1/2 ");
+    map->put(map, 'a', 1);
+    map->put(map, 'b', 2);
+    map->put(map, 'c', 3);
+    map->put(map, 'd', 4);
+    map->put(map, 'e', 5);
+    map->put(map, 'f', 6);
+    map->put(map, 'g', 7);
+    map->put(map, 'h', 8);
+    _assert_hmap(map, (char[]) {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}, 
+                 (int32_t[]) {1, 2, 3, 4, 5, 6, 7, 8}, 8);
+    printf("\r2/2 ");
+    test_predicate_args_t args = {
+        .max = 4
+    };
+    em_hashmap_entry_t **res = map->filter_get(map, test_predicate, &args);
+    _assert_hmap(map, (char[]) {'a', 'b', 'c', 'd'}, 
+                 (int32_t[]) {1, 2, 3, 4}, 4);
+    
+    bool found[4] = {0};
+    char ec[4] = {'e', 'f', 'g', 'h'};
+    int32_t ei[4] = {5, 6, 7, 8};
+
+    for (size_t i = 0; i < 4; i++)
+    {
+        em_hashmap_entry_t *e = res[i];
+        char *key = e->key;
+        int32_t *val = e->val;
+
+        if (e)
+        {
+            size_t j;
+            for (j = 0; j < 4; j++)
+            {
+                if (ec[j] == *key && ei[j] == *val && !found[j])
+                {
+                    found[j] = true;
+                    break;
+                }
+            }
+
+            if (!found[j])
+            {
+                fprintf(stderr, "Get result does not match expected.\n");
+                exit(1);
+            }
+        }
+    }
+
+    map->destroy(map);
+}
+
+void _test_hmap_combo(void)
+{
+    em_hashmap_c2i_t *map = HASHMAP_NEW(c2i, 1, HASHMAP_CMP(c2i), HASHMAP_HSH(c2i), EM_DO_RESIZE);
+    printf("0/16 ");
+
+    printf("\r1/16 ");
+    map->put(map, 'a', 1);
+    _assert_hmap(map, (char[]) {'a'}, (int32_t[]) {1}, 1);
+    printf("\r2/16 ");
+    map->put(map, 'b', 2);
+    _assert_hmap(map, (char[]) {'a', 'b'}, (int32_t[]) {1, 2}, 2);
+    printf("\r3/16 ");
+    map->put(map, 'c', 3);
+    _assert_hmap(map, (char[]) {'a', 'b', 'c'}, (int32_t[]) {1, 2, 3}, 3);
+    printf("\r4/16 ");
+    map->put(map, 'd', 4);
+    _assert_hmap(map, (char[]) {'a', 'b', 'c', 'd'}, (int32_t[]) {1, 2, 3, 4}, 4);
+    printf("\r5/16 ");
+    map->pop(map, 'c');
+    _assert_hmap(map, (char[]) {'a', 'b', 'd'}, (int32_t[]) {1, 2, 4}, 3);
+    printf("\r6/16 ");
+    map->put(map, 'c', 10);
+    _assert_hmap(map, (char[]) {'a', 'b', 'c', 'd'}, (int32_t[]) {1, 2, 10, 4}, 4);
+    printf("\r7/16 ");
+    test_predicate_args_t args_over_3 = {.max = 3};
+    map->filter_get(map, test_predicate, &args_over_3);
+    _assert_hmap(map, (char[]) {'a', 'b'}, (int32_t[]) {1, 2}, 2);
+    printf("\r8/16 ");
+    map->put(map, 'c', 3);
+    _assert_hmap(map, (char[]) {'a', 'b', 'c'}, (int32_t[]) {1, 2, 3}, 3);
+    printf("\r8/16 ");
+    map->put(map, 'd', 4);
+    _assert_hmap(map, (char[]) {'a', 'b', 'c', 'd'}, (int32_t[]) {1, 2, 3, 4}, 4);
+    printf("\r9/16 ");
+    map->put(map, 'e', 12);
+    _assert_hmap(map, (char[]) {'a', 'b', 'c', 'd', 'e'}, (int32_t[]) {1, 2, 3, 4, 12}, 5);
+    printf("\r10/16 ");
+    map->put(map, 'f', 12);
+    _assert_hmap(map, (char[]) {'a', 'b', 'c', 'd', 'e', 'f'}, (int32_t[]) {1, 2, 3, 4, 12, 12}, 6);
+    printf("\r11/16 ");
+    test_predicate_args_t args_over_5 = {.max = 5};
+    map->filter_get(map, test_predicate, &args_over_5);
+    _assert_hmap(map, (char[]) {'a', 'b', 'c', 'd'}, (int32_t[]) {1, 2, 3, 4}, 4);
+    printf("\r12/16 ");
+    map->remove(map, 'a');
+    _assert_hmap(map, (char[]) {'b', 'c', 'd'}, (int32_t[]) {2, 3, 4}, 3);
+    printf("\r13/16 ");
+    map->put(map, 'a', 10);
+    _assert_hmap(map, (char[]) {'b', 'c', 'd', 'a'}, (int32_t[]) {2, 3, 4, 10}, 4);
+    printf("\r14/16 ");
+    map->remove(map, 'a');
+    _assert_hmap(map, (char[]) {'b', 'c', 'd'}, (int32_t[]) {2, 3, 4}, 3);
+    printf("\r15/16 ");
+    map->filter_out(map, test_predicate, &args_over_3);
+    _assert_hmap(map, (char[]) {'b', 'c'}, (int32_t[]) {2, 3}, 2);
+    printf("\r16/16 ");
+}
+
 void _test_dll(void)
 {
     printf("Testing DLL Insertions.\n");
@@ -404,6 +555,19 @@ void _test_hmap(void)
     printf("Passed.\n");
 
     _test_hmap_d1();
+    printf("Passed.\n");
+
+    printf("Testing HashMap Filtering.\n");
+
+    _test_hmap_f0();
+    printf("Passed.\n");
+
+    _test_hmap_f1();
+    printf("Passed.\n");
+
+    printf("Testing Multiple Operations On One HashMap.\n");
+
+    _test_hmap_combo();
     printf("Passed.\n");
 }
 

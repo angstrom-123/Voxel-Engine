@@ -28,8 +28,7 @@
 typedef enum bucket_type {
     BUCKET_HOT = 0,
     BUCKET_COLD = 1,
-    BUCKET_STALE = 2,
-    NUM_BUCKETS = 3
+    NUM_BUCKETS = 2
 } bucket_type_e;
 
 typedef struct bucket {
@@ -51,9 +50,15 @@ typedef struct state {
     uint8_t l_tick;
     uint64_t frame;
 
+    bool needs_update;
+
 	/* Player */
 	camera_t cam;
-	ivec2 prev_chunk_pos;
+    chunk_t *curr_chunk;
+    chunk_t *curr_north;
+    chunk_t *curr_east;
+    chunk_t *curr_south;
+    chunk_t *curr_west;
 
 	/* Render */
 	sg_pipeline pip;
@@ -67,6 +72,8 @@ typedef struct state {
 
 	/* Input */
 	bool key_down[SAPP_KEYCODE_MENU + 1];
+    bool left_click;
+    bool right_click;
 	float mouse_dx;
 	float mouse_dy;
 } state_t;

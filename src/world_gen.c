@@ -85,7 +85,7 @@ chunk_t *gen_new_chunk(int32_t x, int32_t z)
     /* Defaults. */
     chunk->x = x;
     chunk->z = z;
-    chunk->full_mesh = false;
+    chunk->dirty = false;
     chunk->creation_frame = 0;
     chunk->offsets.v_ofst = 0;
     chunk->offsets.i_ofst = 0;

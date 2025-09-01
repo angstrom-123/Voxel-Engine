@@ -5,15 +5,17 @@ precision highp uint;
 
 @vs vs
 layout(binding=0) uniform vs_params {
-    mat4 u_mvp;
-    vec3 u_chnk_pos;
+    mat4 u_mvp;      // MVP matrix  (precomputed).
+    mat4 u_v;        // View matrix (alone for depth calculation).
+    vec3 u_chnk_pos; // Coordinates of chunk (Y unused but required for rendering).
 };
 
-in uvec4 a_xyzn; /* ubyte4 (x,y,z in chunk, packed normal) */
-in uint a_uv;    /* uint (packed uv) */
+in uvec4 a_xyzn; // ubyte4 (x,y,z in chunk, packed normal).
+in uint a_uv;    // uint (packed uv).
 
 out vec2 v_uv;
 out vec3 v_norm;
+out float v_depth;
 
 /*
     Packed format:
@@ -26,48 +28,21 @@ out vec3 v_norm;
     angle normals (can be useful in the future for billboarded sprites)
 
     When implementing billboarded sprites, implementation will have to change 
-    to ensure that the unpacked values is normalized.
+    to ensure that the unpacked value is normalized.
 */
 vec3 unpack_normal(uint packed) {
-    uint x_code = (packed & 3);
-    uint y_code = (packed & 12) >> 2;
-    uint z_code = (packed & 48) >> 4;
-
-    float x = 0.0;
-    float y = 0.0;
-    float z = 0.0; 
-
-    if (x_code == 1) x = 1.0;
-    else if (x_code == 2) x = -1.0;
-
-    if (y_code == 1) y = 1.0;
-    else if (y_code == 2) y = -1.0;
-
-    if (z_code == 1) z = 1.0;
-    else if (z_code == 2) z = -1.0;
-
+    float x = -((packed & 3) * 2 - 3);
+    float y = -((packed & 12) * 2 - 3);
+    float z = -((packed & 48) * 2 - 3);
     return vec3(x, y, z);
-}
-
-float round_down(float num, float to)
-{
-    float mod = mod(num, to);
-    if (abs(mod - to) < 1.0E-8) return mod;
-    return num - mod;
-}
-
-float round_up(float down, float num, float to)
-{
-    if (num == down) return num;
-    return down + to;
 }
 
 float round_nearest(float num, float to)
 {
-    float down = round_down(num, to);
-    float up = round_up(down, num, to);
-    if ((num - down) < (up - num)) return down;
-    return up;
+    float mod = mod(num, to);
+    float down = num - mod + (mod * int(mod == to));
+    float up = (down + to) * int(num != down) + (num) * int(num == down);    
+    return (num - down < up - num) ? down : up;
 }
 
 /*
@@ -87,11 +62,13 @@ vec2 unpack_uv(uint packed) {
 
 void main() {
     vec3 pos = a_xyzn.xyz;
+    uint nrm = a_xyzn.w;
 
     gl_Position = u_mvp * vec4(pos + u_chnk_pos, 1.0);
 
     v_uv = unpack_uv(a_uv);
-    v_norm = unpack_normal(uint(a_xyzn.w));
+    v_norm = unpack_normal(nrm);
+    v_depth = -(u_v * vec4(pos + u_chnk_pos, 1.0)).z;
 }
 @end
 
@@ -99,16 +76,24 @@ void main() {
 
 layout(binding=0) uniform texture2D u_tex;
 layout(binding=0) uniform sampler u_smp;
+layout(binding=1) uniform fs_params {
+    vec4 u_fog_data; // float4 (x,y,z = colour of fog, w = fog distance).
+};
 
 in vec2 v_uv;
 in vec3 v_norm;
+in float v_depth;
 
 out vec4 frag_color;
 
 void main() {
     if (frag_color.a < 0.01) discard;
 
-    frag_color = texture(sampler2D(u_tex, u_smp), v_uv);
+    vec4 fog_col = vec4(u_fog_data.xyz, 1.0);
+    float fog_dist = u_fog_data.w;
+
+    float fog_factor = smoothstep(fog_dist - 20, fog_dist, v_depth);
+    frag_color = mix(texture(sampler2D(u_tex, u_smp), v_uv), fog_col, fog_factor);
 }
 @end
 
