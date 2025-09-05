@@ -21,6 +21,7 @@
 
 #include "shaders/chunk.glsl.h"
 
+#define MAX_NAME_CHARS 24
 #define NUM_SLOTS 512
 #define V_STG_SIZE (V_MAX * NUM_SLOTS * sizeof(vertex_t))
 #define I_STG_SIZE (I_MAX * NUM_SLOTS * sizeof(uint32_t))
@@ -44,13 +45,43 @@ typedef struct chunk_buffer {
 	uint32_t *i_stg;
 } chunk_buffer_t;
 
+typedef enum menu_state {
+    MENU_MAIN,
+    MENU_LOAD,
+    MENU_NEW,
+    MENU_PLAY,
+    MENU_OPT
+} menu_state_e;
+
+typedef struct menu_desc {
+    size_t win_width;
+    size_t win_height;
+    menu_state_e state;
+    char name_buf[24];
+    char seed_buf[32];
+    char selected_name[24];
+} menu_desc_t;
+
+typedef enum game_state {
+    GAME_MENU,
+    GAME_RUN,
+    GAME_PAUSE
+} game_state_e;
+
 typedef struct state {
+    /* Main Menu. */
+    menu_desc_t menu_desc;
+
 	/* Global state */
+    game_state_e game_state;
+    char *dir_name;
+    uint32_t seed;
+    bool needs_update;
+
+    /* Frame counters */
 	uint8_t tick;
     uint8_t l_tick;
     uint64_t frame;
-
-    bool needs_update;
 
 	/* Player */
 	camera_t cam;

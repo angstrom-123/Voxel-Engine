@@ -23,11 +23,11 @@
         Uniform block 'fs_params':
             C struct: fs_params_t
             Bind slot: UB_fs_params => 1
-        Image 'u_tex':
+        Texture 'u_tex':
             Image type: SG_IMAGETYPE_2D
             Sample type: SG_IMAGESAMPLETYPE_FLOAT
             Multisampled: false
-            Bind slot: IMG_u_tex => 0
+            Bind slot: VIEW_u_tex => 0
         Sampler 'u_smp':
             Type: SG_SAMPLERTYPE_FILTERING
             Bind slot: SMP_u_smp => 0
@@ -46,7 +46,7 @@
 #define ATTR_chunk_a_uv (1)
 #define UB_vs_params (0)
 #define UB_fs_params (1)
-#define IMG_u_tex (0)
+#define VIEW_u_tex (0)
 #define SMP_u_smp (0)
 #pragma pack(push,1)
 SOKOL_SHDC_ALIGN(16) typedef struct vs_params_t {
@@ -277,16 +277,16 @@ static inline const sg_shader_desc* chunk_shader_desc(sg_backend backend) {
             desc.uniform_blocks[1].glsl_uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;
             desc.uniform_blocks[1].glsl_uniforms[0].array_count = 1;
             desc.uniform_blocks[1].glsl_uniforms[0].glsl_name = "fs_params";
-            desc.images[0].stage = SG_SHADERSTAGE_FRAGMENT;
-            desc.images[0].image_type = SG_IMAGETYPE_2D;
-            desc.images[0].sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-            desc.images[0].multisampled = false;
+            desc.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
+            desc.views[0].texture.image_type = SG_IMAGETYPE_2D;
+            desc.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
+            desc.views[0].texture.multisampled = false;
             desc.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
             desc.samplers[0].sampler_type = SG_SAMPLERTYPE_FILTERING;
-            desc.image_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
-            desc.image_sampler_pairs[0].image_slot = 0;
-            desc.image_sampler_pairs[0].sampler_slot = 0;
-            desc.image_sampler_pairs[0].glsl_name = "u_tex_u_smp";
+            desc.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
+            desc.texture_sampler_pairs[0].view_slot = 0;
+            desc.texture_sampler_pairs[0].sampler_slot = 0;
+            desc.texture_sampler_pairs[0].glsl_name = "u_tex_u_smp";
             desc.label = "chunk_shader";
         }
         return &desc;

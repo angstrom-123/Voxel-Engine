@@ -45,7 +45,7 @@ void load_initial_chunks(state_t *state)
     for (size_t i = 0; i < i_cnt; i++) 
     {
         ivec2 crd = inner[i];
-        chunk_t *c = gen_new_chunk(crd.x, crd.y);
+        chunk_t *c = gen_new_chunk(state->seed, crd.x, crd.y);
         m_hot->put_ptr(m_hot, crd, c);
     }
 
@@ -53,7 +53,7 @@ void load_initial_chunks(state_t *state)
     for (size_t i = 0; i < e_cnt; i++)
     {
         ivec2 crd = edge[i];
-        chunk_t *c = gen_new_chunk(crd.x, crd.y);
+        chunk_t *c = gen_new_chunk(state->seed, crd.x, crd.y);
         m_hot->put_ptr(m_hot, crd, c);
     }
 
@@ -61,7 +61,7 @@ void load_initial_chunks(state_t *state)
     for (size_t i = 0; i < f_cnt; i++)
     {
         ivec2 crd = fringe[i];
-        chunk_t *c = gen_new_chunk(crd.x, crd.y);
+        chunk_t *c = gen_new_chunk(state->seed, crd.x, crd.y);
         m_hot->put_ptr(m_hot, crd, c);
     }
 
@@ -179,7 +179,7 @@ void load_chunks(state_t *state)
         }
 
         /* Did not find a pre-loaded chunk at these coords, generate a new one. */
-        chunk_t *c = gen_new_chunk(crd.x, crd.y);
+        chunk_t *c = gen_new_chunk(state->seed, crd.x, crd.y);
         m_hot->put_ptr(m_hot, crd, c);
 
         /* Fringe chunks border the void so do not have an adjacent chunk on some sides. */

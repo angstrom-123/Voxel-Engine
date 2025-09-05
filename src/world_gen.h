@@ -17,6 +17,6 @@ typedef struct ivec2_tuple {
 } ivec2_tuple_t;
 
 extern ivec2_tuple_t gen_get_coords(vec3 centre, uint8_t rndr_dist);
-extern chunk_t *gen_new_chunk(int32_t x, int32_t z);
+extern chunk_t *gen_new_chunk(uint32_t seed, int32_t x, int32_t z);
 
 #endif

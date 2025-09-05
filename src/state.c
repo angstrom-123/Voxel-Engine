@@ -43,8 +43,6 @@ void state_init_pipeline(state_t *state)
         },
         .label = "chunk-pipeline"
     });
-
-    #define STATE_PIPELINE_INIT
 }
 
 void state_init_bindings(state_t *state)
@@ -56,21 +54,19 @@ void state_init_bindings(state_t *state)
             .mipmap_filter = SG_FILTER_NEAREST,
             .max_lod = 5.0,
         }),
-        .images[0] = sg_alloc_image()
+        .views[0] = sg_alloc_view()
     };
-
-    #define STATE_BINDINGS_INIT
 }
 
 void state_init_textures(state_t *state)
 {
     /* Full-res atlas and mipmap levels */
     em_bmp_image_t *atlases[5] = {
-        em_bmp_load("res/minecraft_remake_texture_atlas.bmp"),
-        em_bmp_load("res/minecraft_remake_texture_atlas-mm1.bmp"),
-        em_bmp_load("res/minecraft_remake_texture_atlas-mm2.bmp"),
-        em_bmp_load("res/minecraft_remake_texture_atlas-mm3.bmp"),
-        em_bmp_load("res/minecraft_remake_texture_atlas-mm4.bmp")
+        em_bmp_load("res/tex/minecraft_remake_texture_atlas.bmp"),
+        em_bmp_load("res/tex/minecraft_remake_texture_atlas-mm1.bmp"),
+        em_bmp_load("res/tex/minecraft_remake_texture_atlas-mm2.bmp"),
+        em_bmp_load("res/tex/minecraft_remake_texture_atlas-mm3.bmp"),
+        em_bmp_load("res/tex/minecraft_remake_texture_atlas-mm4.bmp")
     };
 
     for (size_t i = 0; i < 5; i++)
@@ -88,7 +84,8 @@ void state_init_textures(state_t *state)
         }
     }
 
-    sg_init_image(state->bind.images[0], &(sg_image_desc) {
+    sg_image img = sg_alloc_image();
+    sg_init_image(img, &(sg_image_desc) {
         .width = atlases[0]->ih.width,
         .height = atlases[0]->ih.height,
         .pixel_format = SG_PIXELFORMAT_RGBA8,
@@ -102,13 +99,15 @@ void state_init_textures(state_t *state)
         },
     });
 
+    sg_init_view(state->bind.views[0], &(sg_view_desc) {
+        .texture = {.image = img}
+    });
+
     for (size_t i = 0; i < 5; i++)
     {
         free(atlases[i]->pixel_data);
         free(atlases[i]);
     }
-
-    #define STATE_TEXTURES_INIT
 }
 
 void state_init_cam(state_t *state)

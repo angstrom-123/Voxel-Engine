@@ -11,11 +11,11 @@
 extern int32_t perlin_hash(int32_t x);
 extern int32_t perlin_pair(int32_t a, int32_t b);
 
-extern float perlin_2d(float x, float y, float frequency);
-extern float perlin_octave_2d(float x, float y, uint8_t num_octaves);
+extern float perlin_2d(uint32_t seed, float x, float y, float frequency);
+extern float perlin_octave_2d(uint32_t seed, float x, float y, uint8_t num_octaves);
 
-extern float perlin_3d(float x, float y, float z, float frequency);
-extern float perlin_octave_3d(float x, float y, float z, uint8_t num_octaves);
+extern float perlin_3d(uint32_t seed, float x, float y, float z, float frequency);
+extern float perlin_octave_3d(uint32_t seed, float x, float y, float z, uint8_t num_octaves);
 
 #endif // EM_PERLIN_INCLUDED
 
@@ -32,9 +32,9 @@ extern float perlin_octave_3d(float x, float y, float z, uint8_t num_octaves);
 #include "em_math.h" // vectors
 #include "em_random.h" // fast random
 
-vec2 _grad_2d(int32_t x, int32_t y)
+vec2 _grad_2d(uint32_t seed, int32_t x, int32_t y)
 {
-    em_romu_mono32_init(em_abs(perlin_pair(x, y)));
+    em_romu_mono32_init(seed + em_abs(perlin_pair(x, y)));
 
     float x_01 = (float) em_romu_mono32_random() / (float) MONO32_MAX;
     float y_01 = (float) em_romu_mono32_random() / (float) MONO32_MAX;
@@ -45,9 +45,9 @@ vec2 _grad_2d(int32_t x, int32_t y)
     return em_normalize_vec2((vec2) {x_cmp, y_cmp});
 }
 
-vec3 _grad_3d(int32_t x, int32_t y, int32_t z)
+vec3 _grad_3d(uint32_t seed, int32_t x, int32_t y, int32_t z)
 {
-    em_romu_mono32_init(em_abs(perlin_pair(x, perlin_pair(y, z))));
+    em_romu_mono32_init(seed + em_abs(perlin_pair(x, perlin_pair(y, z))));
 
     float x_01 = (float) em_romu_mono32_random() / (float) MONO32_MAX;
     float y_01 = (float) em_romu_mono32_random() / (float) MONO32_MAX;
@@ -94,7 +94,7 @@ int32_t perlin_pair(int32_t a, int32_t b)
         : b * b + a;
 }
 
-float perlin_2d(float x, float y, float freq)
+float perlin_2d(uint32_t seed, float x, float y, float freq)
 {
     x *= freq;
     y *= freq;
@@ -114,10 +114,10 @@ float perlin_2d(float x, float y, float freq)
     const ivec2 p3 = {x_i + 1, y_i + 1};
 
     /* Gradients for each corner. */
-    const vec2 g0 = _grad_2d(p0.x, p0.y);
-    const vec2 g1 = _grad_2d(p1.x, p1.y);
-    const vec2 g2 = _grad_2d(p2.x, p2.y);
-    const vec2 g3 = _grad_2d(p3.x, p3.y);
+    const vec2 g0 = _grad_2d(seed, p0.x, p0.y);
+    const vec2 g1 = _grad_2d(seed, p1.x, p1.y);
+    const vec2 g2 = _grad_2d(seed, p2.x, p2.y);
+    const vec2 g3 = _grad_2d(seed, p3.x, p3.y);
 
     /* Offset vectors from each corner to the candidate point. */
     const vec2 o0 = em_sub_vec2((vec2) {x, y}, (vec2) {p0.x, p0.y});
@@ -144,7 +144,7 @@ float perlin_2d(float x, float y, float freq)
     return y0;
 }
 
-float perlin_octave_2d(float x, float y, uint8_t num)
+float perlin_octave_2d(uint32_t seed, float x, float y, uint8_t num)
 {
     float res = 0.0;
     float amp = 1.0;
@@ -152,7 +152,7 @@ float perlin_octave_2d(float x, float y, uint8_t num)
 
     for (size_t i = 0; i < num; i++)
     {
-        res += amp * perlin_2d(x, y, freq);
+        res += amp * perlin_2d(seed, x, y, freq);
         amp /= 2.0;
         freq *= 2.0;
     }
@@ -160,7 +160,7 @@ float perlin_octave_2d(float x, float y, uint8_t num)
     return res;
 }
 
-float perlin_3d(float x, float y, float z, float freq)
+float perlin_3d(uint32_t seed, float x, float y, float z, float freq)
 {
     x *= freq;
     y *= freq;
@@ -187,14 +187,14 @@ float perlin_3d(float x, float y, float z, float freq)
     const ivec3 p7 = {x_i + 1, y_i + 1, z_i + 1};
 
     /* Gradients for each corner. */
-    const vec3 g0 = _grad_3d(p0.x, p0.y, p0.z);
-    const vec3 g1 = _grad_3d(p1.x, p1.y, p1.z);
-    const vec3 g2 = _grad_3d(p2.x, p2.y, p2.z);
-    const vec3 g3 = _grad_3d(p3.x, p3.y, p3.z);
-    const vec3 g4 = _grad_3d(p4.x, p4.y, p4.z);
-    const vec3 g5 = _grad_3d(p5.x, p5.y, p5.z);
-    const vec3 g6 = _grad_3d(p6.x, p6.y, p6.z);
-    const vec3 g7 = _grad_3d(p7.x, p7.y, p7.z);
+    const vec3 g0 = _grad_3d(seed, p0.x, p0.y, p0.z);
+    const vec3 g1 = _grad_3d(seed, p1.x, p1.y, p1.z);
+    const vec3 g2 = _grad_3d(seed, p2.x, p2.y, p2.z);
+    const vec3 g3 = _grad_3d(seed, p3.x, p3.y, p3.z);
+    const vec3 g4 = _grad_3d(seed, p4.x, p4.y, p4.z);
+    const vec3 g5 = _grad_3d(seed, p5.x, p5.y, p5.z);
+    const vec3 g6 = _grad_3d(seed, p6.x, p6.y, p6.z);
+    const vec3 g7 = _grad_3d(seed, p7.x, p7.y, p7.z);
 
     /* Offset vectors from each corner to the candidate point. */
     const vec3 o0 = em_sub_vec3((vec3) {x, y, z}, (vec3) {p0.x, p0.y, p0.z});
@@ -235,7 +235,7 @@ float perlin_3d(float x, float y, float z, float freq)
     return w1;
 }
 
-float perlin_octave_3d(float x, float y, float z, uint8_t num)
+float perlin_octave_3d(uint32_t seed, float x, float y, float z, uint8_t num)
 {
     float res = 0.0;
     float amp = 1.0;
@@ -243,7 +243,7 @@ float perlin_octave_3d(float x, float y, float z, uint8_t num)
 
     for (size_t i = 0; i < num; i++)
     {
-        res += amp * perlin_3d(x, y, z, freq);
+        res += amp * perlin_3d(seed, x, y, z, freq);
         amp /= 2.0;
         freq *= 2.0;
     }

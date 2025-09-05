@@ -22,7 +22,7 @@ typedef struct vertex {
 } vertex_t;
 
 typedef struct chunk_data {
-	int8_t types[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE];
+	uint8_t types[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE];
 } chunk_data_t;
 
 typedef struct mesh {
@@ -44,6 +44,7 @@ typedef struct chunk {
     size_t index_cnt;
 	
     bool dirty;
+    bool edited;
 
     uint64_t creation_frame;
 } chunk_t;

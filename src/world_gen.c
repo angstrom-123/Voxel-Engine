@@ -69,7 +69,7 @@ ivec2_tuple_t gen_get_coords(vec3 c, uint8_t rd)
     return res;
 }
 
-chunk_t *gen_new_chunk(int32_t x, int32_t z)
+chunk_t *gen_new_chunk(uint32_t seed, int32_t x, int32_t z)
 {
     chunk_t *chunk = malloc(sizeof(chunk_t));
     chunk->blocks = malloc(sizeof(chunk_data_t));
@@ -86,6 +86,7 @@ chunk_t *gen_new_chunk(int32_t x, int32_t z)
     chunk->x = x;
     chunk->z = z;
     chunk->dirty = false;
+    chunk->edited = false;
     chunk->creation_frame = 0;
     chunk->offsets.v_ofst = 0;
     chunk->offsets.i_ofst = 0;
@@ -94,7 +95,7 @@ chunk_t *gen_new_chunk(int32_t x, int32_t z)
     {
         for (int32_t z1 = 0; z1 < CHUNK_SIZE; z1++)
         {
-            float p = perlin_octave_2d(x + x1, z + z1, 3);
+            float p = perlin_octave_2d(seed, x + x1, z + z1, 3);
             float n = (p + 1.0) / 2.0;
             uint8_t h = floor(n * (CHUNK_HEIGHT - 1));
             chunk->blocks->types[x1][h][z1] = CUBETYPE_GRASS;

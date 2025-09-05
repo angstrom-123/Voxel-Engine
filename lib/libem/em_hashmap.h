@@ -425,8 +425,6 @@ void em_hashmap_resize(em_hashmap_t *this)
 
 void em_hashmap_put(em_hashmap_t *this, void *key, void *val)
 {
-    char *c = key;
-    int *i = val;
     em_hashmap_entry_t *e = malloc(sizeof(em_hashmap_entry_t));
     e->key = key;
     e->val = val;
@@ -434,29 +432,10 @@ void em_hashmap_put(em_hashmap_t *this, void *key, void *val)
 
     size_t idx = this->_hsh_func(key) % this->size;
     em_hashmap_entry_t *curr = this->_entries[idx];
-    if (!curr) // No elements in bin yet.
-    {
-        this->_entries[idx] = e;
-    }
-    else // Hash colission, add entry to start of linked list.
-    {
+    if (curr) 
         e->_next = curr;
-        this->_entries[idx] = e;
 
-        // while (curr->_next)
-        //     curr = curr->_next;
-        //
-        // curr->_next = e;
-
-        // em_hashmap_entry_t *prev = NULL;
-        // while (curr)
-        // {
-        //     prev = curr;
-        //     curr = curr->_next;
-        // }
-        // prev->_next = e;
-    }
-
+    this->_entries[idx] = e;
     this->count++;
 
     if (this->_no_resize)

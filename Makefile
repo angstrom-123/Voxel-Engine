@@ -2,6 +2,7 @@ TESTFILES	= ./src/test.c ./src/main.c
 CFILES		= $(filter-out ./src/test.c,  $(wildcard ./src/*.c))
 LIBSOKOL	= $(wildcard ./lib/sokol/*)
 LIBEM		= $(wildcard ./lib/libem/*)
+LIBNK		= ./lib/nuklear/nuklear.h
 SHADERS		= $(wildcard ./src/shaders/*.glsl)
 SHDR_HEADS	= $(wildcard ./src/shaders/*.glsl.h)
 
@@ -16,12 +17,12 @@ OUTPUT		= ./build/minecraft
 TEST_OUTPUT	= ./build/test_minecraft
 
 .PHONY: release
-release: $(CFILES) $(LIBSOKOL) $(LIBEM) $(SHDR_HEADS)
+release: $(CFILES) $(LIBSOKOL) $(LIBEM) $(LIBNK) $(SHDR_HEADS)
 	rm -f $(OUTPUT)
 	$(CC) $(CFILES) -o $(OUTPUT) $(INCLUDE) $(DEFS) $(CFLAGS) -O1 $(LX_LIBS)
 
 .PHONY: install
-install: $(CFILES) $(LIBSOKOL) $(LIBEM) $(SHDR_HEADS)
+install: $(CFILES) $(LIBSOKOL) $(LIBEM) $(LIBNK) $(SHDR_HEADS)
 	rm -f $(OUTPUT)
 	$(CC) -g $(CFILES) -o $(OUTPUT) $(INCLUDE) $(DEFS) $(CFLAGS) $(LX_LIBS) 
 
@@ -31,7 +32,7 @@ test: $(TESTFILES) $(LIBEM)
 	$(CC) -g $(TESTFILES) -o $(TEST_OUTPUT) $(INCLUDE) $(TEST_DEFS) $(CFLAGS) $(LX_LIBS)
 
 .PHONY: database
-database: $(CFILES) $(LIBSOKOL) $(LIBEM)
+database: $(CFILES) $(LIBSOKOL) $(LIBEM) $(LIBNK)
 	rm -f compile_commands.json
 	bear -- $(CC) $(CFILES) -o $(OUTPUT) $(INCLUDE) $(DEFS) $(CFLAGS) $(LX_LIBS) 
 

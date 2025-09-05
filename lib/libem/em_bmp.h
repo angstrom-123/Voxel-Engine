@@ -74,11 +74,11 @@ extern em_bmp_image_t *em_bmp_load(char *path);
 #include <stdio.h> // FILE
 
 /* macros assume LITTLE ENDIAN (least significant byte at lowest memory address). */
-#define TO_U16(b1, b2) ((u16) ((b1) | (b2 << 8)))
-#define TO_U32(b1, b2, b3, b4) ((u32) ((b1) | (b2 << 8) | (b3 << 16) | (b4 << 24)))
+#define TO_U16(b1, b2) ((u16) ((b1) | ((b2) << 8)))
+#define TO_U32(b1, b2, b3, b4) ((u32) ((b1) | ((b2) << 8) | ((b3) << 16) | ((b4) << 24)))
 
-#define READ_U16_MOVE(mem, i) (TO_U16(mem[i], mem[i + 1])); (i += 2)
-#define READ_U32_MOVE(mem, i) (TO_U32(mem[i], mem[i + 1], mem[i + 2], mem[i + 3])); (i += 4)
+#define READ_U16_MOVE(mem, i) (TO_U16(mem[i], mem[(i) + 1])); ((i) += 2)
+#define READ_U32_MOVE(mem, i) (TO_U32(mem[i], mem[(i) + 1], mem[(i) + 2], mem[(i) + 3])); ((i) += 4)
 
 static bool _read_bytes_to_buf(FILE *f_ptr, size_t offset, size_t len, u8 *buf)
 {

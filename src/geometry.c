@@ -172,7 +172,7 @@ mesh_t *geom_generate_full_mesh(chunk_data_t *blocks,
     }
 
     /* Iterating x, y, z, as one dimension in row-major order for less nesting. */
-    int8_t *ptr = (int8_t *) blocks->types;
+    uint8_t *ptr = (uint8_t *) blocks->types;
     for (size_t i = 0; i < CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE; i++)
     {
         const cube_type_e type = *ptr;
