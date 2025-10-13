@@ -39,6 +39,11 @@ vec3 unpack_normal(uint packed) {
 
 float round_nearest(float num, float to)
 {
+    // float mod = mod(num, to);
+    // float down = (mod - to == 0) ? mod : num - mod;
+    // float up = (num == down) ? num : down + to;
+    // return (num - down < up - num) ? down : up;
+
     float mod = mod(num, to);
     float down = num - mod + (mod * int(mod == to));
     float up = (down + to) * int(num != down) + (num) * int(num == down);    

@@ -1,8 +1,6 @@
 #if defined(TEST)
+
 #include <libem/em_impl.h>
-#define MY_HASHMAP_IMPL
-#include "hashmap.h"
-#define MY_DLL_IMPL #include "list.h"
 
 #define TEST_IMPL
 #include "test.h"
@@ -38,114 +36,33 @@ int main(void)
 
 /* Providing all definitions for libem also. */
 #include <libem/em_impl.h>
-
 #define MY_HASHMAP_IMPL
 #include "hashmap.h"
-
 #define MY_DLL_IMPL
-#include "list.h"
+#include "dlist.h"
+#define MY_CQ_IMPL
+#include "queue.h"
+#define MY_AL_IMPL
+#include "alist.h"
 
-#include "chunk_loader.h"
 #include "file_handler.h"
 #include "raycast.h"
-#include "menu.h"
+#include "main_menu.h"
+#include "logger.h"
+#include "state.h"
 
-#include "shaders/chunk.glsl.h"
+#include "chunk.glsl.h"
 
 static state_t state = {0};
 
-static void upload_stage(void)
-{
-    sg_update_buffer(state.cb.vbo, &(sg_range) {
-        .ptr = state.cb.v_stg,
-        .size = V_STG_SIZE
-    });
-
-    sg_update_buffer(state.cb.ibo, &(sg_range) {
-        .ptr = state.cb.i_stg,
-        .size = I_STG_SIZE
-    });
-
-    state.bind.vertex_buffers[0] = state.cb.vbo;
-    state.bind.index_buffer = state.cb.ibo;
-}
-
 static void destroy_block(void)
 {
-    chunk_t *chunk = NULL;
-    uvec3 block = {0};
-    if (!raycast_dda(&state, &chunk, &block))
-        return;
-
-    chunk_t *remesh[3];
-    size_t remesh_cnt = 0;
-
-    chunk->blocks->types[block.x][block.y][block.z] = CUBETYPE_AIR;
-    chunk->edited = true;
-    remesh[remesh_cnt++] = chunk;
-
-    /* 
-     * If the destroyed block is on a chunk boundary then the adjacent chunk 
-     * needs to be remeshed to avoid holes in the mesh.
-     */
-    HASHMAP(ivec2_chunk) *m_hot = state.buckets[BUCKET_HOT].chunks;
-
-    switch (block.x) 
-    {
-        case 0: 
-        {
-            ivec2 adj_crd = {chunk->x - CHUNK_SIZE, chunk->z};
-            remesh[remesh_cnt++] = m_hot->get_ptr(m_hot, adj_crd);
-            break;
-        }
-        case CHUNK_SIZE - 1: 
-        {
-            ivec2 adj_crd = {chunk->x + CHUNK_SIZE, chunk->z};
-            remesh[remesh_cnt++] = m_hot->get_ptr(m_hot, adj_crd);
-            break;
-        }
-        default:
-            break;
-    }
-
-    switch (block.z) 
-    {
-        case 0: 
-        {
-            ivec2 adj_crd = {chunk->x, chunk->z - CHUNK_SIZE};
-            remesh[remesh_cnt++] = m_hot->get_ptr(m_hot, adj_crd);
-            break;
-        }
-        case CHUNK_SIZE - 1: 
-        {
-            ivec2 adj_crd = {chunk->x, chunk->z + CHUNK_SIZE};
-            remesh[remesh_cnt++] = m_hot->get_ptr(m_hot, adj_crd);
-            break;
-        }
-        default:
-            break;
-    }
-
-    for (size_t i = 0; i < remesh_cnt; i++)
-    {
-        chunk_t *c = remesh[i];
-        ivec2 crd = {c->x, c->z};
-        
-        chunk_t *n = m_hot->get_ptr(m_hot, em_add_ivec2(crd, (ivec2) {  0,  16}));
-        chunk_t *e = m_hot->get_ptr(m_hot, em_add_ivec2(crd, (ivec2) { 16,   0}));
-        chunk_t *s = m_hot->get_ptr(m_hot, em_add_ivec2(crd, (ivec2) {  0, -16}));
-        chunk_t *w = m_hot->get_ptr(m_hot, em_add_ivec2(crd, (ivec2) {-16,   0}));
-
-        mesh_t *m = geom_generate_full_mesh(c->blocks, n->blocks, e->blocks, s->blocks, w->blocks);
-        restage_chunk(&state, c, m);
-    }
-
-    state.needs_update = true;
+    // TODO
 }
 
 static void create_block(void)
 {
-    printf("create\n");
+    // TODO
 }
 
 static void init(void)
@@ -161,48 +78,71 @@ static void init(void)
         .logger.func = slog_func
     });
 
+    state.render_dist = 8;
+    // state.render_dist = 3;
+    state.frame = 0;
+    state.tick = 0;
+    state.l_tick = 0;
+
     state_init_pipeline(&state);
     state_init_bindings(&state);
     state_init_textures(&state);
     state_init_cam(&state);
-    state_init_chunk_buffer(&state);
-    state_init_data(&state);
 
-    state.game_state = GAME_MENU;
-    state.menu_desc.state = MENU_MAIN;
-
-    // load_initial_chunks(&state);
-    // upload_stage();
-
-    // state.needs_update = false;
-    // state.world_name = "Test_World"; // TODO: Select name / load worlds.
-    // state.dir_name = file_make_world_dir(state.world_name);
-    // state.seed = 0; // TODO: Select a seed.
-    //
-    // HASHMAP(ivec2_chunk) *m_hot = state.buckets[BUCKET_HOT].chunks;
-    // state.curr_chunk = m_hot->get_ptr(m_hot, (ivec2) {  0,   0});
-    // state.curr_north = m_hot->get_ptr(m_hot, (ivec2) {  0,  16});
-    // state.curr_east  = m_hot->get_ptr(m_hot, (ivec2) { 16,   0});
-    // state.curr_south = m_hot->get_ptr(m_hot, (ivec2) {  0, -16});
-    // state.curr_west  = m_hot->get_ptr(m_hot, (ivec2) {-16,   0});
+    state.game_desc = (game_desc_t) {
+        .game_state = GAME_MENUMAIN,
+        .popup = POPUP_NONE,
+        .selected_str = {0},
+        .world_str = {0},
+        .seed_str = {0},
+        .window = {
+            .x = sapp_width(), 
+            .y = sapp_height()
+        }
+    };
 }
 
-static void init_world(void)
+static void save_cb(void)
 {
-    state.dir_name = file_make_world_dir(state.menu_desc.selected_name);
-    state.seed = strtoul(state.menu_desc.seed_buf, NULL, 16); // hexadecimal
+    // TODO
+}
 
-    load_initial_chunks(&state);
-    upload_stage();
+static void init_cb(bool loaded)
+{
+    state.game_desc.game_state = GAME_RUN;
 
-    state.needs_update = false;
+    if (loaded)
+    {
+        // TODO
+        load_data_t *ld = file_get_world_data(state.game_desc.selected_str);
+        state.game_desc.seed = ld->seed;
+        free(ld);
+    }
+    else 
+    {
+        uint32_t seed = strtoul(state.game_desc.seed_str, NULL, 16); // hexadecimal
+        state.game_desc.seed = seed;
+        file_make_world_desc(state.game_desc);
+    }
 
-    HASHMAP(ivec2_chunk) *m_hot = state.buckets[BUCKET_HOT].chunks;
-    state.curr_chunk = m_hot->get_ptr(m_hot, (ivec2) {  0,   0});
-    state.curr_north = m_hot->get_ptr(m_hot, (ivec2) {  0,  16});
-    state.curr_east  = m_hot->get_ptr(m_hot, (ivec2) { 16,   0});
-    state.curr_south = m_hot->get_ptr(m_hot, (ivec2) {  0, -16});
-    state.curr_west  = m_hot->get_ptr(m_hot, (ivec2) {-16,   0});
+    state_init_systems(&state);
+    manager_init(&state.lm, &(load_manager_desc_t) {
+        .start_pos = (ivec2) {0, 0},
+        .load_dist = state.render_dist + 2
+    });
+
+    // state.bind.vertex_buffers[0] = state.cs.front->buffers.vbo;
+    // state.bind.index_buffer = state.cs.front->buffers.ibo;
+
+    // LOG_OK("MAIN", "Waiting for thread init.\n", NULL);
+
+    // mtx_lock(&state.cs.back->init_lock);
+    // cnd_wait(&state.cs.back->thread_initialized, &state.cs.back->init_lock);
+
+    // LOG_OK("MAIN", "Dispatching initial requests.\n", NULL);
+
+    // manager_load_initial(&state.lm, &state.cs);
+    // mtx_unlock(&state.cs.back->init_lock);
 }
 
 static void render_menu(void)
@@ -223,6 +163,22 @@ static void render_menu(void)
     sg_commit();
 }
 
+static void dump_buffers()
+{
+    // FILE *if_ptr = fopen("IBUF.txt", "w");
+    // for (size_t i = 0; i < 10000; i++)
+    //     fprintf(if_ptr, "%zu| %u\n", i, state.cs.front->buffers.i_stage[i]);
+    // fclose(if_ptr);
+    //
+    // FILE *vf_ptr = fopen("VBUF.txt", "w");
+    // for (size_t i = 0; i < 10000; i++)
+    // {
+    //     vertex_t v = state.cs.front->buffers.v_stage[i];
+    //     fprintf(vf_ptr, "%zu| xyz {%i, %i, %i}\n", i, v.x, v.y, v.z);
+    // }
+    // fclose(vf_ptr);
+}
+
 static void render(void)
 {
     sg_begin_pass(&(sg_pass) {
@@ -237,52 +193,81 @@ static void render(void)
 
     sg_apply_pipeline(state.pip);
 
-    /* All chunks in the hot bucket are actively in use. */
-    bucket_t b_hot = state.buckets[BUCKET_HOT];
-    em_hashmap_iter_t *it = b_hot.chunks->iterator(b_hot.chunks);
-    while (it->has_next)
-    {
-        chunk_t *c = it->get(it)->val;
-
-        vs_params_t vs_params = {
-            .u_mvp = state.cam.vp,
-            .u_v = state.cam.view,
-            .u_chnk_pos = {
-                (float) c->x,
-                0.0,
-                (float) c->z
-            }
-        };
-
-        fs_params_t fs_params = {
-            .u_fog_data = {0.35, 0.6, 0.85, state.cam.far}
-        };
-
-        sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
-        sg_apply_uniforms(UB_fs_params, &SG_RANGE(fs_params));
-
-        state.bind.index_buffer_offset = c->offsets.i_ofst * sizeof(uint32_t);
-        state.bind.vertex_buffer_offsets[0] = c->offsets.v_ofst * sizeof(vertex_t);
-
-        sg_apply_bindings(&state.bind);
-        sg_draw(0, c->index_cnt, 1);
-
-        it->next(it);
-    }
+    /* Render all visible chunks. */
+    // em_double_list_iter_t *it = state.cs.front->visible->iterator(state.cs.front->visible);
+    // while (it->has_next)
+    // {
+    //     em_double_list_node_t *n = it->get(it);
+    //     it->next(it);
+    //
+    //     ivec2 crd = *(ivec2 *) n->val;
+    //     chunk_render_info_t *cri = state.cs.front->chunks->get_or_default(state.cs.front->chunks, 
+    //                                                                       crd, NULL);
+    //
+    //     if (!cri)
+    //     {
+    //         state.cs.front->visible->remove_node(state.cs.front->visible, n);
+    //         continue;
+    //     }
+    //
+    //     if (!cri->visible)
+    //         continue;
+    //
+    //     // if (!done)
+    //     // {
+    //     //     dump_buffers();
+    //     //     done = true;
+    //     // }
+    //
+    //     vs_params_t vs_params = {
+    //         .u_mvp = state.cam.vp,
+    //         .u_v = state.cam.view,
+    //         .u_chnk_pos = {
+    //             (float) cri->pos.x,
+    //             0.0,
+    //             (float) cri->pos.y
+    //         }
+    //     };
+    //
+    //     fs_params_t fs_params = {
+    //         .u_fog_data = {0.35, 0.6, 0.85, state.cam.far}
+    //     };
+    //
+    //     sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
+    //     sg_apply_uniforms(UB_fs_params, &SG_RANGE(fs_params));
+    //
+    //     state.bind.vertex_buffer_offsets[0] = cri->offset.v_ofst * sizeof(vertex_t);
+    //     state.bind.index_buffer_offset = cri->offset.i_ofst * sizeof(uint32_t);
+    //
+    //     sg_apply_bindings(&state.bind);
+    //     sg_draw(0, cri->index_cnt, 1);
+    // }
+    // free(it);
 
     sg_end_pass();
     sg_commit();
-
-    free(it);
 }
 
 static void l_tick(void)
 {
-    cleanup_old_chunks(&state);
 }
 
 static void tick(void)
 {
+    // TODO: Experiment with where to call the pulls (tick, frame, ltick)
+    //       FINALLY JUST PROFILE IT TO SEE WHY ITS SLOW!!!
+
+    /* Pull in new chunks from the loader. */
+    const size_t PULLS_PER_FRAME = 1;
+    // bool did_pull = cs_pull_n_changes(state.cs.front, state.cs.back, PULLS_PER_FRAME);
+    // if (did_pull)
+    // {
+    //     LOG_OK("MAIN", "Updating.\n", NULL);
+    //     cs_upload_stages(state.cs.front); // TODO: Don't need to call this so often.
+    //     // state.bind.vertex_buffers[0] = state.cs.front->buffers.vbo;
+    //     // state.bind.index_buffer = state.cs.front->buffers.ibo;
+    // }
+
     if (state.left_click)
     {
         destroy_block();
@@ -295,60 +280,33 @@ static void tick(void)
         state.right_click = false;
     }
 
-    if (state.needs_update)
-    {
-        upload_stage();
-        state.needs_update = false;
-    }
-
-    /* Check if player has entered new chunk and generate new chunks if they have. */
+    /* See if the player has moved to another chunk and load their chunks if they have. */
     ivec2 curr_pos = {
-        floor(state.cam.pos.x / (float) CHUNK_SIZE) * CHUNK_SIZE,
-        floor(state.cam.pos.z / (float) CHUNK_SIZE) * CHUNK_SIZE
+        floorf(state.cam.pos.x / (float) CHUNK_SIZE) * CHUNK_SIZE,
+        floorf(state.cam.pos.z / (float) CHUNK_SIZE) * CHUNK_SIZE
     };
-    ivec2 curr_chunk_pos = {
-        state.curr_chunk->x,
-        state.curr_chunk->z 
-    };
-    if (!em_equals_ivec2(curr_pos, curr_chunk_pos)) 
-    {
-        load_chunks(&state);
-        state.needs_update = true;
 
-        HASHMAP(ivec2_chunk) *m_hot = state.buckets[BUCKET_HOT].chunks;
-        state.curr_chunk = m_hot->get_ptr(m_hot, curr_pos);
-
-        ivec2 n_pos = em_add_ivec2(curr_pos, (ivec2) {  0,  16});
-        ivec2 e_pos = em_add_ivec2(curr_pos, (ivec2) { 16,   0});
-        ivec2 s_pos = em_add_ivec2(curr_pos, (ivec2) {  0, -16});
-        ivec2 w_pos = em_add_ivec2(curr_pos, (ivec2) {-16,   0});
-
-        state.curr_north = m_hot->get_or_default(m_hot, n_pos, NULL);
-        state.curr_east  = m_hot->get_or_default(m_hot, e_pos, NULL);
-        state.curr_south = m_hot->get_or_default(m_hot, s_pos, NULL);
-        state.curr_west  = m_hot->get_or_default(m_hot, w_pos, NULL);
-    }
+    manager_update(&state.lm, &state.cs, curr_pos);
 }
 
 static void frame(void)
 {
-    switch (state.game_state) {
-    case GAME_MENU:
+    switch (state.game_desc.game_state) {
+    case GAME_MENUMAIN:
+    case GAME_MENULOAD:
+    case GAME_MENUNEW:
+    case GAME_MENUOPT:
+    case GAME_PAUSE:
     {
         struct nk_context *ctx = snk_new_frame();
 
-        state.menu_desc.win_width = sapp_width();
-        state.menu_desc.win_height = sapp_height();
+        state.game_desc.window = (uvec2) {
+            sapp_width(),
+            sapp_height()
+        };
 
-        menu_draw(&state.menu_desc, ctx);
+        // menu_draw(&state.game_desc, init_cb, save_cb, ctx);
         render_menu();
-
-        if (state.menu_desc.state == MENU_PLAY)
-        {
-            state.game_state = GAME_RUN;
-            init_world();
-        }
-
         break;
     }
     case GAME_RUN:
@@ -377,21 +335,11 @@ static void frame(void)
             .mouse_dx = &state.mouse_dx,
             .mouse_dy = &state.mouse_dy,
             .key_down = state.key_down,
-            .curr     = state.curr_chunk,
-            .north    = state.curr_north,
-            .east     = state.curr_east,
-            .south    = state.curr_south,
-            .west     = state.curr_west,
             .dt       = sapp_frame_duration()
         });
 
         render();
 
-        break;
-    }
-    case GAME_PAUSE:
-    {
-        // TODO
         break;
     }
     default:
@@ -401,19 +349,15 @@ static void frame(void)
 
 static void cleanup(void)
 {
-    // TODO: Need to destroy each chunk internally too, pass in a destroy func for k and v on init.
-    for (size_t i = 0; i < NUM_BUCKETS; i++) 
-        state.buckets[i].chunks->destroy(state.buckets[i].chunks);
-
-    sg_destroy_buffer(state.cb.vbo);
-    sg_destroy_buffer(state.cb.ibo);
+    cs_cleanup(&state.cs);
+    manager_cleanup(&state.lm);
 
     sg_shutdown();
 }
 
 static void event(const sapp_event *event)
 {
-    if (state.game_state == GAME_RUN)
+    if (state.game_desc.game_state == GAME_RUN)
     {
         switch (event->type) {
         case SAPP_EVENTTYPE_KEY_UP:
@@ -422,8 +366,11 @@ static void event(const sapp_event *event)
 
         case SAPP_EVENTTYPE_KEY_DOWN:
             state.key_down[event->key_code] = true;
-            if (event->key_code == SAPP_KEYCODE_CAPS_LOCK) // I remapped caps lock to esc
+            if (event->key_code == SAPP_KEYCODE_ESCAPE)
+            {
+                state.game_desc.game_state = GAME_PAUSE;
                 sapp_lock_mouse(false);
+            }
             break;
 
         case SAPP_EVENTTYPE_MOUSE_MOVE:
@@ -433,10 +380,20 @@ static void event(const sapp_event *event)
 
         case SAPP_EVENTTYPE_MOUSE_DOWN:
             sapp_lock_mouse(true);
-            if (event->mouse_button == SAPP_MOUSEBUTTON_LEFT)
+
+            switch (event->mouse_button) {
+            case SAPP_MOUSEBUTTON_LEFT:
                 state.left_click = true;
-            else if (event->mouse_button == SAPP_MOUSEBUTTON_RIGHT)
+                break;
+
+            case SAPP_MOUSEBUTTON_RIGHT:
                 state.right_click = true;
+                break;
+
+            default:
+                break;
+            };
+
             break;
 
         default:
@@ -444,17 +401,33 @@ static void event(const sapp_event *event)
 
         }
     }
+    else if (state.game_desc.game_state == GAME_PAUSE)
+    {
+        if (event->type == SAPP_EVENTTYPE_KEY_DOWN && event->key_code == SAPP_KEYCODE_ESCAPE)
+            state.game_desc.game_state = GAME_RUN;
+
+        // snk_handle_event(event);
+    }
     else 
     {
-        snk_handle_event(event);
+        // snk_handle_event(event);
     }
 }
+
+// int main(int argc, char **argv)
+// {
+//     (void) argc;
+//     (void) argv;
+//     printf("Hello, Build!\n");
+// }
 
 sapp_desc sokol_main(int argc, char* argv[])
 {
     /* Not accepting cmdline args, this avoid the compiler warning. */
     (void) argc;
     (void) argv;
+
+    printf("Hello sokol\n");
 
     return (sapp_desc) {
         .init_cb            = init,
