@@ -16,6 +16,7 @@ typedef struct shell {
     size_t lvl;
 } shell_t;
 
+extern ivec2 *gen_get_coords(ivec2 centre, size_t num_shells, size_t *count);
 extern shell_t *gen_get_shells(ivec2 centre, size_t num_shells, shell_t *start_shell);
 extern chunk_data_t *gen_generate_chunk_data(ivec2 pos, uint32_t seed);
 

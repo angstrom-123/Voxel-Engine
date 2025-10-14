@@ -1,12 +1,12 @@
 #include "chunk_system.h"
 
-static void _handle_request(chunk_system_t *cs, cs_request_t *r)
+static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_t *r)
 {
     switch (r->type) {
     case CSREQ_GEN:
     {
         chunk_data_t *data = gen_generate_chunk_data(r->pos, cs->seed);
-        ENGINE_LOG_OK("Adding %i %i inner map.\n", r->pos.x, r->pos.y);
+        // ENGINE_LOG_OK("Adding %i %i inner map.\n", r->pos.x, r->pos.y);
         cs->genned->put_ptr(cs->genned, r->pos, data);
 
         break;
@@ -25,10 +25,14 @@ static void _handle_request(chunk_system_t *cs, cs_request_t *r)
 
             mtx_lock(&cs->accumulator_lock);
 
-            ENGINE_LOG_OK("Adding mesh to accumulator at %i %i.\n", r->pos.x, r->pos.y);
-            cs->accumulator->enqueue(cs->accumulator, (cs_result_t) {
+            // ENGINE_LOG_OK("Adding mesh to accumulator at %i %i.\n", r->pos.x, r->pos.y);
+            // cs->accumulator->enqueue(cs->accumulator, (cs_result_t) {
+            //     .pos = r->pos,
+            //     .mesh = mesh
+            // });
+            update_sys_submit(us, (cs_result_t) {
                 .pos = r->pos,
-                .mesh = mesh
+                .mesh = mesh 
             });
 
             mtx_unlock(&cs->accumulator_lock);
@@ -63,11 +67,13 @@ static void _handle_request(chunk_system_t *cs, cs_request_t *r)
     }
 }
 
-int _thread_func(void *args)
+static int _thread_func(void *args)
 {
-    chunk_system_t *cs = args;
+    chunk_system_thread_args_t *targs = args;
+    chunk_system_t *cs = targs->cs;
+    update_system_t *us = targs->us;
     cnd_signal(&cs->thread_initialized);
-    ENGINE_LOG_OK("Thread init.\n", NULL);
+    ENGINE_LOG_OK("Generation thread init.\n", NULL);
 
     const size_t BATCH_CNT = 100000;
 
@@ -81,13 +87,14 @@ int _thread_func(void *args)
         while (cs->requests->count > 0 && handled_cnt++ < BATCH_CNT)
         {
             cs_request_t *r = cs->requests->dequeue_ptr(cs->requests);
-            _handle_request(cs, r);
+            _handle_request(cs, us, r);
+            free(r);
         }
 
         mtx_unlock(&cs->requests_lock);
     }
 
-    ENGINE_LOG_WARN("Thread terminating.\n", NULL);
+    ENGINE_LOG_WARN("Generation thread terminating.\n", NULL);
 
     return 0;
 }
@@ -154,13 +161,13 @@ int _thread_func(void *args)
 //     return res;
 // }
 //
-void cs_init(chunk_system_t *cs, const chunk_system_desc_t *desc)
+void chunk_sys_init(chunk_system_t *cs, const chunk_system_desc_t *desc)
 {
     cs->seed = desc->seed;
     cs->running = true;
 
     cs->genned = HASHMAP_NEW(ivec2_chunk_data)(&(em_hashmap_desc_t) {
-        .capacity = desc->chunk_capacity,
+        .capacity = desc->chunk_data_capacity,
         .cmp_func = (void_cmp_func) HASHMAP_CMP(ivec2),
         .hsh_func = (void_hsh_func) HASHMAP_HSH(ivec2),
         .cln_k_func = (void_cln_func) HASHMAP_CLN_K(ivec2),
@@ -185,8 +192,11 @@ void cs_init(chunk_system_t *cs, const chunk_system_desc_t *desc)
     mtx_init(&cs->init_lock, mtx_plain);
     cnd_init(&cs->needs_update);
     cnd_init(&cs->thread_initialized);
+}
 
-    int res = thrd_create(&cs->worker, _thread_func, cs);
+void chunk_sys_init_thread(chunk_system_t *cs, chunk_system_thread_args_t *targs)
+{
+    int res = thrd_create(&cs->worker, _thread_func, targs);
     if (res != thrd_success)
     {
         ENGINE_LOG_ERROR("Failed to initialize worker thread. Aborting.\n", NULL);
@@ -194,7 +204,7 @@ void cs_init(chunk_system_t *cs, const chunk_system_desc_t *desc)
     }
 }
 
-void cs_cleanup(chunk_system_t *cs)
+void chunk_sys_cleanup(chunk_system_t *cs)
 {
     atomic_store(&cs->running, false);
     thrd_join(cs->worker, NULL);
@@ -208,7 +218,7 @@ void cs_cleanup(chunk_system_t *cs)
     mtx_destroy(&cs->accumulator_lock);
 }
 
-void cs_make_request(chunk_system_t *cs, cs_request_t r)
+void chunk_sys_make_request(chunk_system_t *cs, cs_request_t r)
 {
     mtx_lock(&cs->requests_lock);
 
@@ -217,58 +227,3 @@ void cs_make_request(chunk_system_t *cs, cs_request_t r)
 
     mtx_unlock(&cs->requests_lock);
 }
-
-// bool cs_pull_n_changes(chunk_system_front_t *csf, chunk_system_back_t *csb, size_t cnt)
-// {
-//     mtx_lock(&csb->accumulator_lock);
-//     for (size_t i = 0; i < cnt; i++)
-//     {
-//         if (csb->accumulator->count <= 0)
-//         {
-//             mtx_unlock(&csb->accumulator_lock);
-//             return i > 0;
-//         }
-//
-//         cs_result_t *r = csb->accumulator->dequeue_ptr(csb->accumulator);
-//
-//         chunk_render_info_t *cri = malloc(sizeof(chunk_render_info_t));
-//         cri->pos = r->pos;
-//         cri->offset = csf->free->dequeue(csf->free);
-//         cri->index_cnt = r->mesh->i_cnt;
-//         cri->visible = true;
-//
-//         csf->visible->append(csf->visible, r->pos);
-//         csf->chunks->put_ptr(csf->chunks, r->pos, cri);
-//
-//         if (!r->mesh)
-//         {
-//             LOG_ERROR("CHUNK SYSTEM", "No mesh in pull changes.\n", NULL);
-//             exit(1);
-//         }
-//         memcpy(&csf->buffers.v_stage[cri->offset.v_ofst], &r->mesh->v_buf[0], 
-//                r->mesh->v_cnt * sizeof(vertex_t));
-//         memcpy(&csf->buffers.i_stage[cri->offset.i_ofst], &r->mesh->i_buf[0], 
-//                r->mesh->i_cnt * sizeof(uint32_t));
-//
-//         free(r->mesh->v_buf);
-//         free(r->mesh->i_buf);
-//         free(r->mesh);
-//         free(r);
-//     }
-//     mtx_unlock(&csb->accumulator_lock);
-//
-//     return true;
-// }
-//
-// void cs_upload_stages(chunk_system_front_t *csf)
-// {
-//     sg_update_buffer(csf->buffers.vbo, &(sg_range) {
-//         .ptr = csf->buffers.v_stage,
-//         .size = csf->buffers.v_size
-//     });
-//
-//     sg_update_buffer(csf->buffers.ibo, &(sg_range) {
-//         .ptr = csf->buffers.i_stage,
-//         .size = csf->buffers.i_size
-//     });
-// }

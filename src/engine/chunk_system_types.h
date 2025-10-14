@@ -9,7 +9,6 @@ typedef struct chunk_render_info {
     ivec2 pos;
     offset_t offset;
     size_t index_cnt;
-    bool visible;
 } chunk_render_info_t;
 
 typedef struct cs_request {

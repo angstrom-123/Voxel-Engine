@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#include <string.h>
 
 #ifdef DEBUG 
 #define DO_DEBUG 1
@@ -24,7 +26,7 @@
 #define COL_RST ""
 #endif
 
-#define _LOG(prefix, col, fmt, ...) do { if (DO_DEBUG) (fprintf(stderr, "%s:%d:%s(): \n        " col "[" prefix "]: " fmt COL_RST "\n", __FILE__, __LINE__, __func__, __VA_ARGS__)); } while (0)
+#define _LOG(prefix, col, fmt, ...) do { if (DO_DEBUG) (fprintf(stderr, "%s:%d:%s(): \n        " col "[%s][" prefix "]: " fmt COL_RST "\n", __FILE__, __LINE__, __func__, _get_time(), __VA_ARGS__)); } while (0)
 
 #define ENGINE_LOG_ERROR(fmt, ...) _LOG("ENGINE", COL_ERR, fmt, __VA_ARGS__)
 #define ENGINE_LOG_WARN(fmt, ...) _LOG("ENGINE", COL_WRN, fmt, __VA_ARGS__)
@@ -33,5 +35,7 @@
 #define APP_LOG_ERROR(fmt, ...) _LOG("APP", COL_ERR, fmt, __VA_ARGS__)
 #define APP_LOG_WARN(fmt, ...) _LOG("APP", COL_WRN, fmt, __VA_ARGS__)
 #define APP_LOG_OK(fmt, ...) _LOG("APP", COL_OKK, fmt, __VA_ARGS__)
+
+extern char *_get_time(void);
 
 #endif

@@ -4,9 +4,9 @@
 #include "chunk_system_types.h"
 #include "hashmap.h"
 #include "queue.h"
-#include "dlist.h"
 #include "geometry.h"
 #include "world_gen.h"
+#include "update_system.h"
 
 #include <threads.h>
 
@@ -28,18 +28,20 @@ typedef struct chunk_system {
 } chunk_system_t;
 
 typedef struct chunk_system_desc {
+    size_t chunk_data_capacity;
     size_t accumulator_capacity;
     size_t request_capacity;
-    size_t free_capacity;
-    size_t chunk_capacity;
     uint32_t seed;
 } chunk_system_desc_t;
 
-extern void cs_init(chunk_system_t *cs, const chunk_system_desc_t *desc);
-extern void cs_cleanup(chunk_system_t *cs);
+typedef struct chunk_system_thread_args {
+    chunk_system_t *cs;
+    update_system_t *us;
+} chunk_system_thread_args_t;
 
-extern void cs_make_request(chunk_system_t *cs, cs_request_t request);
-// extern bool cs_pull_n_changes(chunk_system_front_t *csf, chunk_system_back_t *csb, size_t cnt);
-// extern void cs_upload_stages(chunk_system_front_t *csf);
+extern void chunk_sys_init(chunk_system_t *cs, const chunk_system_desc_t *desc);
+extern void chunk_sys_init_thread(chunk_system_t *cs, chunk_system_thread_args_t *targs);
+extern void chunk_sys_cleanup(chunk_system_t *cs);
+extern void chunk_sys_make_request(chunk_system_t *cs, cs_request_t request);
 
 #endif

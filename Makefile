@@ -72,7 +72,6 @@ compiledb:
 	$(MAKE) -C src/app debug
 	$(MAKE) -C src compiledb
 
-
 .PHONY: debug
 debug:
 	$(MAKE) -C src/shaders

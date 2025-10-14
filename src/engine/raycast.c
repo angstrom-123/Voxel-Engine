@@ -1,6 +1,6 @@
 #include "raycast.h"
 
-bool raycast_dda(state_t *s, chunk_t **hc, uvec3 *hb)
+bool raycast_dda(chunk_t **hc, uvec3 *hb)
 {
     // TODO 
     return false;

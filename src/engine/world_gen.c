@@ -64,6 +64,37 @@ shell_t _get_next_shell(shell_t *prev, ivec2 c, uint8_t **mat, size_t mp)
     return res;
 }
 
+ivec2 *gen_get_coords(ivec2 c, size_t num, size_t *cnt)
+{
+    *cnt = (2 * em_sqr(num)) + (2 * num) + 1;
+    ivec2 *res = malloc(*cnt * sizeof(ivec2));
+    size_t idx = 0;
+
+    int32_t rd = num;
+    int32_t x0 = c.x / CHUNK_SIZE;
+    int32_t z0 = c.y / CHUNK_SIZE;
+
+    for (int32_t x = x0 - rd - 1; x < x0 + rd + 2; x++)
+    {
+        for (int32_t z = z0 - rd - 1; z < z0 + rd + 2; z++)
+        {
+            ivec2 crd = {
+                .x = x * CHUNK_SIZE, 
+                .y = z * CHUNK_SIZE
+            };
+
+            /* Calculate manhattan distance. */
+            int32_t m = em_abs(z - z0) + em_abs(x - x0);
+            if (m <= rd)
+            {
+                res[idx++] = crd;
+            }
+        }
+    }
+
+    return res;
+}
+
 shell_t *gen_get_shells(ivec2 c, size_t num, shell_t *start_shell)
 {
     shell_t *res = malloc(num * sizeof(shell_t));
