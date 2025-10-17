@@ -25,12 +25,8 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
 
             mtx_lock(&cs->accumulator_lock);
 
-            // ENGINE_LOG_OK("Adding mesh to accumulator at %i %i.\n", r->pos.x, r->pos.y);
-            // cs->accumulator->enqueue(cs->accumulator, (cs_result_t) {
-            //     .pos = r->pos,
-            //     .mesh = mesh
-            // });
-            update_sys_submit(us, (cs_result_t) {
+            update_sys_make_request(us, (us_request_t) {
+                .type = USREQ_STAGE,
                 .pos = r->pos,
                 .mesh = mesh 
             });
@@ -62,7 +58,8 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         break;
     }
     case CSREQ_UNLOAD:
-        cs->genned->remove(cs->genned, r->pos);
+        if (cs->genned->contains_key(cs->genned, r->pos))
+            cs->genned->remove(cs->genned, r->pos);
         break;
     }
 }
@@ -72,15 +69,15 @@ static int _thread_func(void *args)
     chunk_system_thread_args_t *targs = args;
     chunk_system_t *cs = targs->cs;
     update_system_t *us = targs->us;
-    cnd_signal(&cs->thread_initialized);
-    ENGINE_LOG_OK("Generation thread init.\n", NULL);
+
+    ENGINE_LOG_OK("Chunk thread init.\n", NULL);
 
     const size_t BATCH_CNT = 100000;
 
     while (atomic_load(&cs->running))
     {
         mtx_lock(&cs->requests_lock);
-
+        atomic_store(&cs->thread_ready, true);
         cnd_wait(&cs->needs_update, &cs->requests_lock);
 
         size_t handled_cnt = 0;
@@ -99,72 +96,11 @@ static int _thread_func(void *args)
     return 0;
 }
 
-// chunk_system_front_t *_get_front(const chunk_system_desc_t *desc)
-// {
-//     chunk_system_front_t *res = malloc(sizeof(chunk_system_front_t));
-//
-//     /* Size of stages and buffers for vertex and index data. */
-//     const size_t V_SIZE = desc->free_capacity * V_MAX * sizeof(vertex_t);
-//     const size_t I_SIZE = desc->free_capacity * I_MAX * sizeof(uint32_t);
-//
-//     res->chunks = HASHMAP_NEW(ivec2_render_chunk)(&(em_hashmap_desc_t) {
-//         .capacity = desc->chunk_capacity,
-//         .cmp_func = (void_cmp_func) HASHMAP_CMP(ivec2),
-//         .hsh_func = (void_hsh_func) HASHMAP_HSH(ivec2),
-//         .cln_k_func = (void_cln_func) HASHMAP_CLN_K(ivec2),
-//         .cln_v_func = (void_cln_func) HASHMAP_CLN_V(front_chunk),
-//         .flags = EM_FLAG_NO_RESIZE
-//     });
-//
-//     res->visible = DOUBLE_LIST_NEW(ivec2)(&(em_double_list_desc_t) {
-//         .cln_func = (void_cln_func) DOUBLE_LIST_CLN(ivec2),
-//         .flags = EM_FLAG_NONE
-//     });
-//
-//     /* Initializing list of free offsets to include all possible offsets. */
-//     res->free = CIRCULAR_QUEUE_NEW(offset)(&(em_circular_queue_desc_t) {
-//         .capacity = desc->free_capacity,
-//         .cln_func = (void_cln_func) CIRCULAR_QUEUE_CLN(offset),
-//         .flags = EM_FLAG_NO_RESIZE
-//     });
-//     for (size_t i = 0; i < desc->free_capacity; i++)
-//     {
-//         res->free->enqueue(res->free, (offset_t) {
-//             .v_ofst = V_MAX * i,
-//             .i_ofst = I_MAX * i
-//         });
-//     }
-//
-//     res->buffers = (cs_buffers_t) {
-//         .v_size = V_SIZE,
-//         .v_stage = malloc(V_SIZE),
-//         .vbo = sg_make_buffer(&(sg_buffer_desc) {
-//             .size = V_SIZE,
-//             .usage = {
-//                 .vertex_buffer = true,
-//                 .dynamic_update = true
-//             },
-//             .label = "Vertex Buffer"
-//         }),
-//         .i_size = I_SIZE,
-//         .i_stage = malloc(I_SIZE),
-//         .ibo = sg_make_buffer(&(sg_buffer_desc) {
-//             .size = I_SIZE,
-//             .usage = {
-//                 .index_buffer = true,
-//                 .dynamic_update = true
-//             },
-//             .label = "Index Buffer"
-//         })
-//     };
-//
-//     return res;
-// }
-//
 void chunk_sys_init(chunk_system_t *cs, const chunk_system_desc_t *desc)
 {
     cs->seed = desc->seed;
-    cs->running = true;
+    cs->running = false;
+    cs->thread_ready = false;
 
     cs->genned = HASHMAP_NEW(ivec2_chunk_data)(&(em_hashmap_desc_t) {
         .capacity = desc->chunk_data_capacity,
@@ -175,12 +111,6 @@ void chunk_sys_init(chunk_system_t *cs, const chunk_system_desc_t *desc)
         .flags = EM_FLAG_NO_RESIZE
     });
 
-    cs->accumulator = CIRCULAR_QUEUE_NEW(cs_result)(&(em_circular_queue_desc_t) {
-        .capacity = desc->accumulator_capacity,
-        .cln_func = (void_cln_func) CIRCULAR_QUEUE_CLN(cs_result),
-        .flags = EM_FLAG_NONE // Resizable.
-    });
-
     cs->requests = CIRCULAR_QUEUE_NEW(cs_request)(&(em_circular_queue_desc_t) {
         .capacity = desc->request_capacity,
         .cln_func = (void_cln_func) CIRCULAR_QUEUE_CLN(cs_request),
@@ -189,18 +119,25 @@ void chunk_sys_init(chunk_system_t *cs, const chunk_system_desc_t *desc)
 
     mtx_init(&cs->requests_lock, mtx_plain);
     mtx_init(&cs->accumulator_lock, mtx_plain);
-    mtx_init(&cs->init_lock, mtx_plain);
     cnd_init(&cs->needs_update);
-    cnd_init(&cs->thread_initialized);
 }
 
 void chunk_sys_init_thread(chunk_system_t *cs, chunk_system_thread_args_t *targs)
 {
+    cs->running = true;
     int res = thrd_create(&cs->worker, _thread_func, targs);
     if (res != thrd_success)
     {
         ENGINE_LOG_ERROR("Failed to initialize worker thread. Aborting.\n", NULL);
         exit(1);
+    }
+
+    /* Block until the thread is ready. */
+    while (!atomic_load(&cs->thread_ready))
+    {
+        thrd_sleep(&(struct timespec) {
+            .tv_nsec = THREAD_AWAIT_NS
+        }, NULL);
     }
 }
 
@@ -210,7 +147,6 @@ void chunk_sys_cleanup(chunk_system_t *cs)
     thrd_join(cs->worker, NULL);
 
     cs->genned->destroy(cs->genned);
-    cs->accumulator->destroy(cs->accumulator);
     cs->requests->destroy(cs->requests);
 
     cnd_destroy(&cs->needs_update);

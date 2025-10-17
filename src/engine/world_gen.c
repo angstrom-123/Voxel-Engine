@@ -125,34 +125,6 @@ shell_t *gen_get_shells(ivec2 c, size_t num, shell_t *start_shell)
     return res;
 }
 
-void gen_chunk(chunk_t *c, uint32_t seed, ivec2 pos)
-{
-    memset(&c->data->types[0][0][0], CUBETYPE_AIR, sizeof(c->data->types));
-
-    c->pos = pos;
-    c->genned = true;
-    c->staged = false;
-    c->visible = false;
-
-    for (int32_t x1 = 0; x1 < CHUNK_SIZE; x1++)
-    {
-        for (int32_t z1 = 0; z1 < CHUNK_SIZE; z1++)
-        {
-            float p = perlin_octave_2d(seed, pos.x + x1, pos.y + z1, 3);
-            float n = (p + 1.0) / 2.0;
-            uint8_t h = floorf(n * (CHUNK_HEIGHT - 1));
-            c->data->types[x1][h][z1] = CUBETYPE_GRASS;
-
-            for (uint8_t y = 0; y < h - 4; y++) 
-                c->data->types[x1][y][z1] = CUBETYPE_STONE;
-
-            for (uint8_t y = h - 4; y < h; y++) 
-                c->data->types[x1][y][z1] = CUBETYPE_DIRT;
-        }
-    }
-}
-
-
 chunk_data_t *gen_generate_chunk_data(ivec2 pos, uint32_t seed) 
 {
     chunk_data_t *data = malloc(sizeof(chunk_data_t));

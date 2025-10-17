@@ -1,10 +1,9 @@
 #include "load_system.h"
-#include "world_gen.h"
 
 void load_sys_init(load_system_t *ls, const load_system_desc_t *desc)
 {
     ls->curr_pos = desc->start_pos;
-    ls->load_dist = desc->render_dist + 2;
+    ls->load_dist = desc->render_dist + 1;
     ls->base_chunk_coords = gen_get_coords((ivec2) {0, 0}, desc->render_dist, &ls->base_chunk_count);
 }
 
@@ -33,7 +32,7 @@ void load_sys_load_initial(load_system_t *ls, chunk_system_t *cs)
         /* Generate all chunks within render distance. */
         for (size_t j = 0; j < s.cnt; j++)
         {
-            // ENGINE_LOG_OK("Generating %i %i\n", s.crds[j].x, s.crds[j].y);
+            ENGINE_LOG_OK("Generating %i %i\n", s.crds[j].x, s.crds[j].y);
             chunk_sys_make_request(cs, (cs_request_t) {
                 .type = CSREQ_GEN,
                 .pos = s.crds[j]
@@ -46,7 +45,7 @@ void load_sys_load_initial(load_system_t *ls, chunk_system_t *cs)
             shell_t prev_s = shells[i - 1];
             for (size_t j = 0; j < prev_s.cnt; j++)
             {
-                // ENGINE_LOG_OK("Meshing %i %i\n", prev_s.crds[j].x, prev_s.crds[j].y);
+                ENGINE_LOG_OK("Meshing %i %i\n", prev_s.crds[j].x, prev_s.crds[j].y);
                 chunk_sys_make_request(cs, (cs_request_t) {
                     .type = CSREQ_MESH,
                     .pos = prev_s.crds[j]
@@ -61,7 +60,7 @@ void load_sys_load_initial(load_system_t *ls, chunk_system_t *cs)
     free(shells);
 }
 
-bool load_sys_update(load_system_t *ls, chunk_system_t *cs, ivec2 new_pos)
+bool load_sys_update(load_system_t *ls, chunk_system_t *cs, update_system_t *us, ivec2 new_pos)
 {
     ivec2 delta = em_sub_ivec2(new_pos, ls->curr_pos);
     if (em_equals_ivec2(delta, (ivec2) {0, 0}))
@@ -99,12 +98,16 @@ bool load_sys_update(load_system_t *ls, chunk_system_t *cs, ivec2 new_pos)
         {
             // TODO
             // ENGINE_LOG_OK("Unloading %i %i\n", old_out_crd.x, old_out_crd.y);
-            // if (cs->front->chunks->contains_key(cs->front->chunks, old_out_crd))
-            //     cs->front->chunks->remove(cs->front->chunks, old_out_crd);
-            // cs_make_request(cs->back, (cs_request_t) {
-            //     .type = CSREQ_UNLOAD,
-            //     .pos = old_out_crd
-            // });
+            if (cs->genned->contains_key(cs->genned, old_out_crd))
+                cs->genned->remove(cs->genned, old_out_crd);
+            chunk_sys_make_request(cs, (cs_request_t) {
+                .type = CSREQ_UNLOAD,
+                .pos = old_out_crd
+            });
+            update_sys_make_request(us, (us_request_t) {
+                .type = USREQ_UNSTAGE,
+                .pos = old_out_crd
+            });
         }
     }
 
@@ -130,10 +133,10 @@ bool load_sys_update(load_system_t *ls, chunk_system_t *cs, ivec2 new_pos)
         else 
         {
             // TODO
-            // LOG_OK("MANAGER", "Invising %i %i\n", old_rim_crd.x, old_rim_crd.y);
-            // chunk_render_info_t *cri = cs->front->chunks->get_ptr(cs->front->chunks, 
-            //                                                       old_rim_crd);
-            // cri->visible = false;
+            update_sys_make_request(us, (us_request_t) {
+                .type = USREQ_UNSTAGE,
+                .pos = old_rim_crd
+            });
         }
     }
 

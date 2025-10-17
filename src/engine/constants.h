@@ -9,9 +9,7 @@
 #define TEXTURE_DATA_DIR "res/tex/"
 #endif // linux
 
-#define MAX_WORLD_NAME_LEN 24
-#define MAX_SEED_LEN 32
-#define MAX_CHUNK_FILE_LEN 27
+#define THREAD_AWAIT_NS 50000000
 
 #define CURRENT 0
 #define NORTH 1

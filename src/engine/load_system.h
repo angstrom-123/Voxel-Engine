@@ -32,6 +32,6 @@ extern void load_sys_init(load_system_t *ls, const load_system_desc_t *desc);
 extern void load_sys_cleanup(load_system_t *ls);
 extern render_coords_t load_sys_get_render_coords(load_system_t *ls);
 extern void load_sys_load_initial(load_system_t *ls, chunk_system_t *cs);
-extern bool load_sys_update(load_system_t *ls, chunk_system_t *cs, ivec2 new_pos);
+extern bool load_sys_update(load_system_t *ls, chunk_system_t *cs, update_system_t *us, ivec2 new_pos);
 
 #endif

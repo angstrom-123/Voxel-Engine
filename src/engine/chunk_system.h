@@ -13,15 +13,13 @@
 typedef struct chunk_system {
     HASHMAP(ivec2_chunk_data) *genned;
     CIRCULAR_QUEUE(cs_request) *requests;
-    CIRCULAR_QUEUE(cs_result) *accumulator;
 
     thrd_t worker;
     mtx_t requests_lock;
     mtx_t accumulator_lock;
-    mtx_t init_lock;
     cnd_t needs_update;
-    cnd_t thread_initialized;
     atomic_bool running;
+    atomic_bool thread_ready;
 
     uint32_t seed;
     bool synchronized;

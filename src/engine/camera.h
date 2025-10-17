@@ -12,8 +12,6 @@
 
 #include "geometry_types.h"
 
-#define CAM_HEIGHT 2.0
-#define MAX_PITCH 89.0
 #define WORLD_X ((vec3) {1.0, 0.0, 0.0})
 #define WORLD_Y ((vec3) {0.0, 1.0, 0.0})
 
@@ -22,9 +20,6 @@ typedef struct camera_desc {
     float far;
     float aspect;
     float fov;
-    float turn_sens;
-    float move_sens;
-    quaternion rot;
     vec3 pos;
 } camera_desc_t;
 
@@ -34,8 +29,6 @@ typedef struct camera {
     float far;           // far clipping distance
     float aspect;        // width / height
     float fov;           // field of view (degrees)
-    float turn_sens;     // turn speed multiplier
-    float move_sens;     // movement speed multiplier
     // transform
     float pitch;         // current pitch (up / down) angle (degrees)
     float yaw;           // current yaw (left / right) angle (degrees)
@@ -61,10 +54,11 @@ typedef struct frame_desc {
     double dt;
 } frame_desc_t;
 
-camera_t cam_setup(const camera_desc_t *desc);
+void cam_init(camera_t *cam, const camera_desc_t *desc);
+void cam_cleanup(camera_t *cam);
 void cam_update(camera_t *cam);
-void cam_handle_mouse(camera_t *cam, float mouse_dx, float mouse_dy);
-void cam_handle_keyboard(camera_t *cam, bool *key_down, double dt);
-void cam_frame(const frame_desc_t *desc);
+vec3 cam_get_fwd(camera_t *cam);
+vec3 cam_get_right(camera_t *cam);
+vec3 cam_get_up(camera_t *cam);
 
 #endif

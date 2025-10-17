@@ -1,5 +1,5 @@
-#ifndef GAME_H
-#define GAME_H
+#ifndef ENGINE_H
+#define ENGINE_H
 
 #include "chunk_system.h"
 #include "event_system.h"
@@ -20,6 +20,11 @@
 #ifndef SOKOL_GLUE_INCLUDED
 #undef SOKOL_IMPL
 #include <sokol/sokol_glue.h>
+#endif
+
+#ifndef SOKOL_TIME_INCLUDED
+#undef SOKOL_IMPL 
+#include <sokol/sokol_time.h>
 #endif
 
 #ifndef SOKOL_LOG_INCLUDED
@@ -52,24 +57,25 @@
  *      Game logic
  */
 
-typedef struct game_desc {
+typedef struct engine_desc {
     size_t render_distance;
     uint32_t seed;
     size_t num_chunk_slots;
     size_t ticks_per_second;
-} game_desc_t;
+} engine_desc_t;
 
-typedef struct game {
-    load_system_t load_sys;
-    chunk_system_t chunk_sys;
-    render_system_t render_sys;
-    update_system_t update_sys;
-    event_system_t event_sys;
-} game_t;
+typedef struct engine {
+    load_system_t _load_sys;
+    chunk_system_t _chunk_sys;
+    render_system_t _render_sys;
+    update_system_t _update_sys;
+    event_system_t _event_sys;
+} engine_t;
 
-extern void game_init(game_t *game, const game_desc_t *desc);
-extern void game_cleanup(game_t *game);
-extern void game_event(game_t *game, const event_t *event);
-extern void game_render(game_t *game);
+extern void engine_init(engine_t *engine, const engine_desc_t *desc);
+extern void engine_cleanup(engine_t *engine);
+extern void engine_event(engine_t *engine, const event_t *event);
+extern void engine_render(engine_t *engine);
+extern void engine_frame_update(engine_t *engine);
 
 #endif

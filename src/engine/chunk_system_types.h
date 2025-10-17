@@ -8,7 +8,8 @@
 typedef struct chunk_render_info {
     ivec2 pos;
     offset_t offset;
-    size_t index_cnt;
+    uint16_t index_cnt;
+    uint32_t generation;
 } chunk_render_info_t;
 
 typedef struct cs_request {
@@ -20,10 +21,5 @@ typedef struct cs_request {
 
     ivec2 pos;
 } cs_request_t;
-
-typedef struct cs_result {
-    ivec2 pos;
-    mesh_t *mesh;
-} cs_result_t;
 
 #endif

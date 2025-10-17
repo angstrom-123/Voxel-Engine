@@ -13,7 +13,7 @@ compiledb: $(STATIC_LIBS)
 
 .PHONY: debug
 debug: $(STATIC_LIBS)
-	$(CC) $(C_FLAGS) $(DEBUG_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT)
+	$(CC) $(C_FLAGS) $(DEBUG_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT) -lrt
 
 .PHONY: clean
 clean:

@@ -166,8 +166,8 @@ typedef struct event {
     keycode_e keycode;
     uint8_t modifiers;
     int32_t code_utf32;
-    ivec2 mouse_pos;
-    ivec2 mouse_delta;
+    vec2 mouse_pos;
+    vec2 mouse_delta;
     ivec2 mouse_scroll;
     ivec2 window_size;
     ivec2 framebuf_size;
@@ -177,14 +177,18 @@ typedef struct event {
 typedef struct event_system {
     bool keys_down[KEYCODE_MAX_INDEX];
     uint8_t modifiers_down;
-    ivec2 mouse_pos;
+    vec2 mouse_pos;
     ivec2 window_size;
     ivec2 framebuf_size;
+    struct {
+        vec2 mouse_delta;
+    } frame;
 } event_system_t;
 
 extern void event_sys_init(event_system_t *es);
 extern void event_sys_cleanup(event_system_t *es);
 extern void event_sys_get_event(event_system_t *es, const event_t *ev);
 extern event_t event_sys_convert_event(const sapp_event *sev);
+extern void event_sys_new_frame(event_system_t *es);
 
 #endif

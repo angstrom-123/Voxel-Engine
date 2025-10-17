@@ -6,6 +6,7 @@
 #include <sokol/sokol_app.h>
 #include <sokol/sokol_glue.h>
 #include <sokol/sokol_log.h>
+#include <sokol/sokol_time.h>
 
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
@@ -28,6 +29,6 @@
 #define MY_AL_IMPL
 #include "alist.h"
 
-#include "game.h"
+#include "engine.h"
 
 #endif

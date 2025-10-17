@@ -38,17 +38,6 @@ typedef struct mesh {
 	uint32_t __end_canary;
 } mesh_t;
 
-typedef struct chunk {
-    ivec2 pos;
-	chunk_data_t *data;
-	offset_t offset;
-    size_t index_cnt;
-
-    bool genned;
-    bool staged;
-    bool visible;
-} chunk_t;
-
 typedef struct quad_desc {
 	uint8_t x;
 	uint8_t y;

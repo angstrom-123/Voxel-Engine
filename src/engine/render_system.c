@@ -1,4 +1,30 @@
 #include "render_system.h"
+#include "update_system.h"
+#include <GLES3/gl31.h>
+
+static void _check_buffer_state(sg_buffer buf, const char *bufname)
+{
+    switch (sg_query_buffer_state(buf)) {
+    case SG_RESOURCESTATE_INITIAL:
+        ENGINE_LOG_WARN("%s State INITIAL.\n", bufname);
+        break;
+    case SG_RESOURCESTATE_ALLOC:
+        ENGINE_LOG_WARN("%s State ALLOC.\n", bufname);
+        break;
+    case SG_RESOURCESTATE_VALID:
+        ENGINE_LOG_WARN("%s State VALID.\n", bufname);
+        break;
+    case SG_RESOURCESTATE_FAILED:
+        ENGINE_LOG_WARN("%s State FAILED.\n", bufname);
+        break;
+    case SG_RESOURCESTATE_INVALID:
+        ENGINE_LOG_WARN("%s State INVALID.\n", bufname);
+        break;
+    default:
+        break;
+    };
+
+}
 
 void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
 {
@@ -48,6 +74,10 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
         .vertex_buffers[0] = desc->vbo,
         .index_buffer = desc->ibo
     };
+
+    _check_buffer_state(rs->bind.vertex_buffers[0], "vbo");
+    _check_buffer_state(rs->bind.index_buffer, "ibo");
+
     em_bmp_image_t *atlases[5] = {
         em_bmp_load("res/tex/minecraft_remake_texture_atlas.bmp"),
         em_bmp_load("res/tex/minecraft_remake_texture_atlas-mm1.bmp"),
@@ -105,14 +135,11 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     };
 
     /* Camera. */
-    rs->cam = cam_setup(&(camera_desc_t) {
+    cam_init(&rs->cam, &(camera_desc_t) {
         .near      = 0.1,
         .far       = desc->view_distance * CHUNK_SIZE,
         .aspect    = desc->window_size.x / desc->window_size.y,
         .fov       = 60.0,
-        .turn_sens = 0.04,
-        .move_sens = 10.0,
-        .rot       = {0.0, 0.0, 0.0, 1.0},
         .pos       = {0.0, 34.0, 0.0},
     });
 }
@@ -132,13 +159,26 @@ void render_sys_render(render_system_t *rs, render_data_t r_data, render_coords_
 
     sg_apply_pipeline(rs->pip);
 
+    // ENGINE_LOG_WARN("Rendering VBO handle %u\n", rs->bind.vertex_buffers[0].id);
+    // ENGINE_LOG_WARN("Rendering IBO handle %u\n", rs->bind.index_buffer.id);
+
     for (size_t i = 0; i < r_crds.num; i++)
     {
         ivec2 crd = em_add_ivec2(r_crds.coords[i], r_crds.offset);
         chunk_render_info_t *cri = r_data.chunks->get_or_default(r_data.chunks, crd, NULL);
 
+        // if (!cri || cri->generation > r_data.generation)
+        //     continue; // This chunk has not been loaded yet.
+
+        // if (!cri || r_data.do_not_render->contains_key(r_data.do_not_render, cri->pos))
+        //     continue;
+
         if (!cri)
-            continue; // This chunk has not been loaded yet.
+            continue;
+
+        // ENGINE_LOG_OK("Rendering cri: POS: %i %i, OFFSET: %zu %zu, ICNT: %hu.\n", 
+        //               cri->pos.x, cri->pos.y, cri->offset.v_ofst, cri->offset.i_ofst,
+        //               cri->index_cnt);
 
         vs_params_t vs_params = {
             .u_mvp = rs->cam.vp,
@@ -154,13 +194,19 @@ void render_sys_render(render_system_t *rs, render_data_t r_data, render_coords_
             .u_fog_data = {0.35, 0.6, 0.85, rs->cam.far}
         };
 
-        sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
-        sg_apply_uniforms(UB_fs_params, &SG_RANGE(fs_params));
-
         rs->bind.vertex_buffer_offsets[0] = cri->offset.v_ofst * sizeof(vertex_t);
         rs->bind.index_buffer_offset = cri->offset.i_ofst * sizeof(uint32_t);
 
+        // _check_buffer_state(rs->bind.vertex_buffers[0], "vbo");
+        // _check_buffer_state(rs->bind.index_buffer, "ibo");
+
+        // ENGINE_LOG_OK("Applying Bindings.\n", NULL);
         sg_apply_bindings(&rs->bind);
+        // ENGINE_LOG_OK("Applied Bindings.\n", NULL);
+
+        sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
+        sg_apply_uniforms(UB_fs_params, &SG_RANGE(fs_params));
+
         sg_draw(0, cri->index_cnt, 1);
     }
 
