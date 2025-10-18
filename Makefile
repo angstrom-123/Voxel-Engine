@@ -100,4 +100,5 @@ clean:
 	$(MAKE) -C src/shaders clean
 	$(MAKE) -C src/engine clean
 	$(MAKE) -C src/app clean
+	$(MAKE) -C src/test clean
 	$(MAKE) -C src clean
