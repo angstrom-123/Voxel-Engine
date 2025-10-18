@@ -47,7 +47,7 @@ void event_sys_get_event(event_system_t *es, const event_t *ev)
         // ENGINE_LOG_WARN("Unfocused window\n", NULL);
         break;
     case EVENT_QUITREQUEST:
-        // ENGINE_LOG_WARN("Quit requested\n", NULL);
+        ENGINE_LOG_WARN("Quit requested\n", NULL);
         sapp_quit();
         break;
     default:

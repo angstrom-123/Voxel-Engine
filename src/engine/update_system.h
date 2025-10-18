@@ -10,6 +10,7 @@
 #include "dlist.h"
 #include "geometry.h"
 #include "constants.h"
+#include "instrumentor.h"
 
 #if !defined(SOKOL_GFX_INCLUDED) 
 #include <sokol/sokol_gfx.h>

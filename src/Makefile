@@ -1,6 +1,7 @@
 OUTPUT		:= $(OUTPUT_DIR)/minecraft
 BEAR_OUTPUT := $(MAKE_DIR)/compile_commands.json
 STATIC_LIBS := $(wildcard $(LIB_DIR)/*.a)
+TRACE_FILES	:= $(wildcard $(MAKE_DIR)/*.tracing.json)
 
 .PHONY: release
 release: $(STATIC_LIBS)
@@ -13,8 +14,15 @@ compiledb: $(STATIC_LIBS)
 
 .PHONY: debug
 debug: $(STATIC_LIBS)
-	$(CC) $(C_FLAGS) $(DEBUG_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT) -lrt
+	$(CC) $(C_FLAGS) $(DEBUG_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT)
+
+.PHONY: profiling
+profiling: $(STATIC_LIBS)
+	$(CC) $(C_FLAGS) $(PROFILING_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT)
 
 .PHONY: clean
 clean:
 	rm -f $(OUTPUT)
+	for file in $(TRACE_FILES); do\
+		rm -f $$file;\
+	done

@@ -1,6 +1,4 @@
 #include "render_system.h"
-#include "update_system.h"
-#include <GLES3/gl31.h>
 
 static void _check_buffer_state(sg_buffer buf, const char *bufname)
 {
@@ -151,6 +149,7 @@ void render_sys_cleanup(render_system_t *rs)
 
 void render_sys_render(render_system_t *rs, render_data_t r_data, render_coords_t r_crds)
 {
+    INSTRUMENT_FUNC_BEGIN();
     sg_begin_pass(&(sg_pass) {
         .action = rs->pass_act,
         .swapchain = sglue_swapchain(),
@@ -212,4 +211,5 @@ void render_sys_render(render_system_t *rs, render_data_t r_data, render_coords_
 
     sg_end_pass();
     sg_commit();
+    INSTRUMENT_FUNC_END();
 }

@@ -11,11 +11,12 @@
 
 #include <libem/em_bmp.h>
 
-#include "camera.h"
 #include "logger.h"
-#include "chunk.glsl.h"
+#include "camera.h"
 #include "update_system.h"
 #include "load_system.h"
+#include "shaders/chunk.glsl.h"
+#include "instrumentor.h"
 
 typedef struct render_system {
     sg_pipeline pip;

@@ -24,11 +24,13 @@ static app_t app_instance;
 
 static void init(void)
 {
+    INSTRUMENTOR_SESSION_BEGIN("Minecraft_Session");
+
     // const size_t RENDER_DISTANCE = 3;
     const size_t RENDER_DISTANCE = 8;
     engine_init(&engine_instance, &(engine_desc_t) {
         .render_distance = RENDER_DISTANCE,
-        .num_chunk_slots = 512,
+        .num_chunk_slots = 200,
         .ticks_per_second = 5.0,
         .seed = 0
     });
@@ -38,16 +40,23 @@ static void init(void)
 
 static void frame(void)
 {
+    INSTRUMENT_FUNC_BEGIN();
     app_frame(&engine_instance, &app_instance, sapp_frame_duration());
     engine_render(&engine_instance);
     engine_frame_update(&engine_instance);
+    INSTRUMENT_FUNC_END();
 }
 
 static void cleanup(void)
 {
+    INSTRUMENTOR_SESSION_END();
+    ENGINE_LOG_WARN("Cleaning up engine.\n", NULL);
     engine_cleanup(&engine_instance);
+    ENGINE_LOG_WARN("Cleaning up app.\n", NULL);
     app_cleanup(&app_instance);
+    ENGINE_LOG_WARN("Cleaning up sokol.\n", NULL);
     sg_shutdown();
+    ENGINE_LOG_OK("Cleanup done.\n", NULL);
 }
 
 static void event(const sapp_event *event)

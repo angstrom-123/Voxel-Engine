@@ -6,6 +6,7 @@
 #include "load_system.h"
 #include "render_system.h"
 #include "update_system.h"
+#include "instrumentor.h"
 
 #ifndef SOKOL_GFX_INCLUDED
 #undef SOKOL_IMPL
@@ -38,24 +39,6 @@
 #include <nuklear/nuklear.h>
 #include <sokol/sokol_nuklear.h>
 #endif
-
-/*
- * Engine:
- *      Windowing
- *      Updating es for polling
- *      World gen, meshing, rendering
- *      Camera (not actual movement code)
- *      Event System 
- *      Layer System 
- *
- * Common:
- *      Logger 
- *
- * App:
- *      Event handling, actually polling ev_sys
- *      Camera controller
- *      Game logic
- */
 
 typedef struct engine_desc {
     size_t render_distance;

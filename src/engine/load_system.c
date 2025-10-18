@@ -1,4 +1,5 @@
 #include "load_system.h"
+#include "instrumentor.h"
 
 void load_sys_init(load_system_t *ls, const load_system_desc_t *desc)
 {
@@ -62,6 +63,7 @@ void load_sys_load_initial(load_system_t *ls, chunk_system_t *cs)
 
 bool load_sys_update(load_system_t *ls, chunk_system_t *cs, update_system_t *us, ivec2 new_pos)
 {
+    INSTRUMENT_FUNC_BEGIN();
     ivec2 delta = em_sub_ivec2(new_pos, ls->curr_pos);
     if (em_equals_ivec2(delta, (ivec2) {0, 0}))
         return false;
@@ -148,5 +150,6 @@ bool load_sys_update(load_system_t *ls, chunk_system_t *cs, update_system_t *us,
     ls->shells[SHELL_RIM].crds = new_rim_crds;
     ls->curr_pos = new_pos;
 
+    INSTRUMENT_FUNC_END();
     return true;
 }

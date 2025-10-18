@@ -2,6 +2,7 @@
 
 static void _handle_request(update_system_t *us, us_request_t *r)
 {
+    INSTRUMENT_FUNC_BEGIN();
     switch (r->type) {
     case USREQ_STAGE:
     {
@@ -43,6 +44,7 @@ static void _handle_request(update_system_t *us, us_request_t *r)
         break;
     }
     }
+    INSTRUMENT_FUNC_END();
 }
 
 static void _dump_buffers(update_system_t *us)
@@ -61,8 +63,10 @@ static void _dump_buffers(update_system_t *us)
     fclose(vf_ptr);
 }
 
+// TODO: Double buffered chunk system and swap the buffers on a tick?? Could be smooth :)
 static void _handle_tick(update_system_t *us)
 {
+    INSTRUMENT_FUNC_BEGIN();
     mtx_lock(&us->chunks_lock);
     mtx_lock(&us->buffers_lock);
     // ENGINE_LOG_OK("Tick.\n", NULL);
@@ -82,6 +86,7 @@ static void _handle_tick(update_system_t *us)
 
     mtx_unlock(&us->buffers_lock);
     mtx_unlock(&us->chunks_lock);
+    INSTRUMENT_FUNC_END();
 }
 
 static int _update_thread_func(void *args)
@@ -251,8 +256,10 @@ void update_sys_init_tick_thread(update_system_t *us, update_system_thread_args_
 void update_sys_cleanup(update_system_t *us)
 {
     atomic_store(&us->update_worker.running, false);
-    atomic_store(&us->tick_worker.running, false);
+    cnd_signal(&us->needs_update);
     thrd_join(us->update_worker.thread, NULL);
+
+    atomic_store(&us->tick_worker.running, false);
     thrd_join(us->tick_worker.thread, NULL);
 
     us->chunks->destroy(us->chunks);
@@ -300,13 +307,19 @@ void update_sys_return_render_data(update_system_t *us, render_data_t *data)
 
 void update_sys_force_buffer_update(update_system_t *us)
 {
+    // INSTRUMENT_FUNC_BEGIN();
+    INSTRUMENT_SCOPE_BEGIN(update_vbo);
     sg_update_buffer(us->vbo, &(sg_range) {
         .ptr = us->v_stage,
         .size = us->v_size
     });
+    INSTRUMENT_SCOPE_END(update_vbo);
 
+    INSTRUMENT_SCOPE_BEGIN(update_ibo);
     sg_update_buffer(us->ibo, &(sg_range) {
         .ptr = us->i_stage,
         .size = us->i_size
     });
+    INSTRUMENT_SCOPE_END(update_ibo);
+    // INSTRUMENT_FUNC_END();
 }

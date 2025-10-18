@@ -12,6 +12,11 @@ debug: $(SOURCES)
 	$(CC) $(C_FLAGS) $(DEBUG_FLAGS) -c $^
 	$(AR) rcs $(LIB_OUTPUT) $(OBJECTS)
 
+.PHONY: profiling
+profiling: $(SOURCES)
+	$(CC) $(C_FLAGS) $(PROFILING_FLAGS) -c $^
+	$(AR) rcs $(LIB_OUTPUT) $(OBJECTS)
+
 .PHONY: clean 
 clean:
 	rm -f $(LIB_OUTPUT)

@@ -30,5 +30,6 @@
 #include "alist.h"
 
 #include "engine.h"
+#include "instrumentor.h"
 
 #endif

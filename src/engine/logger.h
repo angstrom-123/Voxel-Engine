@@ -26,16 +26,24 @@
 #define COL_RST ""
 #endif
 
-#define _LOG(prefix, col, fmt, ...) do { if (DO_DEBUG) (fprintf(stderr, "%s:%d:%s(): \n        " col "[%s][" prefix "]: " fmt COL_RST "\n", __FILE__, __LINE__, __func__, _get_time(), __VA_ARGS__)); } while (0)
+extern char *_get_time(void);
 
+#define _LOG(prefix, col, fmt, ...) fprintf(stderr, "%s:%d:%s(): \n        " col "[%s][" prefix "]: " fmt COL_RST "\n", __FILE__, __LINE__, __func__, _get_time(), __VA_ARGS__)
+
+#if DO_DEBUG
 #define ENGINE_LOG_ERROR(fmt, ...) _LOG("ENGINE", COL_ERR, fmt, __VA_ARGS__)
 #define ENGINE_LOG_WARN(fmt, ...) _LOG("ENGINE", COL_WRN, fmt, __VA_ARGS__)
 #define ENGINE_LOG_OK(fmt, ...) _LOG("ENGINE", COL_OKK, fmt, __VA_ARGS__)
-
 #define APP_LOG_ERROR(fmt, ...) _LOG("APP", COL_ERR, fmt, __VA_ARGS__)
 #define APP_LOG_WARN(fmt, ...) _LOG("APP", COL_WRN, fmt, __VA_ARGS__)
 #define APP_LOG_OK(fmt, ...) _LOG("APP", COL_OKK, fmt, __VA_ARGS__)
-
-extern char *_get_time(void);
+#else 
+#define ENGINE_LOG_ERROR(fmt, ...)
+#define ENGINE_LOG_WARN(fmt, ...)
+#define ENGINE_LOG_OK(fmt, ...)
+#define APP_LOG_ERROR(fmt, ...)
+#define APP_LOG_WARN(fmt, ...)
+#define APP_LOG_OK(fmt, ...)
+#endif
 
 #endif

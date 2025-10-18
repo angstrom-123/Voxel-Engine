@@ -78,15 +78,18 @@ void engine_event(engine_t *engine, const event_t *event)
 
 void engine_render(engine_t *engine)
 {
+    // INSTRUMENT_FUNC_BEGIN();
     render_data_t data = update_sys_get_render_data(&engine->_update_sys);
     render_coords_t coords = load_sys_get_render_coords(&engine->_load_sys);
     update_sys_force_buffer_update(&engine->_update_sys);
     render_sys_render(&engine->_render_sys, data, coords);
     update_sys_return_render_data(&engine->_update_sys, &data);
+    // INSTRUMENT_FUNC_END();
 }
 
 void engine_frame_update(engine_t *engine)
 {
+    INSTRUMENT_FUNC_BEGIN();
     event_sys_new_frame(&engine->_event_sys);
 
     // TODO: Might have to do float division and floorf
@@ -99,4 +102,5 @@ void engine_frame_update(engine_t *engine)
 
     // if (load_sys_update(&engine->_load_sys, &engine->_chunk_sys, cam_chunk))
     //     update_sys_refresh_buffers(&engine->_update_sys);
+    INSTRUMENT_FUNC_END();
 }

@@ -16,9 +16,11 @@ void app_cleanup(app_t *app)
 
 void app_frame(engine_t *engine, app_t *app, double dt) 
 {
+    INSTRUMENT_FUNC_BEGIN();
     (void) engine;
     (void) app;
     // APP_LOG_OK("App frame.\n", NULL);
     camera_ctl_update(&app->camera_ctl, &engine->_render_sys.cam, 
                       &engine->_event_sys, dt);
+    INSTRUMENT_FUNC_END();
 }

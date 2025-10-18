@@ -144,6 +144,7 @@ void chunk_sys_init_thread(chunk_system_t *cs, chunk_system_thread_args_t *targs
 void chunk_sys_cleanup(chunk_system_t *cs)
 {
     atomic_store(&cs->running, false);
+    cnd_signal(&cs->needs_update);
     thrd_join(cs->worker, NULL);
 
     cs->genned->destroy(cs->genned);

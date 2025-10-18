@@ -2,6 +2,7 @@
 #define APP_MAIN_H 
 
 #include "engine/engine.h"
+#include "engine/instrumentor.h"
 #include "engine/camera_controller.h"
 
 typedef struct app {
