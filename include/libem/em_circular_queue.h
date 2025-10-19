@@ -298,6 +298,7 @@ void *em_cq_dequeue(em_circular_queue_t *this)
     if (this->count == 0)
     {
         EM_LOG("Attempting to dequeue from an empty circular queue.\n", NULL);
+        raise(SIGSEGV);
         exit(1);
     }
 

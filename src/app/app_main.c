@@ -4,7 +4,7 @@ void app_init(app_t *app, const app_desc_t *desc)
 {
     (void) desc;
     camera_ctl_init(&app->camera_ctl, &(camera_controller_desc_t) {
-        .move_speed = 10.0,
+        .move_speed = 20.0,
         .turn_speed = 0.04
     });
 }

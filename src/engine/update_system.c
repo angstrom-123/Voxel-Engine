@@ -11,6 +11,7 @@ static void _handle_request(update_system_t *us, us_request_t *r)
         cri->pos = r->pos;
         cri->offset = us->free->dequeue(us->free);
         cri->index_cnt = r->mesh->i_cnt;
+        ENGINE_LOG_OK("Freed count %zu\n", us->free->count);
 
         mtx_lock(&us->chunks_lock);
 
@@ -35,58 +36,32 @@ static void _handle_request(update_system_t *us, us_request_t *r)
     }
     case USREQ_UNSTAGE: 
     {
+        mtx_lock(&us->chunks_lock);
         if (us->chunks->contains_key(us->chunks, r->pos))
         {
             chunk_render_info_t cri = us->chunks->pop(us->chunks, r->pos);
             us->free->enqueue(us->free, cri.offset);
         }
+        mtx_unlock(&us->chunks_lock);
 
         break;
     }
     }
+    atomic_store(&us->buffer_update_needed, true);
     INSTRUMENT_FUNC_END();
-}
-
-static void _dump_buffers(update_system_t *us)
-{
-    FILE *if_ptr = fopen("IBUF.txt", "w");
-    for (size_t i = 0; i < us->i_size / sizeof(uint32_t); i++)
-        fprintf(if_ptr, "%zu| %u\n", i, us->i_stage[i]);
-    fclose(if_ptr);
-
-    FILE *vf_ptr = fopen("VBUF.txt", "w");
-    for (size_t i = 0; i < us->v_size / sizeof(vertex_t); i++)
-    {
-        vertex_t v = us->v_stage[i];
-        fprintf(vf_ptr, "%zu| xyz {%i, %i, %i}\n", i, v.x, v.y, v.z);
-    }
-    fclose(vf_ptr);
 }
 
 // TODO: Double buffered chunk system and swap the buffers on a tick?? Could be smooth :)
 static void _handle_tick(update_system_t *us)
 {
-    INSTRUMENT_FUNC_BEGIN();
-    mtx_lock(&us->chunks_lock);
-    mtx_lock(&us->buffers_lock);
-    // ENGINE_LOG_OK("Tick.\n", NULL);
-    // ENGINE_LOG_WARN("Updating VBO handle %u\n", us->vbo.id);
-    // ENGINE_LOG_WARN("Updating IBO handle %u\n", us->ibo.id);
-
-    // sg_update_buffer(us->vbo, &(sg_range) {
-    //     .ptr = us->v_stage,
-    //     .size = us->v_size
-    // });
-    // sg_update_buffer(us->ibo, &(sg_range) {
-    //     .ptr = us->i_stage,
-    //     .size = us->i_size
-    // });
-
-    // _dump_buffers(us);
-
-    mtx_unlock(&us->buffers_lock);
-    mtx_unlock(&us->chunks_lock);
-    INSTRUMENT_FUNC_END();
+    (void) us;
+    // INSTRUMENT_FUNC_BEGIN();
+    // mtx_lock(&us->chunks_lock);
+    // mtx_lock(&us->buffers_lock);
+    //
+    // mtx_unlock(&us->buffers_lock);
+    // mtx_unlock(&us->chunks_lock);
+    // INSTRUMENT_FUNC_END();
 }
 
 static int _update_thread_func(void *args)
@@ -213,6 +188,8 @@ void update_sys_init(update_system_t *us, const update_system_desc_t *desc)
 
     us->tick_worker.running = false;
     us->tick_worker.ready = false;
+
+    us->buffer_update_needed = false;
 }
 
 void update_sys_init_update_thread(update_system_t *us, update_system_thread_args_t *targs)
@@ -305,21 +282,26 @@ void update_sys_return_render_data(update_system_t *us, render_data_t *data)
     mtx_unlock(&us->buffers_lock);
 }
 
-void update_sys_force_buffer_update(update_system_t *us)
+void update_sys_update_buffers_if_stale(update_system_t *us)
 {
-    // INSTRUMENT_FUNC_BEGIN();
-    INSTRUMENT_SCOPE_BEGIN(update_vbo);
-    sg_update_buffer(us->vbo, &(sg_range) {
-        .ptr = us->v_stage,
-        .size = us->v_size
-    });
-    INSTRUMENT_SCOPE_END(update_vbo);
+    if (atomic_load(&us->buffer_update_needed))
+    {
+        // INSTRUMENT_FUNC_BEGIN();
+        INSTRUMENT_SCOPE_BEGIN(update_vbo);
+        sg_update_buffer(us->vbo, &(sg_range) {
+            .ptr = us->v_stage,
+            .size = us->v_size
+        });
+        INSTRUMENT_SCOPE_END(update_vbo);
 
-    INSTRUMENT_SCOPE_BEGIN(update_ibo);
-    sg_update_buffer(us->ibo, &(sg_range) {
-        .ptr = us->i_stage,
-        .size = us->i_size
-    });
-    INSTRUMENT_SCOPE_END(update_ibo);
-    // INSTRUMENT_FUNC_END();
+        INSTRUMENT_SCOPE_BEGIN(update_ibo);
+        sg_update_buffer(us->ibo, &(sg_range) {
+            .ptr = us->i_stage,
+            .size = us->i_size
+        });
+        INSTRUMENT_SCOPE_END(update_ibo);
+        // INSTRUMENT_FUNC_END();
+
+        atomic_store(&us->buffer_update_needed, false);
+    }
 }

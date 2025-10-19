@@ -5,13 +5,9 @@ void _handle_mouse(camera_controller_t *cc, camera_t *cam, vec2 delta)
     cam->pitch += -delta.y * cc->turn_speed;
     cam->yaw += -delta.x * cc->turn_speed;
 
-    // cam->pitch = em_min(cam->pitch, MAX_PITCH);
-    // cam->pitch = em_max(-cam->pitch, -MAX_PITCH);
-    if (cam->pitch > MAX_PITCH)
-        cam->pitch = MAX_PITCH;
-
-    if (-cam->pitch < -MAX_PITCH)
-        cam->pitch = -MAX_PITCH;
+    /* Clamping up and down facing to ~ vertical. */
+    cam->pitch = em_min(cam->pitch, MAX_PITCH);
+    cam->pitch = em_max(cam->pitch, -MAX_PITCH);
 
     quaternion yaw_q = em_quaternion_from_axis_angle(WORLD_Y, cam->yaw);
 

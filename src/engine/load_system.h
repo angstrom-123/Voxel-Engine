@@ -2,6 +2,7 @@
 #define LOAD_SYSTEM_H
 
 #include "chunk_system.h"
+#include "constants.h"
 
 typedef enum shell_type {
     SHELL_RIM,

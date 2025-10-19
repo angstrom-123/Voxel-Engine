@@ -1,29 +1,5 @@
 #include "render_system.h"
 
-static void _check_buffer_state(sg_buffer buf, const char *bufname)
-{
-    switch (sg_query_buffer_state(buf)) {
-    case SG_RESOURCESTATE_INITIAL:
-        ENGINE_LOG_WARN("%s State INITIAL.\n", bufname);
-        break;
-    case SG_RESOURCESTATE_ALLOC:
-        ENGINE_LOG_WARN("%s State ALLOC.\n", bufname);
-        break;
-    case SG_RESOURCESTATE_VALID:
-        ENGINE_LOG_WARN("%s State VALID.\n", bufname);
-        break;
-    case SG_RESOURCESTATE_FAILED:
-        ENGINE_LOG_WARN("%s State FAILED.\n", bufname);
-        break;
-    case SG_RESOURCESTATE_INVALID:
-        ENGINE_LOG_WARN("%s State INVALID.\n", bufname);
-        break;
-    default:
-        break;
-    };
-
-}
-
 void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
 {
     /* Pipeline. */
@@ -72,9 +48,6 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
         .vertex_buffers[0] = desc->vbo,
         .index_buffer = desc->ibo
     };
-
-    _check_buffer_state(rs->bind.vertex_buffers[0], "vbo");
-    _check_buffer_state(rs->bind.index_buffer, "ibo");
 
     em_bmp_image_t *atlases[5] = {
         em_bmp_load("res/tex/minecraft_remake_texture_atlas.bmp"),
@@ -149,7 +122,7 @@ void render_sys_cleanup(render_system_t *rs)
 
 void render_sys_render(render_system_t *rs, render_data_t r_data, render_coords_t r_crds)
 {
-    INSTRUMENT_FUNC_BEGIN();
+    INSTRUMENT_SCOPE_BEGIN(render_sys_begin);
     sg_begin_pass(&(sg_pass) {
         .action = rs->pass_act,
         .swapchain = sglue_swapchain(),
@@ -157,27 +130,16 @@ void render_sys_render(render_system_t *rs, render_data_t r_data, render_coords_
     });
 
     sg_apply_pipeline(rs->pip);
+    INSTRUMENT_SCOPE_END(render_sys_begin);
 
-    // ENGINE_LOG_WARN("Rendering VBO handle %u\n", rs->bind.vertex_buffers[0].id);
-    // ENGINE_LOG_WARN("Rendering IBO handle %u\n", rs->bind.index_buffer.id);
-
+    INSTRUMENT_SCOPE_BEGIN(render_sys_iterate);
     for (size_t i = 0; i < r_crds.num; i++)
     {
         ivec2 crd = em_add_ivec2(r_crds.coords[i], r_crds.offset);
         chunk_render_info_t *cri = r_data.chunks->get_or_default(r_data.chunks, crd, NULL);
 
-        // if (!cri || cri->generation > r_data.generation)
-        //     continue; // This chunk has not been loaded yet.
-
-        // if (!cri || r_data.do_not_render->contains_key(r_data.do_not_render, cri->pos))
-        //     continue;
-
         if (!cri)
             continue;
-
-        // ENGINE_LOG_OK("Rendering cri: POS: %i %i, OFFSET: %zu %zu, ICNT: %hu.\n", 
-        //               cri->pos.x, cri->pos.y, cri->offset.v_ofst, cri->offset.i_ofst,
-        //               cri->index_cnt);
 
         vs_params_t vs_params = {
             .u_mvp = rs->cam.vp,
@@ -196,20 +158,17 @@ void render_sys_render(render_system_t *rs, render_data_t r_data, render_coords_
         rs->bind.vertex_buffer_offsets[0] = cri->offset.v_ofst * sizeof(vertex_t);
         rs->bind.index_buffer_offset = cri->offset.i_ofst * sizeof(uint32_t);
 
-        // _check_buffer_state(rs->bind.vertex_buffers[0], "vbo");
-        // _check_buffer_state(rs->bind.index_buffer, "ibo");
-
-        // ENGINE_LOG_OK("Applying Bindings.\n", NULL);
         sg_apply_bindings(&rs->bind);
-        // ENGINE_LOG_OK("Applied Bindings.\n", NULL);
 
         sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
         sg_apply_uniforms(UB_fs_params, &SG_RANGE(fs_params));
 
         sg_draw(0, cri->index_cnt, 1);
     }
+    INSTRUMENT_SCOPE_END(render_sys_iterate);
 
+    INSTRUMENT_SCOPE_BEGIN(render_sys_end);
     sg_end_pass();
     sg_commit();
-    INSTRUMENT_FUNC_END();
+    INSTRUMENT_SCOPE_END(render_sys_end);
 }

@@ -1,5 +1,6 @@
 #include "load_system.h"
-#include "instrumentor.h"
+#include "chunk_system.h"
+#include "constants.h"
 
 void load_sys_init(load_system_t *ls, const load_system_desc_t *desc)
 {
@@ -32,26 +33,14 @@ void load_sys_load_initial(load_system_t *ls, chunk_system_t *cs)
 
         /* Generate all chunks within render distance. */
         for (size_t j = 0; j < s.cnt; j++)
-        {
-            ENGINE_LOG_OK("Generating %i %i\n", s.crds[j].x, s.crds[j].y);
-            chunk_sys_make_request(cs, (cs_request_t) {
-                .type = CSREQ_GEN,
-                .pos = s.crds[j]
-            });
-        }
+            CS_REQUEST(cs, CSREQ_GEN, s.crds[j]);
 
         /* After a shell is generated, we can fully mesh all chunks in the previous shell. */
         if (i > 0) 
         {
             shell_t prev_s = shells[i - 1];
             for (size_t j = 0; j < prev_s.cnt; j++)
-            {
-                ENGINE_LOG_OK("Meshing %i %i\n", prev_s.crds[j].x, prev_s.crds[j].y);
-                chunk_sys_make_request(cs, (cs_request_t) {
-                    .type = CSREQ_MESH,
-                    .pos = prev_s.crds[j]
-                });
-            }
+                CS_REQUEST(cs, CSREQ_MESH, prev_s.crds[j]);
         }
     }
 
@@ -61,95 +50,112 @@ void load_sys_load_initial(load_system_t *ls, chunk_system_t *cs)
     free(shells);
 }
 
-bool load_sys_update(load_system_t *ls, chunk_system_t *cs, update_system_t *us, ivec2 new_pos)
+static void _get_direction(int8_t direction, ivec2 start_crd, ivec2 test_crd, 
+                           bool *forward, bool *backward)
+{
+    /* NOTE: direction checks are both inclusive of equality for this to work. */
+    switch (direction) {
+    case NORTH:
+        *forward = test_crd.y >= start_crd.y;
+        *backward = test_crd.y <= start_crd.y;
+        break;
+    case EAST:
+        *forward = test_crd.x >= start_crd.x;
+        *backward = test_crd.x <= start_crd.x;
+        break;
+    case SOUTH:
+        *forward = test_crd.y <= start_crd.y;
+        *backward = test_crd.y >= start_crd.y;
+        break;
+    case WEST:
+        *forward = test_crd.x <= start_crd.x;
+        *backward = test_crd.x >= start_crd.x;
+        break;
+    };
+}
+
+static void _dispatch_loads(load_system_t *ls, chunk_system_t *cs, update_system_t *us, 
+                            ivec2 delta)
 {
     INSTRUMENT_FUNC_BEGIN();
-    ivec2 delta = em_sub_ivec2(new_pos, ls->curr_pos);
-    if (em_equals_ivec2(delta, (ivec2) {0, 0}))
-        return false;
+
+    int8_t direction = 0;
+    if (delta.x > 0) direction      = EAST;
+    else if (delta.x < 0) direction = WEST;
+    else if (delta.y > 0) direction = NORTH;
+    else if (delta.y < 0) direction = SOUTH;
+
+    ENGINE_LOG_OK("Direction %hhi\n", direction);
 
     size_t out_cnt = ls->shells[SHELL_OUT].cnt;
     size_t rim_cnt = ls->shells[SHELL_RIM].cnt;
 
-    ivec2 *new_out_crds = malloc(out_cnt * sizeof(ivec2));
-    ivec2 *new_rim_crds = malloc(rim_cnt * sizeof(ivec2));
+    ivec2 *new_out = malloc(out_cnt * sizeof(ivec2));
+    ivec2 *new_rim = malloc(rim_cnt * sizeof(ivec2));
 
-    /* 
-     * Outermost chunks are either loaded or unloaded. Need to be handled before 
-     * rim chunks as their data will be needed for meshing. 
-     */
+    /* Handle outermost shell first as the inner rim depends on them for meshing. */
     for (size_t i = 0; i < out_cnt; i++)
     {
-        ivec2 old_out_crd = ls->shells[SHELL_OUT].crds[i];
-        new_out_crds[i] = em_add_ivec2(old_out_crd, delta);
+        ivec2 old_crd = ls->shells[SHELL_OUT].crds[i];
+        new_out[i] = em_add_ivec2(old_crd, delta);
 
-        ivec2 old_diff = em_sub_ivec2(old_out_crd, ls->curr_pos);
-        ivec2 new_diff = em_sub_ivec2(new_out_crds[i], ls->curr_pos);
+        bool forward;
+        bool backward;
 
-        /* If the distance is increasing (new distance greater than old). */
-        if (em_abs(old_diff.x) + em_abs(old_diff.y) < 
-            em_abs(new_diff.x) + em_abs(new_diff.y))
-        {
-            // ENGINE_LOG_OK("Genning %i %i\n", new_out_crds[i].x, new_out_crds[i].y);
-            chunk_sys_make_request(cs, (cs_request_t) {
-                .type = CSREQ_GEN,
-                .pos = new_out_crds[i]
-            });
-        }
-        else 
-        {
-            // TODO
-            // ENGINE_LOG_OK("Unloading %i %i\n", old_out_crd.x, old_out_crd.y);
-            if (cs->genned->contains_key(cs->genned, old_out_crd))
-                cs->genned->remove(cs->genned, old_out_crd);
-            chunk_sys_make_request(cs, (cs_request_t) {
-                .type = CSREQ_UNLOAD,
-                .pos = old_out_crd
-            });
-            update_sys_make_request(us, (us_request_t) {
-                .type = USREQ_UNSTAGE,
-                .pos = old_out_crd
-            });
-        }
+        _get_direction(direction, ls->curr_pos, old_crd, &forward, &backward);
+
+        if (forward) // Load new.
+            CS_REQUEST(cs, CSREQ_GEN, new_out[i]);
+
+        if (backward) // Unload old.
+            CS_REQUEST(cs, CSREQ_UNLOAD, old_crd);
     }
 
-    /* Chunks at the rim are either meshed if new, or made invisible if old. */
+    /* Handle inner rim chunks now that outermost shell requests are dispatched. */
     for (size_t i = 0; i < rim_cnt; i++)
     {
-        ivec2 old_rim_crd = ls->shells[SHELL_RIM].crds[i];
-        new_rim_crds[i] = em_add_ivec2(old_rim_crd, delta);
+        ivec2 old_crd = ls->shells[SHELL_RIM].crds[i];
+        new_rim[i] = em_add_ivec2(old_crd, delta);
 
-        ivec2 old_diff = em_sub_ivec2(old_rim_crd, ls->curr_pos);
-        ivec2 new_diff = em_sub_ivec2(new_rim_crds[i], ls->curr_pos);
+        bool forward;
+        bool backward;
 
-        /* If the distance is increasing (new distance greater than old). */
-        if (em_abs(old_diff.x) + em_abs(old_diff.y) < 
-            em_abs(new_diff.x) + em_abs(new_diff.y))
-        {
-            // ENGINE_LOG_OK("Meshing %i %i\n", new_rim_crds[i].x, new_rim_crds[i].y);
-            chunk_sys_make_request(cs, (cs_request_t) {
-                .type = CSREQ_MESH,
-                .pos = new_rim_crds[i]
-            });
-        }
-        else 
-        {
-            // TODO
-            update_sys_make_request(us, (us_request_t) {
-                .type = USREQ_UNSTAGE,
-                .pos = old_rim_crd
-            });
-        }
+        _get_direction(direction, ls->curr_pos, old_crd, &forward, &backward);
+
+        if (forward) // Mesh new.
+            CS_REQUEST(cs, CSREQ_MESH, new_rim[i]);
+
+        if (backward) // Unstage old.
+            US_REQUEST(us, USREQ_UNSTAGE, old_crd, NULL);
     }
-
 
     free(ls->shells[SHELL_OUT].crds);
     free(ls->shells[SHELL_RIM].crds);
 
-    ls->shells[SHELL_OUT].crds = new_out_crds;
-    ls->shells[SHELL_RIM].crds = new_rim_crds;
-    ls->curr_pos = new_pos;
+    ls->shells[SHELL_OUT].crds = new_out;
+    ls->shells[SHELL_RIM].crds = new_rim;
+    ls->curr_pos = em_add_ivec2(ls->curr_pos, delta);
 
     INSTRUMENT_FUNC_END();
+}
+
+bool load_sys_update(load_system_t *ls, chunk_system_t *cs, update_system_t *us, ivec2 new_pos)
+{
+    ivec2 delta = em_sub_ivec2(new_pos, ls->curr_pos);
+    if (em_equals_ivec2(delta, (ivec2) {0, 0}))
+        return false;
+
+    if (em_abs(delta.x) > 0 && em_abs(delta.y) > 0)
+    {
+        ENGINE_LOG_ERROR("Diagonal move needs fix.\n", NULL);
+        // exit(1);
+        _dispatch_loads(ls, cs, us, (ivec2) {delta.x, 0});
+        _dispatch_loads(ls, cs, us, (ivec2) {0, delta.y});
+    }
+    else 
+    {
+        _dispatch_loads(ls, cs, us, delta);
+    }
+
     return true;
 }

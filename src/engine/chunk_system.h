@@ -10,13 +10,15 @@
 
 #include <threads.h>
 
+#define CS_REQUEST(cs, typ, crd) \
+    chunk_sys_make_request(cs, (cs_request_t) {.type = typ, .pos = crd})
+
 typedef struct chunk_system {
     HASHMAP(ivec2_chunk_data) *genned;
     CIRCULAR_QUEUE(cs_request) *requests;
 
     thrd_t worker;
     mtx_t requests_lock;
-    mtx_t accumulator_lock;
     cnd_t needs_update;
     atomic_bool running;
     atomic_bool thread_ready;
@@ -27,7 +29,6 @@ typedef struct chunk_system {
 
 typedef struct chunk_system_desc {
     size_t chunk_data_capacity;
-    size_t accumulator_capacity;
     size_t request_capacity;
     uint32_t seed;
 } chunk_system_desc_t;

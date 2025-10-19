@@ -20,6 +20,9 @@
 #include <sokol/sokol_time.h>
 #endif
 
+#define US_REQUEST(us, typ, crd, msh) \
+    update_sys_make_request(us, (us_request_t) {.type = typ, .pos = crd, .mesh = msh})
+
 typedef struct render_data {
     HASHMAP(ivec2_render_chunk) *chunks;
 } render_data_t;
@@ -51,6 +54,7 @@ typedef struct update_system {
     cnd_t needs_update;
 
     double tps;
+    atomic_bool buffer_update_needed;
 } update_system_t;
 
 typedef struct update_system_desc {
@@ -71,6 +75,6 @@ extern void update_sys_cleanup(update_system_t *us);
 extern void update_sys_make_request(update_system_t *us, us_request_t request);
 extern render_data_t update_sys_get_render_data(update_system_t *us);
 extern void update_sys_return_render_data(update_system_t *us, render_data_t *data);
-extern void update_sys_force_buffer_update(update_system_t *us);
+extern void update_sys_update_buffers_if_stale(update_system_t *us);
 
 #endif 

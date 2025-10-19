@@ -1,3 +1,4 @@
+#include "instrumentor.h"
 #if defined(TEST)
 
 #include <libem/em_impl.h>
@@ -27,10 +28,10 @@ static void init(void)
     INSTRUMENTOR_SESSION_BEGIN("Minecraft_Session");
 
     // const size_t RENDER_DISTANCE = 3;
-    const size_t RENDER_DISTANCE = 8;
+    const size_t RENDER_DISTANCE = 10;
     engine_init(&engine_instance, &(engine_desc_t) {
         .render_distance = RENDER_DISTANCE,
-        .num_chunk_slots = 200,
+        .num_chunk_slots = 300,
         .ticks_per_second = 5.0,
         .seed = 0
     });
@@ -40,11 +41,9 @@ static void init(void)
 
 static void frame(void)
 {
-    INSTRUMENT_FUNC_BEGIN();
     app_frame(&engine_instance, &app_instance, sapp_frame_duration());
     engine_render(&engine_instance);
     engine_frame_update(&engine_instance);
-    INSTRUMENT_FUNC_END();
 }
 
 static void cleanup(void)
