@@ -39,12 +39,14 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
         .us = &engine->_update_sys
     });
 
+    /* This multiplier brings in the fog closer to mostly prevent the player seeing the void. */
+    const size_t VIEW_DIST_MULTIPLIER = 9;
     render_sys_init(&engine->_render_sys, &(render_system_desc_t) {
         .window_size = (vec2) {
             .x = sapp_width(),
             .y = sapp_height()
         },
-        .view_distance = (desc->render_distance - 1) * CHUNK_SIZE,
+        .view_distance = desc->render_distance * VIEW_DIST_MULTIPLIER,
         .vbo = engine->_update_sys.vbo,
         .ibo = engine->_update_sys.ibo
     });

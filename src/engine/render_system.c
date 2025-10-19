@@ -108,7 +108,7 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     /* Camera. */
     cam_init(&rs->cam, &(camera_desc_t) {
         .near      = 0.1,
-        .far       = desc->view_distance * CHUNK_SIZE,
+        .far       = desc->view_distance,
         .aspect    = desc->window_size.x / desc->window_size.y,
         .fov       = 60.0,
         .pos       = {0.0, 34.0, 0.0},
