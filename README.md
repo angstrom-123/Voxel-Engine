@@ -16,7 +16,7 @@ other platforms will be added in the future.
 ## Clone
 First, clone the project to a local directory using:
 ```
-git clone https://github.com/angstrom-123/Minecraft-Remake.git
+git clone https://github.com/angstrom-123/Voxel-Engine.git
 ```
 ## Build
 This project uses GNU make which is required to build. 
