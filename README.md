@@ -37,6 +37,7 @@ Run the executable with:
 - Bespoke Perlin Noise implementation
 - My own math library for matrices, vectors, and more
 - Fully controllable FPS-style player controller
+
 # Screenshots 
 ## Custom Perlin Noise Implementation
 <img width="519" height="287" alt="Screenshot from 2025-07-12 17-27-26" src="https://github.com/user-attachments/assets/b403c4f3-09c6-4749-af82-459cc2a7a48b" />
