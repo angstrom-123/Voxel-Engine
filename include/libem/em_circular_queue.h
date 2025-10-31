@@ -76,7 +76,10 @@ static TYPE _dequeue_circular_queue_##NAME(em_circular_queue_##NAME##_t *this)\
 {\
     TYPE *dq = em_cq_dequeue(this->_cq);\
     TYPE res = *dq;\
-    this->_cq->_cln_func(dq);\
+    if ((this->_cq->_flags & EM_FLAG_NO_DESTROY_ENTRIES) == 0)\
+        this->_cq->_cln_func(dq);\
+    else\
+        free(dq);\
     _update_circular_queue_##NAME(this);\
     return res;\
 }\
@@ -276,6 +279,7 @@ void em_cq_enqueue(em_circular_queue_t *this, void *val)
         if ((this->_flags & EM_FLAG_NO_RESIZE) == EM_FLAG_NO_RESIZE)
         {
             EM_LOG("Attempting to enqueue to full circular queue.\n", NULL);
+            raise(SIGSEGV);
             exit(1);
         }
 
@@ -322,6 +326,7 @@ void *em_cq_peek(em_circular_queue_t *this)
     if (this->count == 0)
     {
         EM_LOG("Attempting to peek an empty queue.\n", NULL);
+        raise(SIGSEGV);
         exit(1);
     }
 

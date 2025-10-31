@@ -7,21 +7,18 @@
 #include "geometry_types.h" // chunk_t
 #include "chunk_system_types.h"
 
-DECLARE_HASHMAP(ivec2, chunk_render_info_t, ivec2_render_chunk)
-DECLARE_HASHMAP(ivec2, chunk_data_t, ivec2_chunk_data)
-DECLARE_HASHMAP(ivec2, em_notype_t, ivec2_set);
-DECLARE_HASHMAP_CMP(ivec2, ivec2)
-DECLARE_HASHMAP_HSH(ivec2, ivec2)
-DECLARE_HASHMAP_CLN_K(ivec2, ivec2)
-DECLARE_HASHMAP_CLN_V(chunk_render_info_t, front_chunk)
-DECLARE_HASHMAP_CLN_V(chunk_data_t, chunk_data)
-DECLARE_HASHMAP_CLN_V(em_notype_t, notype)
+DECLARE_HASHMAP(ivec2, chunk_render_info_t, ivec2_cri);
+DECLARE_HASHMAP(ivec2, chunk_data_t, ivec2_chunk_data);
+DECLARE_HASHMAP_CMP(ivec2, ivec2);
+DECLARE_HASHMAP_HSH(ivec2, ivec2);
+DECLARE_HASHMAP_CLN_K(ivec2, ivec2);
+DECLARE_HASHMAP_CLN_V(chunk_render_info_t, cri);
+DECLARE_HASHMAP_CLN_V(chunk_data_t, chunk_data);
 
 #ifdef MY_HASHMAP_IMPL
 
-DEFINE_HASHMAP(ivec2, chunk_render_info_t, ivec2_render_chunk)
+DEFINE_HASHMAP(ivec2, chunk_render_info_t, ivec2_cri)
 DEFINE_HASHMAP(ivec2, chunk_data_t, ivec2_chunk_data)
-DEFINE_HASHMAP(ivec2, em_notype_t, ivec2_set)
 DEFINE_HASHMAP_CMP(ivec2, ivec2)
 {
     return lhs->x == rhs->x && lhs->y == rhs->y;
@@ -47,15 +44,11 @@ DEFINE_HASHMAP_CLN_K(ivec2, ivec2)
 {
     free(key);
 }
-DEFINE_HASHMAP_CLN_V(chunk_render_info_t, front_chunk)
+DEFINE_HASHMAP_CLN_V(chunk_render_info_t, cri)
 {
     free(val);
 }
 DEFINE_HASHMAP_CLN_V(chunk_data_t, chunk_data)
-{
-    free(val);
-}
-DEFINE_HASHMAP_CLN_V(em_notype_t, notype)
 {
     free(val);
 }

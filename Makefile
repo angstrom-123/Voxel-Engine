@@ -36,7 +36,7 @@ LINK_FLAGS		:= -pthread -lX11 -lXi -lXcursor -lGL -ldl -lm -lEGL
 
 C_FLAGS			:= 
 C_FLAGS			+= $(INCLUDE_PATHS) $(LIB_PATHS)
-C_FLAGS			+= -Wall -Wextra -Wno-missing-braces -std=c11
+C_FLAGS			+= -Wall -Wextra -Wno-missing-braces -Wno-missing-field-initializers -std=c11
 C_FLAGS			+= -DSOKOL_GLES3 -DPLAT_LINUX
 
 DEBUG_FLAGS		:=
@@ -44,7 +44,7 @@ DEBUG_FLAGS		+= -fsanitize=address -g -O0
 DEBUG_FLAGS		+= -DDEBUG -DEM_ENABLE_LOGGING -DSOKOL_DEBUG
 
 RELEASE_FLAGS	:= 
-RELEASE_FLAGS	+= -O2
+RELEASE_FLAGS	+= -O3
 RELEASE_FLAGS	+= -DRELEASE 
 
 TEST_FLAGS		:=
@@ -52,53 +52,74 @@ TEST_FLAGS		+= -fsanitize=address -g -O0
 TEST_FLAGS		+= -DTEST
 
 PROFILING_FLAGS := 
-PROFILING_FLAGS += -O2
+PROFILING_FLAGS += -O3
 PROFILING_FLAGS += -DPROFILING
 
 export MAKE_DIR OBJ_DIR SRC_DIR INC_DIR LIB_DIR BIN_DIR OUTPUT_DIR PREBUILT_DIR CC BEAR C_FLAGS LINK_FLAGS MAIN_FILE RELEASE_FLAGS DEBUG_FLAGS TEST_FLAGS PROFILING_FLAGS
 
 all:
-	$(MAKE) -C src/shaders
-	$(MAKE) -C src/engine release
-	$(MAKE) -C src/app release
-	$(MAKE) -C src release
+	@echo "" 
+	@echo "Building default (release)." 
+	@echo ""
+	@$(MAKE) -C src/shaders
+	@$(MAKE) -C src/engine release
+	@$(MAKE) -C src/app release
+	@$(MAKE) -C src release
 
 .PHONY: release
 release:
-	$(MAKE) -C src/shaders
-	$(MAKE) -C src/engine release
-	$(MAKE) -C src/app release
-	$(MAKE) -C src release
+	@echo "" 
+	@echo Building release. 
+	@echo ""
+	@$(MAKE) -C src/shaders
+	@$(MAKE) -C src/engine release
+	@$(MAKE) -C src/app release
+	@$(MAKE) -C src release
 
 .PHONY: compiledb
 compiledb:
-	$(MAKE) -C src/shaders
-	$(MAKE) -C src/engine debug
-	$(MAKE) -C src/app debug
-	$(MAKE) -C src compiledb
+	@echo "" 
+	@echo "Building Clang compiler database (debug)." 
+	@echo ""
+	@$(MAKE) -C src/shaders
+	@$(MAKE) -C src/engine debug
+	@$(MAKE) -C src/app debug
+	@$(MAKE) -C src compiledb
 
 .PHONY: debug
 debug:
-	$(MAKE) -C src/shaders
-	$(MAKE) -C src/engine debug
-	$(MAKE) -C src/app debug
-	$(MAKE) -C src debug
+	@echo "" 
+	@echo Building debug. 
+	@echo ""
+	@$(MAKE) -C src/shaders
+	@$(MAKE) -C src/engine debug
+	@$(MAKE) -C src/app debug
+	@$(MAKE) -C src debug
 
 .PHONY: profiling
 profiling:
-	$(MAKE) -C src/shaders
-	$(MAKE) -C src/engine profiling
-	$(MAKE) -C src/app profiling
-	$(MAKE) -C src profiling
+	@echo ""
+	@echo Building profiling.
+	@echo ""
+	@$(MAKE) -C src/shaders
+	@$(MAKE) -C src/engine profiling
+	@$(MAKE) -C src/app profiling
+	@$(MAKE) -C src profiling
 
 .PHONY: test 
 test:
-	$(MAKE) -C src/test
+	@echo ""
+	@echo Building test.
+	@echo ""
+	@$(MAKE) -C src/test
 
 .PHONY: clean
 clean:
-	$(MAKE) -C src/shaders clean
-	$(MAKE) -C src/engine clean
-	$(MAKE) -C src/app clean
-	$(MAKE) -C src/test clean
-	$(MAKE) -C src clean
+	@echo ""
+	@echo Cleaning project.
+	@echo ""
+	@$(MAKE) -C src/shaders clean
+	@$(MAKE) -C src/engine clean
+	@$(MAKE) -C src/app clean
+	@$(MAKE) -C src/test clean
+	@$(MAKE) -C src clean

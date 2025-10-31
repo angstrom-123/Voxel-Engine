@@ -14,10 +14,10 @@ extern int32_t perlin_hash(int32_t x);
 extern int32_t perlin_pair(int32_t a, int32_t b);
 
 extern float perlin_2d(uint32_t seed, float x, float y, float frequency);
-extern float perlin_octave_2d(uint32_t seed, float x, float y, uint8_t num_octaves);
+extern float perlin_octave_2d(uint32_t seed, float x, float y, float frequency, uint8_t num_octaves);
 
 extern float perlin_3d(uint32_t seed, float x, float y, float z, float frequency);
-extern float perlin_octave_3d(uint32_t seed, float x, float y, float z, uint8_t num_octaves);
+extern float perlin_octave_3d(uint32_t seed, float x, float y, float z, float frequency, uint8_t num_octaves);
 
 #endif // EM_PERLIN_INCLUDED
 
@@ -146,17 +146,17 @@ float perlin_2d(uint32_t seed, float x, float y, float freq)
     return y0;
 }
 
-float perlin_octave_2d(uint32_t seed, float x, float y, uint8_t num)
+float perlin_octave_2d(uint32_t seed, float x, float y, float freq, uint8_t num)
 {
     float res = 0.0;
     float amp = 1.0;
-    float freq = 0.010;
+    float f = freq;
 
     for (size_t i = 0; i < num; i++)
     {
-        res += amp * perlin_2d(seed, x, y, freq);
+        res += amp * perlin_2d(seed, x, y, f);
         amp /= 2.0;
-        freq *= 2.0;
+        f *= 2.0;
     }
 
     return res;
@@ -237,17 +237,17 @@ float perlin_3d(uint32_t seed, float x, float y, float z, float freq)
     return w1;
 }
 
-float perlin_octave_3d(uint32_t seed, float x, float y, float z, uint8_t num)
+float perlin_octave_3d(uint32_t seed, float x, float y, float z, float freq, uint8_t num)
 {
     float res = 0.0;
     float amp = 1.0;
-    float freq = 0.010;
+    float f = freq;
 
     for (size_t i = 0; i < num; i++)
     {
-        res += amp * perlin_3d(seed, x, y, z, freq);
+        res += amp * perlin_3d(seed, x, y, z, f);
         amp /= 2.0;
-        freq *= 2.0;
+        f *= 2.0;
     }
 
     return res;

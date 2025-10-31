@@ -4,11 +4,14 @@
 #include "logger.h"
 
 #include <libem/em_math.h>
+#include <signal.h>
 
 #if !defined(SOKOL_APP_INCLUDED)
     #undef SOKOL_IMPL
     #include <sokol/sokol_app.h>
 #endif
+
+#define MAX_EVENT_SUBSCRIBERS 2
 
 typedef enum keycode {
     KEYCODE_INVALID       = 0,
@@ -147,6 +150,7 @@ typedef enum event_type {
     EVENT_FOCUSED,
     EVENT_UNFOCUSED,
     EVENT_QUITREQUEST,
+    EVENT_RESIZED,
     EVENT_NUM
 } event_type_e;
 
@@ -155,40 +159,66 @@ typedef enum modifier {
     MODIFIER_SHIFT = 1,
     MODIFIER_CTRL  = 2,
     MODIFIER_ALT   = 4,
-    MODIFIER_SUPER = 8,
-    MODIFIER_LMB   = 16,
-    MODIFIER_RMB   = 32,
-    MODIFIER_MMB   = 64,
+    MODIFIER_SUPER = 8
 } modifier_e;
+
+typedef enum mouse_button {
+    MOUSE_BUTTON_LEFT   = 0,
+    MOUSE_BUTTON_RIGHT  = 1,
+    MOUSE_BUTTON_MIDDLE = 2,
+    MOUSE_BUTTON_NONE   = 4,
+} mouse_button_e;
 
 typedef struct event {
     event_type_e type;
     keycode_e keycode;
-    uint8_t modifiers;
+    uint32_t modifiers;
     int32_t code_utf32;
+    mouse_button_e mouse_button;
     vec2 mouse_pos;
     vec2 mouse_delta;
     ivec2 mouse_scroll;
-    ivec2 window_size;
+    vec2 window_size;
     ivec2 framebuf_size;
     bool handled;
 } event_t;
 
+typedef void (*event_func)(const event_t *ev, void *args);
+typedef bool (*block_func)(const event_t *ev, void *args);
+
+typedef struct event_subscriber {
+    event_func event_cb;
+    block_func block_cb;
+    void *args;
+} event_subscriber_t;
+
+typedef struct event_subscriber_desc {
+    event_func event_cb;
+    block_func block_cb;
+    void *args;
+} event_subscriber_desc_t;
+
 typedef struct event_system {
     bool keys_down[KEYCODE_MAX_INDEX];
-    uint8_t modifiers_down;
+    uint32_t modifiers_down;
     vec2 mouse_pos;
     ivec2 window_size;
     ivec2 framebuf_size;
-    struct {
+    struct es_frame {
         vec2 mouse_delta;
+        uint8_t modifiers_pressed;
     } frame;
+    event_subscriber_t subscribers[EVENT_NUM][MAX_EVENT_SUBSCRIBERS];
 } event_system_t;
 
+extern bool block_func_always(const event_t *ev, void *args);
+extern bool block_func_never(const event_t *ev, void *args);
 extern void event_sys_init(event_system_t *es);
 extern void event_sys_cleanup(event_system_t *es);
 extern void event_sys_get_event(event_system_t *es, const event_t *ev);
 extern event_t event_sys_convert_event(const sapp_event *sev);
+extern void event_sys_subscribe_to_event(event_system_t *es, event_type_e type, 
+                                         const event_subscriber_desc_t *desc);
 extern void event_sys_new_frame(event_system_t *es);
 
 #endif

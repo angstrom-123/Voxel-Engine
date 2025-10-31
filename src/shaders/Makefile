@@ -3,10 +3,16 @@ SOURCES			= $(wildcard *.glsl)
 HEADER_OUTPUTS	= $(patsubst %.glsl, %.glsl.h, $(SOURCES))
 
 all:
-	for shdr in $(SOURCES); do \
+	@echo ""
+	@echo Compiling shaders.
+	@echo ""
+	@for shdr in $(SOURCES); do \
 		$(SHDR_COMPILER) -i $$shdr -o $$shdr.h -l glsl300es; \
 	done
 
 .PHONY: clean 
 clean:
-	rm -f $(HEADER_OUTPUTS)
+	@echo ""
+	@echo Cleaning shader output.
+	@echo ""
+	@rm -f $(HEADER_OUTPUTS)

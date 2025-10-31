@@ -5,8 +5,11 @@
 #include "event_system.h"
 #include "load_system.h"
 #include "render_system.h"
+#include "tick_system.h"
 #include "update_system.h"
+#include "ui_system.h"
 #include "instrumentor.h"
+#include "console.h"
 
 #ifndef SOKOL_GFX_INCLUDED
 #undef SOKOL_IMPL
@@ -43,7 +46,6 @@
 typedef struct engine_desc {
     size_t render_distance;
     uint32_t seed;
-    size_t num_chunk_slots;
     size_t ticks_per_second;
 } engine_desc_t;
 
@@ -52,13 +54,16 @@ typedef struct engine {
     chunk_system_t _chunk_sys;
     render_system_t _render_sys;
     update_system_t _update_sys;
+    tick_system_t _tick_sys;
     event_system_t _event_sys;
+    ui_system_t _ui_sys;
 } engine_t;
 
 extern void engine_init(engine_t *engine, const engine_desc_t *desc);
 extern void engine_cleanup(engine_t *engine);
 extern void engine_event(engine_t *engine, const event_t *event);
 extern void engine_render(engine_t *engine);
+extern void engine_update_events(engine_t *engine);
 extern void engine_frame_update(engine_t *engine);
 
 #endif

@@ -5,7 +5,6 @@ void _handle_mouse(camera_controller_t *cc, camera_t *cam, vec2 delta)
     cam->pitch += -delta.y * cc->turn_speed;
     cam->yaw += -delta.x * cc->turn_speed;
 
-    /* Clamping up and down facing to ~ vertical. */
     cam->pitch = em_min(cam->pitch, MAX_PITCH);
     cam->pitch = em_max(cam->pitch, -MAX_PITCH);
 
@@ -50,8 +49,9 @@ void _handle_keyboard(camera_controller_t *cc, camera_t *cam, bool *keydown, dou
     cam->pos = next_pos;
 }
 
-void camera_ctl_init(camera_controller_t *cc, const camera_controller_desc_t *desc)
+void camera_ctl_init(camera_controller_t *cc, camera_t *cam, const camera_controller_desc_t *desc)
 {
+    cam->pos = desc->start_pos;
     cc->move_speed = desc->move_speed;
     cc->turn_speed = desc->turn_speed;
 }

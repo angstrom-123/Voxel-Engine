@@ -18,7 +18,8 @@
 typedef enum em_flags {
     EM_FLAG_NONE = 0,
     EM_FLAG_NO_RESIZE = 1,
-    EM_FLAG_AL_FAST_REMOVE = 2
+    EM_FLAG_AL_FAST_REMOVE = 2,
+    EM_FLAG_NO_DESTROY_ENTRIES = 4
 } em_flags_t;
 
 typedef struct em_notype {

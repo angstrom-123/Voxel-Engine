@@ -2,7 +2,6 @@
 ## Priority
 - Saving edited chunks as files
 - World creation UI (new / load / delete, seed, etc)
-- New World Dir, subdir for each world 
 - Colissions with world
 - Placing / Deleting blocks 
 - Add Windows Support (Probably just need to setup the build system)

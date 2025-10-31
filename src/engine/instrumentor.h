@@ -5,6 +5,8 @@
 #include <sokol/sokol_time.h>
 #endif
 
+#include "base.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <threads.h>
@@ -25,8 +27,6 @@ typedef struct profiler_datapoint {
 #else 
 #define DO_PROFILING 0
 #endif
-
-#define QUOTE(...) #__VA_ARGS__
 
 #if DO_PROFILING
 #define INSTRUMENTOR_SESSION_BEGIN(session_name) instrumentor_begin_session(session_name)

@@ -9,7 +9,8 @@
 #include <libem/em_math.h> // ivec2
 
 #define CHUNK_SIZE 16 
-#define CHUNK_HEIGHT 64
+// #define CHUNK_HEIGHT 64
+#define CHUNK_HEIGHT 128
 
 typedef struct offset {
     size_t v_ofst;
@@ -24,18 +25,22 @@ typedef struct vertex {
 	uint32_t uv;
 } vertex_t;
 
+typedef struct packed_vertex {
+    uint8_t xo;
+    uint8_t y;
+    uint8_t zn;
+    uint8_t t;
+} packed_vertex_t;
+
 typedef struct chunk_data {
 	uint8_t types[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE];
 } chunk_data_t;
 
 typedef struct mesh {
-    size_t i_cnt;
-    size_t v_cnt;
-	uint32_t __start_canary;
-	vertex_t *v_buf;
-	uint32_t __mid_canary;
-	uint32_t *i_buf;
-	uint32_t __end_canary;
+    uint16_t i_cnt;
+    uint16_t v_cnt;
+    packed_vertex_t *v_buf;
+    uint16_t *i_buf;
 } mesh_t;
 
 typedef struct quad_desc {
@@ -65,5 +70,18 @@ typedef enum cube_type {
 	CUBETYPE_LEAF  = 6,
     CUBETYPE_NUM
 } cube_type_e;
+
+typedef enum tex_type {
+	TEXTYPE_AIR        = 0,
+	TEXTYPE_GRASS_TOP  = 1,
+	TEXTYPE_GRASS_SIDE = 2,
+	TEXTYPE_DIRT       = 3,
+	TEXTYPE_STONE      = 4,
+	TEXTYPE_SAND       = 5,
+	TEXTYPE_LOG_TOP    = 6,
+	TEXTYPE_LOG_SIDE   = 7,
+	TEXTYPE_LEAF       = 8,
+    TEXTYPE_NUM
+} tex_type_e;
 
 #endif

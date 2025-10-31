@@ -1,25 +1,8 @@
 #include "chunk_system.h"
 
-#if DO_DEBUG
-static void _debug_print_bad_chunk_data(int32_t x, int32_t y, chunk_data_t *c, 
-                                        chunk_data_t *n, chunk_data_t *e,
-                                        chunk_data_t *s, chunk_data_t *w)
-{
-    if (!c) 
-        ENGINE_LOG_ERROR("Not found current: %i %i\n", x, y);
-    if (!n) 
-        ENGINE_LOG_ERROR("Not found north: %i %i\n", x, y + CHUNK_SIZE);
-    if (!e) 
-        ENGINE_LOG_ERROR("Not found east: %i %i\n", x + CHUNK_SIZE, y);
-    if (!s) 
-        ENGINE_LOG_ERROR("Not found south: %i %i\n", x, y - CHUNK_SIZE);
-    if (!w) 
-        ENGINE_LOG_ERROR("Not found west: %i %i\n", x - CHUNK_SIZE, y);
-}
-#endif
-
 static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_t *r)
 {
+    mtx_lock(&cs->genned_lock);
     switch (r->type) {
     case CSREQ_GEN:
     {
@@ -30,6 +13,7 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         break;
     }
     case CSREQ_MESH:
+    case CSREQ_REMESH:
     {
         chunk_data_t *c = cs->genned->get_or_default(cs->genned, r->pos, NULL);
         chunk_data_t *n = cs->genned->get_or_default(cs->genned, REL_N(r->pos), NULL);
@@ -37,30 +21,30 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         chunk_data_t *s = cs->genned->get_or_default(cs->genned, REL_S(r->pos), NULL);
         chunk_data_t *w = cs->genned->get_or_default(cs->genned, REL_W(r->pos), NULL);
 
-#if DO_DEBUG
-        if (c && n && e && s && w)
+        ENGINE_ASSERT(c != NULL, "Chunk to be meshed doesn't exist.\n");
+        ENGINE_ASSERT(n != NULL, "North chunk of the chunk to be meshed doesn't exist.\n");
+        ENGINE_ASSERT(e != NULL, "East chunk of the chunk to be meshed doesn't exist.\n");
+        ENGINE_ASSERT(s != NULL, "South chunk of the chunk to be meshed doesn't exist.\n");
+        ENGINE_ASSERT(w != NULL, "West chunk of the chunk to be meshed doesn't exist.\n");
+
+        mesh_t *mesh = geom_generate_mesh(c, n, e, s, w);
+
+        if (r->type == CSREQ_MESH)
         {
-#endif
-
-        mesh_t *mesh = geom_generate_full_mesh(c, n, e, s, w);
-
-        update_sys_make_request(us, (us_request_t) {
-            .type = USREQ_STAGE,
-            .pos = r->pos,
-            .mesh = mesh 
-        });
-
-#if DO_DEBUG
+            update_sys_make_request(us, (us_request_t) {
+                .type = USREQ_STAGE,
+                .pos = r->pos,
+                .mesh = mesh 
+            });
         }
         else 
         {
-            ENGINE_LOG_ERROR("Failed to mesh at %i %i: required chunks not genned.\n",
-                             r->pos.x, r->pos.y);
-            _debug_print_bad_chunk_data(r->pos.x, r->pos.y, c, n, e, s, w);
-            exit(1);
+            update_sys_make_request(us, (us_request_t) {
+                .type = USREQ_RESTAGE,
+                .pos = r->pos,
+                .mesh = mesh 
+            });
         }
-#endif
-
         break;
     }
     case CSREQ_UNLOAD:
@@ -68,6 +52,8 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
             cs->genned->remove(cs->genned, r->pos);
         break;
     }
+
+    mtx_unlock(&cs->genned_lock);
 }
 
 static int _thread_func(void *args)
@@ -117,10 +103,11 @@ void chunk_sys_init(chunk_system_t *cs, const chunk_system_desc_t *desc)
     cs->requests = CIRCULAR_QUEUE_NEW(cs_request)(&(em_circular_queue_desc_t) {
         .capacity = desc->request_capacity,
         .cln_func = (void_cln_func) CIRCULAR_QUEUE_CLN(cs_request),
-        .flags = EM_FLAG_NONE // Resizable.
+        .flags = EM_FLAG_NO_RESIZE
     });
 
     mtx_init(&cs->requests_lock, mtx_plain);
+    mtx_init(&cs->genned_lock, mtx_plain);
     cnd_init(&cs->needs_update);
 }
 
@@ -128,11 +115,8 @@ void chunk_sys_init_thread(chunk_system_t *cs, chunk_system_thread_args_t *targs
 {
     cs->running = true;
     int res = thrd_create(&cs->worker, _thread_func, targs);
-    if (res != thrd_success)
-    {
-        ENGINE_LOG_ERROR("Failed to initialize worker thread. Aborting.\n", NULL);
-        exit(1);
-    }
+
+    ENGINE_ASSERT(res == thrd_success, "Failed to initialize worker thread.\n");
 
     /* Block until the thread is ready. */
     while (!atomic_load(&cs->thread_ready))
@@ -154,15 +138,37 @@ void chunk_sys_cleanup(chunk_system_t *cs)
 
     cnd_destroy(&cs->needs_update);
     mtx_destroy(&cs->requests_lock);
+    mtx_destroy(&cs->genned_lock);
 }
 
 void chunk_sys_make_request(chunk_system_t *cs, cs_request_t r)
 {
-    // ENGINE_LOG_OK("Chunk sys request: Type: %i, Pos: %i %i\n", r.type, r.pos.x, r.pos.y);
     mtx_lock(&cs->requests_lock);
 
     cs->requests->enqueue(cs->requests, r);
     cnd_signal(&cs->needs_update);
 
     mtx_unlock(&cs->requests_lock);
+}
+
+void chunk_sys_get_surrounding_data(chunk_system_t *cs, ivec2 pos, chunk_data_t *res[3][3])
+{
+    mtx_lock(&cs->genned_lock);
+
+    res[0][0] = cs->genned->get_ptr(cs->genned, REL_NW(pos));
+    res[1][0] = cs->genned->get_ptr(cs->genned, REL_N(pos));
+    res[2][0] = cs->genned->get_ptr(cs->genned, REL_NE(pos));
+    res[0][1] = cs->genned->get_ptr(cs->genned, REL_W(pos));
+    res[1][1] = cs->genned->get_ptr(cs->genned, pos);
+    res[2][1] = cs->genned->get_ptr(cs->genned, REL_E(pos));
+    res[0][2] = cs->genned->get_ptr(cs->genned, REL_SW(pos));
+    res[1][2] = cs->genned->get_ptr(cs->genned, REL_S(pos));
+    res[2][2] = cs->genned->get_ptr(cs->genned, REL_SE(pos));
+}
+
+void chunk_sys_return_surrounding_data(chunk_system_t *cs, chunk_data_t *data[3][3])
+{
+    (void) cs;
+    (void) data;
+    mtx_unlock(&cs->genned_lock);
 }

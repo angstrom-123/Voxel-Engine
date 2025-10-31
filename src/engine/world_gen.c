@@ -134,7 +134,7 @@ chunk_data_t *gen_generate_chunk_data(ivec2 pos, uint32_t seed)
     {
         for (int32_t z1 = 0; z1 < CHUNK_SIZE; z1++)
         {
-            float p = perlin_octave_2d(seed, pos.x + x1, pos.y + z1, 3);
+            float p = perlin_octave_2d(seed, pos.x + x1, pos.y + z1, 0.004, 6);
             float n = (p + 1.0) / 2.0;
             uint8_t h = floorf(n * (CHUNK_HEIGHT - 1));
             data->types[x1][h][z1] = CUBETYPE_GRASS;
