@@ -1,6 +1,6 @@
 # Work In Progress!
 
-# A simple remake of Minecraft in C
+# A high-performance voxel engine in C
 Currently a work-in-progress, still contains many bugs and is incomplete.
 This project is intended as a way to test the graphics library "Sokol".
 
@@ -13,42 +13,25 @@ This project currently has no external dependencies to run. The build process
 is only set up on Linux, this will not run on Windows or MacOs. Support for 
 other platforms will be added in the future.
 
-If editing shaders, an executable of Sokol's sokol-shdc must be present in the 
-project's root as this is used to compile GLSL shaders into c headers for use 
-with the project.
-
 ## Clone
 First, clone the project to a local directory using:
 ```
-git clone https://github.com/angstrom-123/Minecraft-Remake.git
+git clone https://github.com/angstrom-123/Voxel-Engine.git
 ```
 ## Build
 This project uses GNU make which is required to build. 
 To build the project, run:
 ```
-make install
+make release
 ```
 ## Run
-If successful, the executable will be placed in the /build/ directory.
+If successful, the executable will be placed in the output directory.
 Run the executable with:
 ```
-./build/minecraft
-```
-## Shaders
-If you wish to recompile the shaders, then an executable of Sokol SHDC is required 
-to be present in the project's root directory. Installation instructions can be 
-found on its GitHub page.
-To compile the shaders, run:
-```
-make shaders
-```
-Then, to apply the changes, build the project as usual:
-```
-make install
+./bin/[platform]/output/minecraft-release
 ```
 # Features
 - Infinite world generation with dynamic chunk loading / unloading
-- Use of VBO and IBO to optimize resource bindings
 - Chunk remeshing to reduce unseen quads
 - BMP texture atlas (custom parser) with mipmapping
 - Bespoke Perlin Noise implementation
