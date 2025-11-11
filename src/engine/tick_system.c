@@ -1,18 +1,11 @@
 #include "tick_system.h"
 
-static void _handle_tick(tick_system_t *ts, load_system_t *ls)
-{
-    (void) ts;
-    (void) ls;
-}
-
 static int _thread_func(void *args)
 {
     stm_setup();
 
     tick_system_thread_args_t *targs = args;
     tick_system_t *ts = targs->ts;
-    load_system_t *ls = targs->ls;
 
     double period_ms = (1.0 / ts->tps) * 1000.0;
     uint64_t last_time = stm_now();
@@ -28,7 +21,7 @@ static int _thread_func(void *args)
         if (elapsed_ms >= period_ms)
         {
             last_time = curr_time;
-            _handle_tick(ts, ls);
+            tick_func();
         }
     }
 

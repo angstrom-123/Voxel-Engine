@@ -200,6 +200,7 @@ void em_cq_destroy(em_circular_queue_t *this);
 #include <stdio.h> // fprintf, stderr
 #include <math.h>
 #include <string.h>
+#include <signal.h>
 
 void _em_cq_resize(em_circular_queue_t *this)
 {

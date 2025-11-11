@@ -21,46 +21,28 @@ int main(void)
 static engine_t *engine;
 static app_t *app;
 
-static void init(void)
-{
-    INSTRUMENTOR_SESSION_BEGIN("Minecraft_Session");
-
-    // TODO: Make this editable by the user at runtime.
-#if defined(RELEASE) || defined(PROFILING)
-    const size_t RENDER_DISTANCE = 32;
-#elif defined(DEBUG)
-    const size_t RENDER_DISTANCE = 16;
-#endif
-
-    ENGINE_ASSERT(RENDER_DISTANCE >= 3, "Render distance too low.\n");
-
-    engine = malloc(sizeof(engine_t));
-    memset(engine, 0, sizeof(engine_t));
-    engine_init(engine, &(engine_desc_t) {
-        .render_distance = RENDER_DISTANCE,
-        .ticks_per_second = 5.0,
-        .seed = 0
-    });
-
-    app = malloc(sizeof(app_t));
-    memset(app, 0, sizeof(app_t));
-    app_init(engine, app, &(app_desc_t) {
-        .engine = engine
-    });
-}
-
 static void frame(void)
 {
     INSTRUMENT_FUNC_BEGIN();
 
-    app_frame(engine, app, sapp_frame_duration());
-    engine_frame_update(engine);
     engine_render(engine);
 
-    engine_update_events(engine);
+    app_frame(engine, app, sapp_frame_duration());
+    engine_frame(engine);
 
     INSTRUMENT_FUNC_END();
 }
+
+static void tick(void)
+{
+    INSTRUMENT_FUNC_BEGIN();
+
+    engine_tick(engine);
+    app_tick(app);
+
+    INSTRUMENT_FUNC_END();
+}
+void (*tick_func)(void) = tick; // This is a bit gross. It lets me call this from the tick thread.
 
 static void cleanup(void)
 {
@@ -72,6 +54,8 @@ static void cleanup(void)
     ENGINE_LOG_WARN("Cleaning up app.\n", NULL);
     app_cleanup(app);
     free(app);
+    ENGINE_LOG_WARN("Cleaning up nuklear.\n", NULL);
+    snk_shutdown();
     ENGINE_LOG_WARN("Cleaning up sokol.\n", NULL);
     sg_shutdown();
 
@@ -82,6 +66,35 @@ static void event(const sapp_event *event)
 {
     const event_t ev = event_sys_convert_event(event);
     engine_event(engine, &ev);
+    snk_handle_event(event);
+}
+
+static void init(void)
+{
+    INSTRUMENTOR_SESSION_BEGIN("Minecraft_Session");
+
+    // TODO: Make this editable by the user at runtime.
+#if defined(RELEASE) || defined(PROFILING)
+    const size_t RENDER_DISTANCE = 32;
+#elif defined(DEBUG)
+    const size_t RENDER_DISTANCE = 8;
+#endif
+
+    ENGINE_ASSERT(RENDER_DISTANCE >= 3, "Render distance too low.\n");
+
+    engine = malloc(sizeof(engine_t));
+    app = malloc(sizeof(app_t));
+    memset(engine, 0, sizeof(engine_t));
+    memset(app, 0, sizeof(app_t));
+
+    engine_init(engine, &(engine_desc_t) {
+        .render_distance = RENDER_DISTANCE,
+        .ticks_per_second = 5.0,
+        .seed = 0
+    });
+
+    app_init(engine, app, &(app_desc_t) {
+    });
 }
 
 sapp_desc sokol_main(int argc, char* argv[])

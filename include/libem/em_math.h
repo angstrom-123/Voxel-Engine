@@ -14,12 +14,14 @@
 #define em_PI 3.14159265359
 #define em_deg_to_rad(t) (t * (em_PI / 180.0))
 #define em_rad_to_deg(t) (t * (180.0 / em_PI))
-#define em_clamp(x, mi, ma) ((x < mi) ? mi : ((x > ma) ? ma : x))
+#define em_clamp(x, mi, ma) (((x) < (mi)) ? (mi) : (((x) > (ma)) ? (ma) : (x)))
 #define em_min(x, y) ((x) > (y) ? (y) : (x))
 #define em_max(x, y) ((x) < (y) ? (y) : (x))
 #define em_absf(x) ((x) < 0.0 ? -(x) : (x))
 #define em_abs(x) ((x) < 0 ? -(x) : (x))
 #define em_sqr(x) ((x) * (x))
+#define em_sign(x) (((x) < 0) ? -1 : (((x) > 0) ? 1 : 0))
+#define em_signf(x) (((x) < 0.0) ? -1.0 : (((x) > 0.0) ? 1.0 : 0.0))
 
 typedef union em_vec2 {
     struct {
@@ -132,6 +134,10 @@ em_ivec2 em_floor_vec2(em_vec2 a);
 em_ivec3 em_floor_vec3(em_vec3 a);
 em_ivec4 em_floor_vec4(em_vec4 a);
 
+em_vec2 em_sqrt_vec2(em_vec2 a);
+em_vec3 em_sqrt_vec3(em_vec3 a);
+em_vec4 em_sqrt_vec4(em_vec4 a);
+
 em_vec2 em_abs_vec2(em_vec2 a);
 em_vec3 em_abs_vec3(em_vec3 a);
 em_vec4 em_abs_vec4(em_vec4 a);
@@ -178,9 +184,15 @@ em_vec3 em_cross_vec3(em_vec3 a, em_vec3 b);
 em_vec2 em_add_vec2(em_vec2 a, em_vec2 b);
 em_vec3 em_add_vec3(em_vec3 a, em_vec3 b);
 em_vec4 em_add_vec4(em_vec4 a, em_vec4 b);
+em_vec2 em_add_vec2_f(em_vec2 a, float b);
+em_vec3 em_add_vec3_f(em_vec3 a, float b);
+em_vec4 em_add_vec4_f(em_vec4 a, float b);
 em_ivec2 em_add_ivec2(em_ivec2 a, em_ivec2 b);
 em_ivec3 em_add_ivec3(em_ivec3 a, em_ivec3 b);
 em_ivec4 em_add_ivec4(em_ivec4 a, em_ivec4 b);
+em_ivec2 em_add_ivec2_i(em_ivec2 a, int32_t b);
+em_ivec3 em_add_ivec3_i(em_ivec3 a, int32_t b);
+em_ivec4 em_add_ivec4_i(em_ivec4 a, int32_t b);
 
 em_vec2 em_sub_vec2(em_vec2 a, em_vec2 b);
 em_vec3 em_sub_vec3(em_vec3 a, em_vec3 b);
@@ -263,54 +275,54 @@ float em_dot_quaternion(em_quaternion a, em_quaternion b);
 em_vec2 em_sign_vec2(em_vec2 a)
 {
     return (em_vec2) {
-        a.x > 0 ? 1.0 : -1.0,
-        a.y > 0 ? 1.0 : -1.0
+        em_signf(a.x),
+        em_signf(a.y)
     };
 }
 
 em_vec3 em_sign_vec3(em_vec3 a)
 {
     return (em_vec3) {
-        a.x > 0 ? 1.0 : -1.0,
-        a.y > 0 ? 1.0 : -1.0,
-        a.z > 0 ? 1.0 : -1.0
+        em_signf(a.x),
+        em_signf(a.y),
+        em_signf(a.z)
     };
 }
 
 em_vec4 em_sign_vec4(em_vec4 a)
 {
     return (em_vec4) {
-        a.x > 0 ? 1.0 : -1.0,
-        a.y > 0 ? 1.0 : -1.0,
-        a.z > 0 ? 1.0 : -1.0,
-        a.w > 0 ? 1.0 : -1.0
+        em_signf(a.x),
+        em_signf(a.y),
+        em_signf(a.z),
+        em_signf(a.w)
     };
 }
 
 em_ivec2 em_sign_ivec2(em_ivec2 a)
 {
     return (em_ivec2) {
-        a.x > 0 ? 1 : -1,
-        a.y > 0 ? 1 : -1
+        em_sign(a.x),
+        em_sign(a.y)
     };
 }
 
 em_ivec3 em_sign_ivec3(em_ivec3 a)
 {
     return (em_ivec3) {
-        a.x > 0 ? 1 : -1,
-        a.y > 0 ? 1 : -1,
-        a.z > 0 ? 1 : -1
+        em_sign(a.x),
+        em_sign(a.y),
+        em_sign(a.z)
     };
 }
 
 em_ivec4 em_sign_ivec4(em_ivec4 a)
 {
     return (em_ivec4) {
-        a.x > 0 ? 1 : -1,
-        a.y > 0 ? 1 : -1,
-        a.z > 0 ? 1 : -1,
-        a.w > 0 ? 1 : -1
+        em_sign(a.x),
+        em_sign(a.y),
+        em_sign(a.z),
+        em_sign(a.w)
     };
 }
 
@@ -359,6 +371,21 @@ em_ivec4 em_abs_ivec4(em_ivec4 a)
     return (em_ivec4) {em_abs(a.x), em_abs(a.y), em_abs(a.z), em_abs(a.w)};
 }
 
+em_vec2 em_sqrt_vec2(em_vec2 a)
+{
+    return (em_vec2) {sqrtf(a.x), sqrtf(a.y)};
+}
+
+em_vec3 em_sqrt_vec3(em_vec3 a)
+{
+    return (em_vec3) {sqrtf(a.x), sqrtf(a.y), sqrtf(a.z)};
+}
+
+em_vec4 em_sqrt_vec4(em_vec4 a)
+{
+    return (em_vec4) {sqrtf(a.x), sqrtf(a.y), sqrtf(a.z), sqrtf(a.w)};
+}
+
 bool em_equals_ivec2(em_ivec2 a, em_ivec2 b)
 {
     return (a.x == b.x) && (a.y == b.y);
@@ -386,17 +413,17 @@ em_vec4 em_ivec4_as_vec4(em_ivec4 a)
 
 em_ivec2 em_vec2_as_ivec2(em_vec2 a)
 {
-    return (em_ivec2) {(int) a.x, (int) a.y};
+    return (em_ivec2) {(int32_t) a.x, (int32_t) a.y};
 }
 
 em_ivec3 em_vec3_as_ivec3(em_vec3 a)
 {
-    return (em_ivec3) {(int) a.x, (int) a.y, (int) a.z};
+    return (em_ivec3) {(int32_t) a.x, (int32_t) a.y, (int32_t) a.z};
 }
 
 em_ivec4 em_vec4_as_ivec4(em_vec4 a)
 {
-    return (em_ivec4) {(int) a.x, (int) a.y, (int) a.z, (int) a.w};
+    return (em_ivec4) {(int32_t) a.x, (int32_t) a.y, (int32_t) a.z, (int32_t) a.w};
 }
 
 em_vec2 em_uvec2_as_vec2(em_uvec2 a)
@@ -568,6 +595,33 @@ em_vec4 em_add_vec4(em_vec4 a, em_vec4 b)
     };
 }
 
+em_vec2 em_add_vec2_f(em_vec2 a, float b)
+{
+    return (em_vec2) {
+        a.x + b, 
+        a.y + b 
+    };
+}
+
+em_vec3 em_add_vec3_f(em_vec3 a, float b) 
+{
+    return (em_vec3) {
+        a.x + b,
+        a.y + b,
+        a.z + b
+    };
+}
+
+em_vec4 em_add_vec4_f(em_vec4 a, float b)
+{
+    return (em_vec4) {
+        a.x + b,
+        a.y + b,
+        a.z + b,
+        a.w + b
+    };
+}
+
 em_ivec2 em_add_ivec2(em_ivec2 a, em_ivec2 b)
 {
     return (em_ivec2) {
@@ -592,6 +646,33 @@ em_ivec4 em_add_ivec4(em_ivec4 a, em_ivec4 b)
         a.y + b.y,
         a.z + b.z,
         a.w + b.w
+    };
+}
+
+em_ivec2 em_add_ivec2_i(em_ivec2 a, int32_t b)
+{
+    return (em_ivec2) {
+        a.x + b, 
+        a.y + b 
+    };
+}
+
+em_ivec3 em_add_ivec3_i(em_ivec3 a, int32_t b) 
+{
+    return (em_ivec3) {
+        a.x + b,
+        a.y + b,
+        a.z + b
+    };
+}
+
+em_ivec4 em_add_ivec4_i(em_ivec4 a, int32_t b)
+{
+    return (em_ivec4) {
+        a.x + b,
+        a.y + b,
+        a.z + b,
+        a.w + b
     };
 }
 
@@ -730,7 +811,7 @@ em_ivec4 em_mul_ivec4(em_ivec4 a, em_ivec4 b)
     };
 }
 
-em_ivec2 em_mul_ivec2_i(em_ivec2 a, int b)
+em_ivec2 em_mul_ivec2_i(em_ivec2 a, int32_t b)
 {
     return (em_ivec2) {
         a.x * b, 
@@ -738,7 +819,7 @@ em_ivec2 em_mul_ivec2_i(em_ivec2 a, int b)
     };
 }
 
-em_ivec3 em_mul_ivec3_i(em_ivec3 a, int b) 
+em_ivec3 em_mul_ivec3_i(em_ivec3 a, int32_t b) 
 {
     return (em_ivec3) {
         a.x * b,
@@ -747,7 +828,7 @@ em_ivec3 em_mul_ivec3_i(em_ivec3 a, int b)
     };
 }
 
-em_ivec4 em_mul_ivec4_i(em_ivec4 a, int b)
+em_ivec4 em_mul_ivec4_i(em_ivec4 a, int32_t b)
 {
     return (em_ivec4) {
         a.x * b,
@@ -838,7 +919,7 @@ em_ivec4 em_div_ivec4(em_ivec4 a, em_ivec4 b)
     };
 }
 
-em_ivec2 em_div_ivec2_i(em_ivec2 a, int b)
+em_ivec2 em_div_ivec2_i(em_ivec2 a, int32_t b)
 {
     return (em_ivec2) {
         a.x / b, 
@@ -846,7 +927,7 @@ em_ivec2 em_div_ivec2_i(em_ivec2 a, int b)
     };
 }
 
-em_ivec3 em_div_ivec3_i(em_ivec3 a, int b) 
+em_ivec3 em_div_ivec3_i(em_ivec3 a, int32_t b) 
 {
     return (em_ivec3) {
         a.x / b,
@@ -855,7 +936,7 @@ em_ivec3 em_div_ivec3_i(em_ivec3 a, int b)
     };
 }
 
-em_ivec4 em_div_ivec4_i(em_ivec4 a, int b)
+em_ivec4 em_div_ivec4_i(em_ivec4 a, int32_t b)
 {
     return (em_ivec4) {
         a.x / b,

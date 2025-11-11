@@ -167,7 +167,7 @@ void update_sys_make_request(update_system_t *us, us_request_t r)
     mtx_unlock(&us->request_lock);
 }
 
-render_data_t update_sys_get_render_data(update_system_t *us)
+render_data_t update_sys_borrow_render_data(update_system_t *us)
 {
     mtx_lock(&us->chunks_lock);
 

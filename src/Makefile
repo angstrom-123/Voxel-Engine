@@ -1,4 +1,4 @@
-OUTPUT		:= $(OUTPUT_DIR)/minecraft
+OUTPUT		:= $(OUTPUT_DIR)/Voxel-Engine
 BEAR_OUTPUT := $(MAKE_DIR)/compile_commands.json
 STATIC_LIBS := $(wildcard $(LIB_DIR)/*.a)
 TRACE_FILES	:= $(wildcard $(MAKE_DIR)/*.tracing.json)

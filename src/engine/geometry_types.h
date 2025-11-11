@@ -13,8 +13,8 @@
 #define CHUNK_HEIGHT 128
 
 typedef struct offset {
-    size_t v_ofst;
-    size_t i_ofst;
+    uint16_t v_ofst;
+    uint16_t i_ofst;
 } offset_t;
 
 typedef struct vertex { 

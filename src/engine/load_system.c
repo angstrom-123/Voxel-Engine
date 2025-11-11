@@ -48,10 +48,7 @@ void load_sys_load_initial(load_system_t *ls, chunk_system_t *cs)
     ls->shells[SHELL_OUT] = shells[ls->load_dist - 1];
 
     for (size_t i = 0; i < ls->load_dist - 2; i++)
-    {
-        ENGINE_LOG_WARN("Freeing shell index %zu\n", i);
         free(shells[i].crds);
-    }
     free(shells);
 }
 

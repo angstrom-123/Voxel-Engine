@@ -1,20 +1,16 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H 
 
-#if !defined(SOKOL_GFX_INCLUDED) 
-#include <sokol/sokol_gfx.h>
-#endif
+#include "geometry_types.h"
+#include "logger.h"
+
+#include "include_sokol.h"
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <malloc.h>
 #include <stdlib.h> // fprintf, stderr, exit
 #include <math.h>
-
-#include <libem/em_math.h>
-
-#include "geometry_types.h"
-#include "logger.h"
 
 #define REL_N(pos) (em_add_ivec2((pos), (ivec2) {0, CHUNK_SIZE}))
 #define REL_NE(pos) (em_add_ivec2((pos), (ivec2) {CHUNK_SIZE, CHUNK_SIZE}))

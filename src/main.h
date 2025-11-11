@@ -13,21 +13,26 @@
 #define NK_INCLUDE_DEFAULT_ALLOCATOR
 #define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
 #define NK_INCLUDE_FONT_BAKING
-#define NK_INCLUDE_DEFAULT_FONT
+#define NK_INCLUDE_DEFAULT_FONT // TODO: Make custom font work.
 #define NK_INCLUDE_STANDARD_VARARGS
 #define NK_IMPLEMENTATION
 #include <nuklear/nuklear.h>
 #include <sokol/sokol_nuklear.h>
 
-#include <libem/em_impl.h>
-#define MY_HASHMAP_IMPL
-#include "hashmap.h"
-#define MY_DLL_IMPL
-#include "dlist.h"
-#define MY_CQ_IMPL
-#include "queue.h"
-#define MY_AL_IMPL
-#include "alist.h"
+#define EM_MATH_IMPL
+#include <libem/em_math.h>
+
+#define EM_RANDOM_IMPL
+#include <libem/em_random.h>
+
+#define EM_PERLIN_IMPL
+#include <libem/em_perlin.h>
+
+#define EM_BMP_IMPL
+#include <libem/em_bmp.h>
+
+#define DATA_STRUCTURES_IMPL
+#include "data_structures.h"
 
 #include "engine.h"
 #include "app.h"

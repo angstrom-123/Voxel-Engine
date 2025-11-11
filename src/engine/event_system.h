@@ -3,13 +3,11 @@
 
 #include "logger.h"
 
+#include "include_sokol.h"
+#include "include_nuklear.h"
 #include <libem/em_math.h>
-#include <signal.h>
 
-#if !defined(SOKOL_APP_INCLUDED)
-    #undef SOKOL_IMPL
-    #include <sokol/sokol_app.h>
-#endif
+#include <signal.h>
 
 #define MAX_EVENT_SUBSCRIBERS 2
 
@@ -211,8 +209,8 @@ typedef struct event_system {
     event_subscriber_t subscribers[EVENT_NUM][MAX_EVENT_SUBSCRIBERS];
 } event_system_t;
 
-extern bool block_func_always(const event_t *ev, void *args);
-extern bool block_func_never(const event_t *ev, void *args);
+extern bool event_block_always(const event_t *ev, void *args);
+extern bool event_block_never(const event_t *ev, void *args);
 extern void event_sys_init(event_system_t *es);
 extern void event_sys_cleanup(event_system_t *es);
 extern void event_sys_get_event(event_system_t *es, const event_t *ev);

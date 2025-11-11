@@ -1,12 +1,12 @@
 #include "event_system.h"
 
-bool block_func_always(const event_t *ev, void *args) { 
+bool event_block_always(const event_t *ev, void *args) { 
     (void) ev; 
     (void) args; 
     return true; 
 }
 
-bool block_func_never(const event_t *ev, void *args) { 
+bool event_block_never(const event_t *ev, void *args) { 
     (void) ev; 
     (void) args; 
     return false; 

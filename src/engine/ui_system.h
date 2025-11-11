@@ -4,10 +4,6 @@
 #include "logger.h"
 #include "ui_component.h"
 
-#if !defined(NK_NUKLEAR_H_) 
-#include <nuklear/nuklear.h>
-#endif
-
 #include <libem/em_math.h>
 #include <stdbool.h>
 
@@ -25,9 +21,9 @@ typedef struct ui_system_desc {
     char __placeholder;
 } ui_system_desc_t;
 
-extern void ui_sys_init(ui_system_t *us, const ui_system_desc_t *desc);
-extern void ui_sys_cleanup(ui_system_t *us);
-extern void ui_sys_add(ui_system_t *us, ui_component_type_e type, const ui_component_desc_t *desc);
-extern void ui_sys_get_components(ui_system_t *us, ui_component_t **components);
+extern void ui_sys_init(ui_system_t *uis, const ui_system_desc_t *desc);
+extern void ui_sys_cleanup(ui_system_t *uis);
+extern void ui_sys_add(ui_system_t *uis, ui_component_type_e type, const ui_component_desc_t *desc);
+extern ui_component_t **ui_sys_get_components(ui_system_t *uis, size_t *count);
 
 #endif

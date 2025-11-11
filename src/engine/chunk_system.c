@@ -7,7 +7,6 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
     case CSREQ_GEN:
     {
         chunk_data_t *data = gen_generate_chunk_data(r->pos, cs->seed);
-        // ENGINE_LOG_OK("Adding %i %i inner map.\n", r->pos.x, r->pos.y);
         cs->genned->put_ptr(cs->genned, r->pos, data);
 
         break;
@@ -151,7 +150,7 @@ void chunk_sys_make_request(chunk_system_t *cs, cs_request_t r)
     mtx_unlock(&cs->requests_lock);
 }
 
-void chunk_sys_get_surrounding_data(chunk_system_t *cs, ivec2 pos, chunk_data_t *res[3][3])
+void chunk_sys_borrow_surrounding_data(chunk_system_t *cs, ivec2 pos, chunk_data_t *res[3][3])
 {
     mtx_lock(&cs->genned_lock);
 

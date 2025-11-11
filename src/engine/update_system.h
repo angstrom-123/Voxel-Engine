@@ -4,9 +4,8 @@
 #include <stdatomic.h>
 #include <threads.h>
 
+#include "data_structures.h"
 #include "update_system_types.h"
-#include "queue.h"
-#include "hashmap.h"
 #include "geometry.h"
 #include "base.h"
 #include "instrumentor.h"
@@ -46,7 +45,7 @@ extern void update_sys_init(update_system_t *us, const update_system_desc_t *des
 extern void update_sys_init_thread(update_system_t *us, update_system_thread_args_t *targs);
 extern void update_sys_cleanup(update_system_t *us);
 extern void update_sys_make_request(update_system_t *us, us_request_t request);
-extern render_data_t update_sys_get_render_data(update_system_t *us);
+extern render_data_t update_sys_borrow_render_data(update_system_t *us);
 extern void update_sys_return_render_data(update_system_t *us, render_data_t *data);
 
 #endif 

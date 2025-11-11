@@ -130,20 +130,21 @@ chunk_data_t *gen_generate_chunk_data(ivec2 pos, uint32_t seed)
     chunk_data_t *data = malloc(sizeof(chunk_data_t));
     memset(&data->types[0][0][0], 0, sizeof(data->types));
 
-    for (int32_t x1 = 0; x1 < CHUNK_SIZE; x1++)
+    for (int32_t xx = 0; xx < CHUNK_SIZE; xx++)
     {
-        for (int32_t z1 = 0; z1 < CHUNK_SIZE; z1++)
+        for (int32_t zz = 0; zz < CHUNK_SIZE; zz++)
         {
-            float p = perlin_octave_2d(seed, pos.x + x1, pos.y + z1, 0.004, 6);
+            float p = perlin_octave_2d(seed, pos.x + xx, pos.y + zz, 0.004, 6);
             float n = (p + 1.0) / 2.0;
             uint8_t h = floorf(n * (CHUNK_HEIGHT - 1));
-            data->types[x1][h][z1] = CUBETYPE_GRASS;
+
+            data->types[xx][h][zz] = CUBETYPE_GRASS;
 
             for (uint8_t y = 0; y < h - 4; y++) 
-                data->types[x1][y][z1] = CUBETYPE_STONE;
+                data->types[xx][y][zz] = CUBETYPE_STONE;
 
             for (uint8_t y = h - 4; y < h; y++) 
-                data->types[x1][y][z1] = CUBETYPE_DIRT;
+                data->types[xx][y][zz] = CUBETYPE_DIRT;
         }
     }
 

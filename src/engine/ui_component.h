@@ -3,11 +3,9 @@
 
 #include <libem/em_math.h>
 
-#if !defined(NK_NUKLEAR_H_) 
-#include <nuklear/nuklear.h>
-#endif
-
 #include <stdbool.h>
+
+#include "include_nuklear.h"
 
 typedef struct ui_component {
     void *ptr;

@@ -3,8 +3,8 @@ precision highp uint;
 
 @ctype mat4 em_mat4
 
-@vs vs 
-layout(binding=0) uniform vs_params {
+@vs vs_chunk
+layout(binding=0) uniform vs_params_chunk {
     mat4 u_mvp;
     mat4 u_view;
     vec3 u_ccord;
@@ -58,10 +58,10 @@ void main() {
 
 @end
 
-@fs fs 
+@fs fs_chunk
 layout(binding=0) uniform texture2D u_tex;
 layout(binding=0) uniform sampler u_smp;
-layout(binding=1) uniform fs_params {
+layout(binding=1) uniform fs_params_chunk {
     vec4 u_fog_data;
 };
 
@@ -84,4 +84,4 @@ void main() {
 
 @end 
 
-@program chunk vs fs
+@program chunk vs_chunk fs_chunk

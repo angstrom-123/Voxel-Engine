@@ -1,16 +1,13 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#if !defined(SOKOL_APP_INCLUDED) 
-#include "sokol/sokol_app.h"
-#endif
+#include "geometry_types.h"
 
+#include "include_sokol.h"
 #include <libem/em_math.h>
 
 #include <stdbool.h>
 #include <math.h>
-
-#include "geometry_types.h"
 
 #define WORLD_X ((vec3) {1.0, 0.0, 0.0})
 #define WORLD_Y ((vec3) {0.0, 1.0, 0.0})
@@ -55,7 +52,6 @@ typedef struct frame_desc {
 } frame_desc_t;
 
 void cam_init(camera_t *cam, const camera_desc_t *desc);
-void cam_cleanup(camera_t *cam);
 void cam_update(camera_t *cam);
 vec3 cam_get_fwd(camera_t *cam);
 vec3 cam_get_right(camera_t *cam);

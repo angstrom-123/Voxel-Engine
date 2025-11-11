@@ -1,17 +1,15 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-#ifndef NK_NUKLEAR_H_
-#include <nuklear/nuklear.h>
-#endif // NK_NUKLEAR_H_
-
-#include <libem/em_math.h>
-
 #include "logger.h"
 #include "ui_component.h"
 #include "event_system.h"
 
+#include "include_nuklear.h"
+#include <libem/em_math.h>
+
 #define CONSOLE_INPUT_LENGTH 128
+#define CONSOLE_ROW_NUM 10
 
 typedef enum console_command {
     COMMAND_NONE,
@@ -21,10 +19,12 @@ typedef enum console_command {
 } console_command_e;
 
 typedef struct console {
-    size_t _row_num;
     float _row_height;
-    char _input_buf[CONSOLE_INPUT_LENGTH];
+    char _bufs[CONSOLE_ROW_NUM][CONSOLE_INPUT_LENGTH];
+    struct nk_text_edit _cmdline;
     bool _visible;
+    size_t _hist_idx;
+    size_t _hist_end;
 } console_t;
 
 typedef struct console_desc {
@@ -33,7 +33,6 @@ typedef struct console_desc {
 
 extern bool console_visible(ui_component_t *component);
 extern console_t *console_init(const console_desc_t *desc);
-extern void console_render(struct nk_context *ctx, vec2 window_dimensions, 
-                           ui_component_t *component);
+extern void console_render(struct nk_context *ctx, vec2 window_dimensions, ui_component_t *component);
 
 #endif

@@ -1,11 +1,9 @@
 #ifndef INSTRUMENTOR_H
 #define INSTRUMENTOR_H
 
-#if !defined(SOKOL_TIME_INCLUDED) 
-#include <sokol/sokol_time.h>
-#endif
-
 #include "base.h"
+
+#include "include_sokol.h"
 
 #include <stdint.h>
 #include <stdio.h>

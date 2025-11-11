@@ -58,7 +58,7 @@ typedef struct em_bmp_image {
     u8 *pixel_data;       // NOTE: Each row is padded to be a multiple of 4 bytes
 } em_bmp_image_t;
 
-extern em_bmp_image_t *em_bmp_load(const char *path);
+extern bool em_bmp_load(em_bmp_image_t *img, const char *path);
 
 #endif // EM_BMP_INCLUDED
 
@@ -162,34 +162,24 @@ static u8 *_load_pixel_data(FILE *f_ptr, em_bmp_file_header_t *fh, em_bmp_info_h
     return pixels;
 }
 
-em_bmp_image_t *em_bmp_load(const char *path)
+bool em_bmp_load(em_bmp_image_t *img, const char *path)
 {
-    em_bmp_image_t *out = malloc(sizeof(em_bmp_image_t));
-    if (!out)
-    {
-        free(out);
-        return NULL;
-    }
-
     FILE *f_ptr = fopen(path, "rb");
     if (!f_ptr)
-    {
-        fclose(f_ptr);
-        return NULL;
-    }
+        return false;
 
     em_bmp_file_header_t fh;
     if (!_load_file_header(f_ptr, &fh))
     {
         fclose(f_ptr);
-        return NULL;
+        return false;
     }
 
     em_bmp_info_header_t ih;
     if (!_load_info_header(f_ptr, &ih))
     {
         fclose(f_ptr);
-        return NULL;
+        return false;
     }
 
     // TODO: add support for color table (for when there are less than 8 BPP)
@@ -199,17 +189,18 @@ em_bmp_image_t *em_bmp_load(const char *path)
     {
         fclose(f_ptr);
         free(pixels);
-        return NULL;
+        return false;
     }
 
-    out->fh = fh;
-    out->ih = ih;
-    out->ct = (em_bmp_color_table_t) {0}; // NOTE: empty until support added.
-    out->pixel_data = pixels;
-
     fclose(f_ptr);
-
-    return out;
+        
+    *img = (em_bmp_image_t) {
+        .fh = fh,
+        .ih = ih,
+        .ct = (em_bmp_color_table_t) {0},
+        .pixel_data = pixels
+    };
+    return true;
 }
 #endif // EM_BMP_IMPL
 
