@@ -2,16 +2,13 @@
 
 # A high-performance voxel engine in C
 Currently a work-in-progress, still contains many bugs and is incomplete.
-This project is intended as a way to test the graphics library "Sokol".
+This is my first time making a non-trivial game, my first time working with the GPU, and my first serious C project. 
 
 # Build and Run
-## NOTE:
 If using a trackpad, ensure that you disable any OS settings that disable your 
 mouse when typing (such as "Disable Touchpad While Typing" on Ubuntu)
 
-This project currently has no external dependencies to run. The build process 
-is only set up on Linux, this will not run on Windows or MacOs. Support for 
-other platforms will be added in the future.
+The build process is only set up on Linux, this will not run on Windows or MacOs. Support for other platforms will be added in the future.
 
 ## Clone
 First, clone the project to a local directory using:
@@ -28,20 +25,25 @@ make release
 If successful, the executable will be placed in the output directory.
 Run the executable with:
 ```
-./bin/[platform]/output/minecraft-release
+./bin/[platform]/output/Voxel-Engine-release
 ```
 # Features
-- Infinite world generation with dynamic chunk loading / unloading
-- Chunk remeshing to reduce unseen quads
-- BMP texture atlas (custom parser) with mipmapping
-- Bespoke Perlin Noise implementation
-- My own math library for matrices, vectors, and more
-- Fully controllable FPS-style player controller
+- Infinite worlds
+- Chunk mesh optimization
+- Multi-threaded engine
+- Custom linear algebra and utility library (libem)
+- Only using header-only external libraries (Sokol, Nuklear)
+- Smoothly handles 32-chunk render distance on a regular laptop
+
+# Coming Soon
+- Physics for colission with world
+- Saving edited chunks for persistence
+- Loading world saves
+- Various graphical improvements
+- Proper Windows support
 
 # Screenshots 
-## Custom Perlin Noise Implementation
-<img width="519" height="287" alt="Screenshot from 2025-07-12 17-27-26" src="https://github.com/user-attachments/assets/b403c4f3-09c6-4749-af82-459cc2a7a48b" />
 
-## Terrain generation with 2D Perlin Noise
-<img width="1308" height="786" alt="Screenshot from 2025-07-18 17-23-22" src="https://github.com/user-attachments/assets/6356ae1a-2520-4392-833a-28006a74217e" />
-<img width="1308" height="786" alt="Screenshot from 2025-07-18 17-24-11" src="https://github.com/user-attachments/assets/90b03a79-1c1c-40a3-b900-f454ccd9df56" />
+<img width="1920" height="1080" alt="20251111_21h17m24s_grim" src="https://github.com/user-attachments/assets/d16f4f26-b1ac-4751-8782-507200ad9de3" />
+<img width="1920" height="1080" alt="20251111_21h18m44s_grim" src="https://github.com/user-attachments/assets/e5f49ec6-3dfa-465b-b9a8-3476a710041c" />
+<img width="1920" height="1080" alt="20251111_21h20m40s_grim" src="https://github.com/user-attachments/assets/c7649fce-31c5-4f3f-a9a7-42d91c08acad" />
