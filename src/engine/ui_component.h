@@ -19,7 +19,7 @@ typedef struct ui_component_desc {
     bool (*visible)(struct ui_component *);
 } ui_component_desc_t;
 
-extern bool (*visible_always)(ui_component_t *);
+extern bool ui_comp_visible_always(ui_component_t *);
 
 #define GET_UI_RECT(pos, siz) ((struct nk_rect) {pos.x, pos.y, siz.x, siz.y})
 

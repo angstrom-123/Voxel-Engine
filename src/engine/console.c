@@ -116,7 +116,8 @@ void console_render(struct nk_context *ctx, vec2 win_dim, ui_component_t *compon
     nk_style_hide_cursor(ctx);
     ctx->style.window.spacing = nk_vec2(0.0, 0.0);
     ctx->style.edit.border = 0.0;
-    if (nk_begin(ctx, "Console", GET_UI_RECT(pos, dim), NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_BACKGROUND))
+    if (nk_begin(ctx, "Console", GET_UI_RECT(pos, dim), NK_WINDOW_NO_SCROLLBAR | 
+                                                        NK_WINDOW_BACKGROUND))
     {
         for (size_t i = 0; i < CONSOLE_ROW_NUM - 1; i++)
         {

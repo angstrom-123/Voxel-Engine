@@ -159,10 +159,7 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
     const size_t VIEW_DIST_MULTIPLIER = 100;
     render_sys_init(&engine->_render_sys, &(render_system_desc_t) {
         .es = &engine->_event_sys,
-        .window_size = (vec2) {
-            .x = sapp_width(),
-            .y = sapp_height()
-        },
+        .window_size = {sapp_width(), sapp_height()},
         .view_distance = desc->render_distance * VIEW_DIST_MULTIPLIER,
     });
     ENGINE_LOG_OK("Setup render system.\n", NULL);

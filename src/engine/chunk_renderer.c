@@ -62,7 +62,7 @@ void chunk_renderer_load_textures(chunk_renderer_t *cr)
     for (size_t i = 0; i < MIP_LEVELS; i++)
     {
         char path[MAX_PATH_LEN];
-        snprintf(path, MAX_PATH_LEN, "res/tex/minecraft_remake_texture_atlas-mm%zu.bmp", i);
+        snprintf(path, MAX_PATH_LEN, "res/tex/block/atlas-mipmap-%zu.bmp", i);
         bool res = em_bmp_load(&atlases[i], path);
         ENGINE_ASSERT(res, "Failed to load texture atlas mip level");
     }
@@ -78,8 +78,8 @@ void chunk_renderer_load_textures(chunk_renderer_t *cr)
             {.ptr = atlases[1].pixel_data, .size = atlases[1].ih.img_size},
             {.ptr = atlases[2].pixel_data, .size = atlases[2].ih.img_size},
             {.ptr = atlases[3].pixel_data, .size = atlases[3].ih.img_size},
-            {.ptr = atlases[4].pixel_data, .size = atlases[4].ih.img_size},
-        },
+            {.ptr = atlases[4].pixel_data, .size = atlases[4].ih.img_size}
+        }
     });
 
     sg_init_view(cr->base.bind.views[0], &(sg_view_desc) {

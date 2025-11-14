@@ -119,6 +119,8 @@ typedef em_uvec4 uvec4;
 typedef em_mat4 mat4;
 #endif
 
+bool em_equals_vec4(em_vec4 a, em_vec4 b);
+bool em_equals_quaternion(em_quaternion a, em_quaternion b);
 bool em_equals_ivec2(em_ivec2 a, em_ivec2 b);
 bool em_equals_ivec3(em_ivec3 a, em_ivec3 b);
 
@@ -233,6 +235,7 @@ em_vec4 em_mul_mat4_v4(em_mat4 a, em_vec4 b);
 
 em_mat4 em_div_mat4_f(em_mat4 a, float b);
 
+em_mat4 em_orthographic(float width, float height, float near, float far);
 em_mat4 em_perspective(float fov_degrees, float aspect_ratio, float near, float far);
 em_mat4 em_transpose_mat4(em_mat4 matrix);
 em_mat4 em_translate_mat4(em_vec3 translation);
@@ -384,6 +387,16 @@ em_vec3 em_sqrt_vec3(em_vec3 a)
 em_vec4 em_sqrt_vec4(em_vec4 a)
 {
     return (em_vec4) {sqrtf(a.x), sqrtf(a.y), sqrtf(a.z), sqrtf(a.w)};
+}
+
+bool em_equals_vec4(em_vec4 a, em_vec4 b)
+{
+    return (a.x == b.x) && (a.y == b.y) && (a.z == b.z) && (a.w == b.w);
+}
+
+bool em_equals_quaternion(em_quaternion a, em_quaternion b)
+{
+    return em_equals_vec4(a, b);
 }
 
 bool em_equals_ivec2(em_ivec2 a, em_ivec2 b)
@@ -995,6 +1008,18 @@ em_vec4 em_mul_mat4_v4(em_mat4 a, em_vec4 b)
 em_mat4 em_div_mat4_f(em_mat4 a, float b) 
 {
     return em_mul_mat4_f(a, 1.0 / b);
+}
+
+em_mat4 em_orthographic(float width, float height, float near, float far)
+{
+    em_mat4 res = em_new_mat4_diagonal(1.0);
+
+    res.elements[0][0] = 2.0 / width;
+    res.elements[1][1] = 2.0 / height;
+    res.elements[2][2] = 1.0 / (far - near);
+    res.elements[3][2] = near / (near - far);
+
+    return res;
 }
 
 em_mat4 em_perspective(float fov_degrees, float aspect_ratio, float near, float far)

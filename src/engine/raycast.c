@@ -2,7 +2,7 @@
 
 hit_desc_t raycast(chunk_system_t *cs, const raycast_desc_t *desc)
 {
-    const float STEP_SIZE = 0.2;
+    const float STEP_SIZE = 0.02;
 
     vec3 ray_pos = desc->origin;
     float ray_len = 0.0;

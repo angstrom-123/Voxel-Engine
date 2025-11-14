@@ -3,6 +3,19 @@
 void _on_resize(const event_t *ev, void *args)
 {
     render_system_t *rs = args;
+
+    rs->cam.aspect = ev->window_size.x / ev->window_size.y;
+    rs->ortho_cam.width = ev->window_size.x;
+    rs->ortho_cam.height = ev->window_size.y;
+
+    rs->cam.proj = em_perspective(rs->cam.fov, rs->cam.aspect, 
+                                  rs->cam.near, rs->cam.far);
+    rs->ortho_cam.proj = em_orthographic(rs->ortho_cam.width, rs->ortho_cam.height, 
+                                         rs->ortho_cam.near, rs->ortho_cam.far);
+
+    cam_update(&rs->cam);
+    cam_update(&rs->ortho_cam);
+
     rs->chunk_renderer.base.dimensions = ev->window_size;
     rs->cursor_line_renderer.base.dimensions = ev->window_size;
     rs->global_line_renderer.base.dimensions = ev->window_size;
@@ -11,13 +24,21 @@ void _on_resize(const event_t *ev, void *args)
 
 void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
 {
-    /* Camera. */
-    cam_init(&rs->cam, &(camera_desc_t) {
+    /* Cameras. */
+    cam_init(&rs->cam, PROJECTION_PERSPECTIVE, &(camera_desc_t) {
         .near      = 0.1,
         .far       = desc->view_distance,
         .aspect    = desc->window_size.x / desc->window_size.y,
         .fov       = 60.0,
-        .pos       = {0.0, 0.0, 0.0},
+        .pos       = {0.0, 0.0, 0.0}
+    });
+
+    cam_init(&rs->ortho_cam, PROJECTION_ORTHOGRAPHIC, &(camera_desc_t) {
+        .near = 0.1,
+        .far = 100.0,
+        .width = desc->window_size.x,
+        .height = desc->window_size.y,
+        .pos = {0.0, 0.0, 0.0}
     });
 
     /* Renderers. */
@@ -38,6 +59,13 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
         .dimensions = desc->window_size,
         .cam = &rs->cam
     });
+
+    sprite_renderer_init(&rs->sprite_renderer, &(sprite_renderer_desc_t) {
+        .max_sprites = 64,
+        .dimensions = desc->window_size,
+        .cam = &rs->ortho_cam
+    });
+    sprite_renderer_load_textures(&rs->sprite_renderer);
 
     ui_renderer_init(&rs->ui_renderer, &(ui_renderer_desc_t) {
         .dimensions = desc->window_size
@@ -67,6 +95,14 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
         {.from = {1.0, 0.0, 1.0}, .to = {1.0, 1.0, 1.0}, .col = cursor_col},
         {.from = {1.0, 0.0, 0.0}, .to = {1.0, 1.0, 0.0}, .col = cursor_col}
     });
+
+    /* Crosshair. */
+    const vec2 crosshair_size = {40.0, 40.0};
+    sprite_renderer_push(&rs->sprite_renderer, &(sprite_desc_t) {
+        .pos = em_mul_vec2_f(crosshair_size, -0.5),
+        .size = crosshair_size,
+        .z_index = 1.0
+    });
 }
 
 void render_sys_cleanup(render_system_t *rs)
@@ -74,30 +110,35 @@ void render_sys_cleanup(render_system_t *rs)
     chunk_renderer_cleanup(&rs->chunk_renderer);
     line_renderer_cleanup(&rs->cursor_line_renderer);
     line_renderer_cleanup(&rs->global_line_renderer);
+    sprite_renderer_cleanup(&rs->sprite_renderer);
     ui_renderer_cleanup(&rs->ui_renderer);
 }
 
 void render_sys_render(render_system_t *rs, update_system_t *us, 
                        load_system_t *ls, ui_system_t *uis)
 {
-    {
-        rs->chunk_renderer.data = update_sys_borrow_render_data(us);
+    /* Chunks. */
+    { rs->chunk_renderer.data = update_sys_borrow_render_data(us);
 
         rs->chunk_renderer.coords = load_sys_get_render_coords(ls);
         chunk_renderer_render_all(&rs->chunk_renderer);
 
-        update_sys_return_render_data(us, &rs->chunk_renderer.data);
-    }
+    } update_sys_return_render_data(us, &rs->chunk_renderer.data);
 
+    /* World Lines. */
     line_renderer_render_all(&rs->global_line_renderer);
 
+    /* Block Cursor. */
     if (rs->cursor_active) line_renderer_render_all(&rs->cursor_line_renderer);
 
-    {
-        rs->ui_renderer.ctx = snk_new_frame();
+    /* Sprites. */
+    sprite_renderer_render_all(&rs->sprite_renderer);
+
+    /* UI Components. */
+    { rs->ui_renderer.ctx = snk_new_frame();
         rs->ui_renderer.components = ui_sys_get_components(uis, &rs->ui_renderer.component_count);
-        ui_renderer_render_all(&rs->ui_renderer);
-    }
+        
+    } ui_renderer_render_all(&rs->ui_renderer);
 
     sg_commit();
 }

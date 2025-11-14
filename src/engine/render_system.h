@@ -8,6 +8,7 @@
 #include "ui_system.h"
 #include "load_system.h"
 #include "line_renderer.h"
+#include "sprite_renderer.h"
 #include "chunk_renderer.h"
 #include "instrumentor.h"
 
@@ -24,9 +25,11 @@
 
 typedef struct render_system {
     camera_t cam;
+    camera_t ortho_cam;
     chunk_renderer_t chunk_renderer;
     line_renderer_t cursor_line_renderer;
     line_renderer_t global_line_renderer;
+    sprite_renderer_t sprite_renderer;
     ui_renderer_t ui_renderer;
     bool cursor_active;
 } render_system_t;
