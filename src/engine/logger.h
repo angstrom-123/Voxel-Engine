@@ -18,7 +18,6 @@ extern char *_get_time(void);
 
 #define _LOG(prefix, col, fmt, ...) fprintf(stderr, "%s:%d:%s(): \n        " col "[%s][" prefix "]: " fmt COL_RST "\n", __FILE__, __LINE__, __func__, _get_time(), __VA_ARGS__)
 #define _ASSERT(prefix, expr, msg) if (!(expr)) { _LOG(prefix, COL_ERR, "Assertion failed: " QUOTE(expr) ".\n        " msg, NULL); raise(SIGABRT); }
-// #define _ASSERT(prefix, expr, msg) if (expr) { fprintf(stderr, "%s:%d:%s(): \n        " COL_ERR "[%s][" prefix "]: Assertion failed: " QUOTE(expr) ".\n         " msg COL_RST, __FILE__, __LINE__, __func__, _get_time()); raise(SIGABRT); }
 
 #if DO_DEBUG
 #define ENGINE_LOG_ERROR(fmt, ...) _LOG("ENGINE", COL_ERR, fmt, __VA_ARGS__)
@@ -33,11 +32,11 @@ extern char *_get_time(void);
 #define ENGINE_LOG_ERROR(fmt, ...)
 #define ENGINE_LOG_WARN(fmt, ...)
 #define ENGINE_LOG_OK(fmt, ...)
-#define ENGINE_ASSERT(expr, msg)
+#define ENGINE_ASSERT(expr, msg) (void) sizeof(expr)
 #define APP_LOG_ERROR(fmt, ...)
 #define APP_LOG_WARN(fmt, ...)
 #define APP_LOG_OK(fmt, ...)
-#define APP_ASSERT(expr, msg)
+#define APP_ASSERT(expr, msg) (void) sizeof(expr)
 #endif
 
 #endif

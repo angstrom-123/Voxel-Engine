@@ -94,6 +94,7 @@ static void init(void)
     });
 
     app_init(engine, app, &(app_desc_t) {
+        /* No init params yet. */
     });
 }
 
