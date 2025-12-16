@@ -42,7 +42,9 @@ static void tick(void)
 
     INSTRUMENT_FUNC_END();
 }
-void (*tick_func)(void) = tick; // This is a bit gross. It lets me call this from the tick thread.
+
+// This is a bit gross but it lets me call it from the tick thread.
+void (*tick_func)(void) = tick;
 
 static void cleanup(void)
 {

@@ -113,6 +113,13 @@ test:
 	@echo ""
 	@$(MAKE) -C src/test
 
+.PHONY: shaders 
+shaders:
+	@echo ""
+	@echo Building shaders.
+	@echo ""
+	@$(MAKE) -C src/shaders
+
 .PHONY: clean
 clean:
 	@echo ""

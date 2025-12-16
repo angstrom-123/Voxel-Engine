@@ -2,6 +2,48 @@
 
 void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *desc)
 {
+    rbase_init(&sr->base, desc->base_desc);
+
+    sr->base.pass = (sg_pass) {
+        .action = (sg_pass_action) {
+            .colors[0] = {
+                .load_action = SG_LOADACTION_LOAD,
+                .clear_value = { 0.0, 0.0, 0.0, 0.0 }
+            }
+        },
+        .label = "sprites-pass"
+    };
+    
+    sr->base.pip = sg_make_pipeline(&(sg_pipeline_desc) {
+        .shader = sg_make_shader(sprite_shader_desc(sg_query_backend())),
+        .layout = {
+            .attrs = {
+                [ATTR_sprite_a_pos].format = SG_VERTEXFORMAT_FLOAT2,
+                [ATTR_sprite_a_uv].format = SG_VERTEXFORMAT_FLOAT2,
+                [ATTR_sprite_a_z_index].format = SG_VERTEXFORMAT_FLOAT
+            }
+        },
+        .index_type = SG_INDEXTYPE_UINT16,
+        .cull_mode = SG_CULLMODE_NONE,
+        .depth = {
+            .compare = SG_COMPAREFUNC_LESS_EQUAL,
+            .write_enabled = true
+        },
+        .blend_color = {1.0, 0.0, 0.0, 1.0},
+        .colors[0] = {
+            .blend = {
+                .enabled = true,
+                .src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
+                .dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+                .op_rgb = SG_BLENDOP_ADD,
+                .src_factor_alpha = SG_BLENDFACTOR_ONE,
+                .dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+                .op_alpha = SG_BLENDOP_ADD
+            }
+        },
+        .label = "sprite-pipeline"
+    });
+
     sr->offset_pool = CIRCULAR_QUEUE_NEW(offset)(&(em_circular_queue_desc_t) {
         .cln_func = (void_cln_func) CIRCULAR_QUEUE_CLN(offset),
         .capacity = desc->max_sprites,
@@ -39,53 +81,6 @@ void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *d
     sr->needs_update = false;
     sr->max_sprites = desc->max_sprites;
     sr->sprites = calloc(desc->max_sprites, sizeof(sprite_t *));
-
-    renderer_init_base(&sr->base, &(renderer_base_desc_t) {
-        .cam = desc->cam,
-        .dimensions = desc->dimensions,
-        .pass_act = (sg_pass_action) {
-            .colors[0] = {
-                .load_action = SG_LOADACTION_LOAD,
-                .clear_value = {1.0, 0.0, 1.0, 1.0} // Purple so we see an issue here.
-            }
-        },
-        .dummy = false,
-        .pip_desc = &(sg_pipeline_desc) {
-            .shader = sg_make_shader(sprite_shader_desc(sg_query_backend())),
-            .layout = {
-                .attrs = {
-                    [ATTR_sprite_a_pos] = {
-                        .format = SG_VERTEXFORMAT_FLOAT2
-                    },
-                    [ATTR_sprite_a_uv] = {
-                        .format = SG_VERTEXFORMAT_FLOAT2
-                    },
-                    [ATTR_sprite_a_z_index] = {
-                        .format = SG_VERTEXFORMAT_FLOAT
-                    }
-                }
-            },
-            .index_type = SG_INDEXTYPE_UINT16,
-            .cull_mode = SG_CULLMODE_NONE,
-            .depth = {
-                .compare = SG_COMPAREFUNC_LESS_EQUAL,
-                .write_enabled = true
-            },
-            .blend_color = {1.0, 0.0, 0.0, 1.0},
-            .colors[0] = {
-                .blend = {
-                    .enabled = true,
-                    .src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
-                    .dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-                    .op_rgb = SG_BLENDOP_ADD,
-                    .src_factor_alpha = SG_BLENDFACTOR_ONE,
-                    .dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-                    .op_alpha = SG_BLENDOP_ADD
-                }
-            },
-            .label = "sprite-pipeline"
-        }
-    });
 }
 
 void sprite_renderer_load_textures(sprite_renderer_t *sr)
@@ -114,7 +109,7 @@ void sprite_renderer_load_textures(sprite_renderer_t *sr)
     });
 
     sg_init_view(sr->base.bind.views[0], &(sg_view_desc) {
-        .texture = {.image = img}
+        .texture.image = img
     });
 
     free(crosshair.pixel_data);
@@ -140,11 +135,8 @@ void sprite_renderer_cleanup(sprite_renderer_t *sr)
 
 void sprite_renderer_render_all(sprite_renderer_t *sr)
 {
-    sg_begin_pass(&(sg_pass) {
-        .action = sr->base.pass_act,
-        .swapchain = sglue_swapchain(),
-        .label = "Sprite renderer pass"
-    });
+    sr->base.pass.swapchain = sglue_swapchain();
+    sg_begin_pass(&sr->base.pass);
 
     sg_apply_pipeline(sr->base.pip);
 
@@ -181,8 +173,8 @@ void sprite_renderer_render_all(sprite_renderer_t *sr)
 
         sg_apply_uniforms(UB_vs_params_sprite, &SG_RANGE(vs_params));
 
-        sr->base.bind.vertex_buffer_offsets[0] = (s->offset->v_ofst * sizeof(sprite_vertex_t));
-        sr->base.bind.index_buffer_offset = (s->offset->i_ofst * sizeof(uint16_t));
+        sr->base.bind.vertex_buffer_offsets[0] = s->offset->v_ofst * sizeof(sprite_vertex_t);
+        sr->base.bind.index_buffer_offset = s->offset->i_ofst * sizeof(uint16_t);
         sg_apply_bindings(&sr->base.bind);
 
         sg_draw(0, SPRITE_INDEX_COUNT, 1);

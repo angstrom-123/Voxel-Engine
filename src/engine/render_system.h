@@ -11,17 +11,19 @@
 #include "sprite_renderer.h"
 #include "chunk_renderer.h"
 #include "instrumentor.h"
-
 #include "include_sokol.h"
+
 #include <libem/em_bmp.h>
 
-#ifdef DEBUG
-#include "shaders/chunk_debug.glsl.h"
-#else
-#include "shaders/chunk.glsl.h"
-#endif
-
 #define MAX_UI_COMPONENTS 5
+
+typedef enum offscreen_targets {
+    TARGET_DISPLAY,
+    TARGET_CHUNKS,
+    TARGET_LINES,
+    TARGET_SPRITES,
+    TARGET_NUM
+} offscreen_targets_e;
 
 typedef struct render_system {
     camera_t cam;

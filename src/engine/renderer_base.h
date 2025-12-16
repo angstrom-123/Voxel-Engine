@@ -8,20 +8,17 @@
 
 typedef struct renderer_base {
     vec2 dimensions;
-    sg_pass_action pass_act;
+    sg_pass pass;
     sg_pipeline pip;
     sg_bindings bind;
     const camera_t *cam;
 } renderer_base_t;
 
 typedef struct renderer_base_desc {
-    sg_pipeline_desc *pip_desc;
-    sg_pass_action pass_act;
     vec2 dimensions;
     const camera_t *cam;
-    bool dummy;
 } renderer_base_desc_t;
 
-extern void renderer_init_base(renderer_base_t *rb, const renderer_base_desc_t *desc);
+extern void rbase_init(renderer_base_t *rb, const renderer_base_desc_t *desc);
 
 #endif

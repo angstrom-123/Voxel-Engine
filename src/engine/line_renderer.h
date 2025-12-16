@@ -41,9 +41,7 @@ typedef struct line_renderer {
 
 typedef struct line_renderer_desc {
     size_t max_lines;
-    const camera_t *cam;
-    vec2 dimensions;
-    bool use_pass_act;
+    const renderer_base_desc_t *base_desc;
 } line_renderer_desc_t;
 
 typedef struct line_desc {

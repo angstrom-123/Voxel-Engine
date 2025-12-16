@@ -69,17 +69,22 @@ in vec2 v_uv;
 in vec3 v_normal;
 in float v_depth;
 
-out vec4 frag_color;
+// out vec4 frag_color;
+
+layout(location=0) out vec4 frag_tex_col;
+layout(location=1) out vec4 frag_tex_nrm;
 
 void main() {
-    if (frag_color.a < 0.01) discard;
+    // TODO: Handle transparency
+    // if (frag_color.a < 0.01) discard;
 
-    vec4 fog_col = vec4(u_fog_data.xyz, 1.0);
-    float fog_dist = u_fog_data.w;
+    // vec4 fog_col = vec4(u_fog_data.xyz, 1.0);
+    // float fog_dist = u_fog_data.w;
+    // float fog_factor = smoothstep(fog_dist - 10, fog_dist, v_depth);
+    // frag_color = mix(texture(sampler2D(u_tex, u_smp), v_uv), fog_col, fog_factor);
 
-    float fog_factor = smoothstep(fog_dist - 10, fog_dist, v_depth);
-
-    frag_color = mix(texture(sampler2D(u_tex, u_smp), v_uv), fog_col, fog_factor);
+    frag_tex_col = texture(sampler2D(u_tex, u_smp), v_uv);
+    frag_tex_nrm = vec4(normalize(v_normal) * 0.5 + 0.5, 1.0);
 }
 
 @end 

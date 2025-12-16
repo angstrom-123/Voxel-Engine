@@ -253,8 +253,6 @@ void engine_frame(engine_t *engine)
 
     engine->meta.cursor.active = hd.hit;
     if (hd.hit) {
-        ENGINE_LOG_OK("Cursor: chunk: %i %i, cell: %i %i %i, Face: %i\n", 
-                      hd.ccord.x, hd.ccord.y, hd.cell.x, hd.cell.y, hd.cell.z, hd.side);
         engine->meta.cursor.cell = hd.cell;
         engine->meta.cursor.chunk = hd.ccord;
         engine->meta.cursor.face = hd.side;

@@ -37,8 +37,7 @@ typedef struct sprite_renderer {
 
 typedef struct sprite_renderer_desc {
     size_t max_sprites;
-    const camera_t *cam;
-    vec2 dimensions;
+    renderer_base_desc_t *base_desc;
 } sprite_renderer_desc_t;
 
 typedef struct sprite_desc {

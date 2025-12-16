@@ -2,15 +2,9 @@
 
 void ui_renderer_init(ui_renderer_t *uir, const ui_renderer_desc_t *desc)
 {
-    renderer_init_base(&uir->base, &(renderer_base_desc_t) {
+    rbase_init(&uir->base, &(renderer_base_desc_t) {
         .dimensions = desc->dimensions,
-        .pass_act = (sg_pass_action) {
-            .colors[0] = {
-                .load_action = SG_LOADACTION_LOAD,
-                .clear_value = {0.0, 0.0, 0.0, 0.0}
-            }
-        },
-        .dummy = true
+        .cam = NULL
     });
 
     uir->ctx = NULL;
@@ -25,7 +19,12 @@ void ui_renderer_render_all(ui_renderer_t *uir)
 {
     ENGINE_ASSERT(uir->ctx, "Nuklear context must be set to render UI");
     sg_begin_pass(&(sg_pass) {
-        .action = uir->base.pass_act,
+        .action = (sg_pass_action) {
+            .colors[0] = {
+                .load_action = SG_LOADACTION_LOAD,
+                .clear_value = {0.0, 0.0, 0.0, 0.0}
+            }
+        },
         .swapchain = sglue_swapchain(),
         .label = "UI renderer pass"
     });

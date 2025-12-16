@@ -1,6 +1,6 @@
 #include "render_system.h"
 
-void _on_resize(const event_t *ev, void *args)
+static void _on_resize(const event_t *ev, void *args)
 {
     render_system_t *rs = args;
 
@@ -16,7 +16,7 @@ void _on_resize(const event_t *ev, void *args)
     cam_update(&rs->cam);
     cam_update(&rs->ortho_cam);
 
-    rs->chunk_renderer.base.dimensions = ev->window_size;
+    chunk_renderer_resize(&rs->chunk_renderer, ev->window_size);
     rs->cursor_line_renderer.base.dimensions = ev->window_size;
     rs->global_line_renderer.base.dimensions = ev->window_size;
     rs->ui_renderer.base.dimensions = ev->window_size;
@@ -24,11 +24,14 @@ void _on_resize(const event_t *ev, void *args)
 
 void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
 {
+    const float w = desc->window_size.x;
+    const float h = desc->window_size.y;
+
     /* Cameras. */
     cam_init(&rs->cam, PROJECTION_PERSPECTIVE, &(camera_desc_t) {
         .near      = 0.1,
         .far       = desc->view_distance,
-        .aspect    = desc->window_size.x / desc->window_size.y,
+        .aspect    = w / h,
         .fov       = 60.0,
         .pos       = {0.0, 0.0, 0.0}
     });
@@ -36,39 +39,48 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     cam_init(&rs->ortho_cam, PROJECTION_ORTHOGRAPHIC, &(camera_desc_t) {
         .near = 0.1,
         .far = 100.0,
-        .width = desc->window_size.x,
-        .height = desc->window_size.y,
+        .width = w,
+        .height = h,
         .pos = {0.0, 0.0, 0.0}
     });
 
-    /* Renderers. */
+
+    /* Renderers */
     chunk_renderer_init(&rs->chunk_renderer, &(chunk_renderer_desc_t) {
-        .dimensions = desc->window_size,
-        .cam = &rs->cam
+        .base_desc = &(renderer_base_desc_t) {
+            .dimensions = desc->window_size,
+            .cam = &rs->cam,
+        }
     });
     chunk_renderer_load_textures(&rs->chunk_renderer);
 
     line_renderer_init(&rs->cursor_line_renderer, &(line_renderer_desc_t) {
         .max_lines = 12,
-        .dimensions = desc->window_size,
-        .cam = &rs->cam
+        .base_desc = &(renderer_base_desc_t) {
+            .dimensions = desc->window_size,
+            .cam = &rs->cam,
+        }
     });
 
     line_renderer_init(&rs->global_line_renderer, &(line_renderer_desc_t) {
         .max_lines = 128,
-        .dimensions = desc->window_size,
-        .cam = &rs->cam
+        .base_desc = &(renderer_base_desc_t) {
+            .dimensions = desc->window_size,
+            .cam = &rs->cam,
+        }
     });
 
     sprite_renderer_init(&rs->sprite_renderer, &(sprite_renderer_desc_t) {
         .max_sprites = 64,
-        .dimensions = desc->window_size,
-        .cam = &rs->ortho_cam
+        .base_desc = &(renderer_base_desc_t) {
+            .dimensions = desc->window_size,
+            .cam = &rs->cam,
+        }
     });
     sprite_renderer_load_textures(&rs->sprite_renderer);
 
     ui_renderer_init(&rs->ui_renderer, &(ui_renderer_desc_t) {
-        .dimensions = desc->window_size
+        .dimensions = desc->window_size,
     });
 
     /* Resize event hook. */
@@ -133,6 +145,9 @@ void render_sys_render(render_system_t *rs, update_system_t *us,
 
     /* Sprites. */
     sprite_renderer_render_all(&rs->sprite_renderer);
+
+    /* Composite deferred layers. */
+    // TODO: Put together all the images.
 
     /* UI Components. */
     { rs->ui_renderer.ctx = snk_new_frame();

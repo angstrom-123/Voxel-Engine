@@ -2,6 +2,36 @@
 
 void line_renderer_init(line_renderer_t *lr, const line_renderer_desc_t *desc)
 {
+    rbase_init(&lr->base, desc->base_desc);
+
+    lr->base.pass = (sg_pass) {
+        .action = {
+            .colors[0] = {
+                .load_action = SG_LOADACTION_LOAD,
+                .clear_value = { 1.0, 0.0, 1.0, 1.0 }
+            },
+        },
+        .label = "lines-pass"
+    };
+
+    lr->base.pip = sg_make_pipeline(&(sg_pipeline_desc) {
+        .shader = sg_make_shader(line_shader_desc(sg_query_backend())),
+        .layout = {
+            .attrs = {
+                [ATTR_line_a_pos].format = SG_VERTEXFORMAT_FLOAT3,
+                [ATTR_line_a_col].format = SG_VERTEXFORMAT_FLOAT3,
+            }
+        },
+        .primitive_type = SG_PRIMITIVETYPE_LINES,
+        .index_type = SG_INDEXTYPE_UINT16,
+        .cull_mode = SG_CULLMODE_NONE,
+        .depth = {
+            .compare = SG_COMPAREFUNC_LESS_EQUAL,
+            .write_enabled = true
+        },
+        .label = "line-pipeline"
+    });
+
     lr->offset_pool = CIRCULAR_QUEUE_NEW(offset)(&(em_circular_queue_desc_t) {
         .cln_func = (void_cln_func) CIRCULAR_QUEUE_CLN(offset),
         .capacity = desc->max_lines,
@@ -40,40 +70,6 @@ void line_renderer_init(line_renderer_t *lr, const line_renderer_desc_t *desc)
     lr->needs_update = false;
     lr->max_lines = desc->max_lines;
     lr->lines = calloc(desc->max_lines, sizeof(line_t *));
-
-    renderer_init_base(&lr->base, &(renderer_base_desc_t) {
-        .cam = desc->cam,
-        .dimensions = desc->dimensions,
-        .pass_act = (sg_pass_action) {
-            .colors[0] = {
-                .load_action = SG_LOADACTION_LOAD,
-                .clear_value = {1.0, 0.0, 1.0, 1.0} // Purple so we see an issue here.
-            }
-        },
-        .dummy = false,
-        .pip_desc = &(sg_pipeline_desc) {
-            .shader = sg_make_shader(line_shader_desc(sg_query_backend())),
-            .layout = {
-                .attrs = {
-                    [ATTR_line_a_pos] = {
-                        .format = SG_VERTEXFORMAT_FLOAT3
-                    },
-                    [ATTR_line_a_col] = {
-                        .format = SG_VERTEXFORMAT_FLOAT3
-                    },
-                }
-            },
-            .primitive_type = SG_PRIMITIVETYPE_LINES,
-            .index_type = SG_INDEXTYPE_UINT16,
-            .cull_mode = SG_CULLMODE_NONE,
-            .depth = {
-                .compare = SG_COMPAREFUNC_LESS_EQUAL,
-                // .compare = SG_COMPAREFUNC_LESS,
-                .write_enabled = true
-            },
-            .label = "line-pipeline"
-        }
-    });
 }
 
 void line_renderer_cleanup(line_renderer_t *lr)
@@ -97,9 +93,9 @@ void line_renderer_cleanup(line_renderer_t *lr)
 void line_renderer_render_all(line_renderer_t *lr)
 {
     sg_begin_pass(&(sg_pass) {
-        .action = lr->base.pass_act,
+        .action = lr->base.pass.action,
         .swapchain = sglue_swapchain(),
-        .label = "Line renderer pass"
+        .label = "line-pass"
     });
 
     sg_apply_pipeline(lr->base.pip);
@@ -138,8 +134,8 @@ void line_renderer_render_all(line_renderer_t *lr)
 
         sg_apply_uniforms(UB_vs_params_line, &SG_RANGE(vs_params));
 
-        lr->base.bind.vertex_buffer_offsets[0] = (l->offset->v_ofst * sizeof(line_vertex_t));
-        lr->base.bind.index_buffer_offset = (l->offset->i_ofst * sizeof(uint16_t));
+        lr->base.bind.vertex_buffer_offsets[0] = l->offset->v_ofst * sizeof(line_vertex_t);
+        lr->base.bind.index_buffer_offset = l->offset->i_ofst * sizeof(uint16_t);
         sg_apply_bindings(&lr->base.bind);
 
         sg_draw(0, LINE_INDEX_COUNT, 1);

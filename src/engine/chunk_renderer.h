@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 
+#include "shaders/composite.glsl.h"
 #ifdef DEBUG
     #include "shaders/chunk_debug.glsl.h"
 #else
@@ -19,19 +20,25 @@
 #define MIP_LEVELS 5
 
 typedef struct chunk_renderer {
-    renderer_base_t base;
+    struct targets {
+        sg_image colour;
+        sg_image normal;
+        sg_image depth;
+    } targets;
+    renderer_base_t offscreen_base;
+    renderer_base_t display_base;
     render_data_t data;
     render_coords_t coords;
 } chunk_renderer_t;
 
 typedef struct chunk_renderer_desc {
-    const camera_t *cam;
-    vec2 dimensions;
+    const renderer_base_desc_t *base_desc;
 } chunk_renderer_desc_t;
 
 extern void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc);
 extern void chunk_renderer_load_textures(chunk_renderer_t *cr);
 extern void chunk_renderer_cleanup(chunk_renderer_t *cr);
 extern void chunk_renderer_render_all(chunk_renderer_t *cr);
+extern void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dimensions);
 
 #endif
