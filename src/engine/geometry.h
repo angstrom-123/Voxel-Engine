@@ -12,28 +12,26 @@
 #include <stdlib.h> // fprintf, stderr, exit
 #include <math.h>
 
-#define REL_N(pos) (em_add_ivec2((pos), (ivec2) {0, CHUNK_SIZE}))
-#define REL_NE(pos) (em_add_ivec2((pos), (ivec2) {CHUNK_SIZE, CHUNK_SIZE}))
-#define REL_E(pos) (em_add_ivec2((pos), (ivec2) {CHUNK_SIZE, 0}))
-#define REL_SE(pos) (em_add_ivec2((pos), (ivec2) {CHUNK_SIZE, -CHUNK_SIZE}))
-#define REL_S(pos) (em_add_ivec2((pos), (ivec2) {0, -CHUNK_SIZE}))
-#define REL_SW(pos) (em_add_ivec2((pos), (ivec2) {-CHUNK_SIZE, -CHUNK_SIZE}))
-#define REL_W(pos) (em_add_ivec2((pos), (ivec2) {-CHUNK_SIZE, 0}))
-#define REL_NW(pos) (em_add_ivec2((pos), (ivec2) {-CHUNK_SIZE, CHUNK_SIZE}))
+#define REL_N(pos)  (em_add_ivec2((pos), (ivec2) { 0         ,  CHUNK_SIZE }))
+#define REL_NE(pos) (em_add_ivec2((pos), (ivec2) { CHUNK_SIZE,  CHUNK_SIZE }))
+#define REL_E(pos)  (em_add_ivec2((pos), (ivec2) { CHUNK_SIZE,  0          }))
+#define REL_SE(pos) (em_add_ivec2((pos), (ivec2) { CHUNK_SIZE, -CHUNK_SIZE }))
+#define REL_S(pos)  (em_add_ivec2((pos), (ivec2) { 0         , -CHUNK_SIZE }))
+#define REL_SW(pos) (em_add_ivec2((pos), (ivec2) {-CHUNK_SIZE, -CHUNK_SIZE }))
+#define REL_W(pos)  (em_add_ivec2((pos), (ivec2) {-CHUNK_SIZE,  0          }))
+#define REL_NW(pos) (em_add_ivec2((pos), (ivec2) {-CHUNK_SIZE,  CHUNK_SIZE }))
 
 /* A chunk's mesh will never exceed these maximums. */
-// #define V_MAX 33024
-// #define I_MAX 49536
 #define V_MAX 66048
 #define I_MAX 99072
 
 static const uvec3 face_offsets[6][4] = {
-	[FACEIDX_BACK  ] = {{1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}},
-	[FACEIDX_FRONT ] = {{0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}},
-	[FACEIDX_LEFT  ] = {{0, 0, 0}, {0, 0, 1}, {0, 1, 1}, {0, 1, 0}},
-	[FACEIDX_RIGHT ] = {{1, 0, 1}, {1, 0, 0}, {1, 1, 0}, {1, 1, 1}},
-	[FACEIDX_BOTTOM] = {{0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}},
-	[FACEIDX_TOP   ] = {{0, 1, 1}, {1, 1, 1}, {1, 1, 0}, {0, 1, 0}}
+	[FACEIDX_BACK  ] = { { 1, 0, 0 }, { 0, 0, 0 }, { 0, 1, 0 }, { 1, 1, 0 } },
+	[FACEIDX_FRONT ] = { { 0, 0, 1 }, { 1, 0, 1 }, { 1, 1, 1 }, { 0, 1, 1 } },
+	[FACEIDX_LEFT  ] = { { 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 1 }, { 0, 1, 0 } },
+	[FACEIDX_RIGHT ] = { { 1, 0, 1 }, { 1, 0, 0 }, { 1, 1, 0 }, { 1, 1, 1 } },
+	[FACEIDX_BOTTOM] = { { 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 1 }, { 0, 0, 1 } },
+	[FACEIDX_TOP   ] = { { 0, 1, 1 }, { 1, 1, 1 }, { 1, 1, 0 }, { 0, 1, 0 } }
 };
 
 static const tex_type_e tex_lookup[CUBETYPE_NUM][6] = {

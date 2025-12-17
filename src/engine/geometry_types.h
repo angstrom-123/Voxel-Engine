@@ -26,10 +26,10 @@ typedef struct vertex {
 } vertex_t;
 
 typedef struct packed_vertex {
-    uint8_t xo;
-    uint8_t y;
-    uint8_t zn;
-    uint8_t t;
+    uint8_t xo; // 5:x, 3:o
+    uint8_t y;  // 8:y
+    uint8_t zn; // 5:z, 3:n
+    uint8_t t;  // 4:u, r:v
 } packed_vertex_t;
 
 typedef struct chunk_data {

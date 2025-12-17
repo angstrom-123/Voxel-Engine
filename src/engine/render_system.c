@@ -146,13 +146,10 @@ void render_sys_render(render_system_t *rs, update_system_t *us,
     /* Sprites. */
     sprite_renderer_render_all(&rs->sprite_renderer);
 
-    /* Composite deferred layers. */
-    // TODO: Put together all the images.
-
     /* UI Components. */
     { rs->ui_renderer.ctx = snk_new_frame();
         rs->ui_renderer.components = ui_sys_get_components(uis, &rs->ui_renderer.component_count);
-        
+
     } ui_renderer_render_all(&rs->ui_renderer);
 
     sg_commit();

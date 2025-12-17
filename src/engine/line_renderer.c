@@ -9,7 +9,7 @@ void line_renderer_init(line_renderer_t *lr, const line_renderer_desc_t *desc)
             .colors[0] = {
                 .load_action = SG_LOADACTION_LOAD,
                 .clear_value = { 1.0, 0.0, 1.0, 1.0 }
-            },
+            }
         },
         .label = "lines-pass"
     };
@@ -18,8 +18,8 @@ void line_renderer_init(line_renderer_t *lr, const line_renderer_desc_t *desc)
         .shader = sg_make_shader(line_shader_desc(sg_query_backend())),
         .layout = {
             .attrs = {
-                [ATTR_line_a_pos].format = SG_VERTEXFORMAT_FLOAT3,
-                [ATTR_line_a_col].format = SG_VERTEXFORMAT_FLOAT3,
+                [ATTR_line_a_pos] = { .format = SG_VERTEXFORMAT_FLOAT3 },
+                [ATTR_line_a_col] = { .format = SG_VERTEXFORMAT_FLOAT3 }
             }
         },
         .primitive_type = SG_PRIMITIVETYPE_LINES,
@@ -95,7 +95,6 @@ void line_renderer_render_all(line_renderer_t *lr)
     sg_begin_pass(&(sg_pass) {
         .action = lr->base.pass.action,
         .swapchain = sglue_swapchain(),
-        .label = "line-pass"
     });
 
     sg_apply_pipeline(lr->base.pip);

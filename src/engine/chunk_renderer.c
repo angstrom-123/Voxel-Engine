@@ -6,18 +6,20 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     cr->display_base.dimensions = dim;
 
     // Cleanup existing images and texture views.
-    sg_destroy_image(cr->targets.colour);
-    sg_destroy_image(cr->targets.normal);
-    sg_destroy_image(cr->targets.depth);
-    sg_destroy_view(cr->offscreen_base.pass.attachments.colors[0]);
-    sg_destroy_view(cr->offscreen_base.pass.attachments.colors[1]);
-    sg_destroy_view(cr->offscreen_base.pass.attachments.depth_stencil);
+    // sg_destroy_image(cr->targets.colour);
+    // sg_destroy_image(cr->targets.normal);
+    // sg_destroy_image(cr->targets.depth);
+    // sg_destroy_image(cr->targets.d2);
+    // sg_destroy_view(cr->offscreen_base.pass.attachments.colors[0]);
+    // sg_destroy_view(cr->offscreen_base.pass.attachments.colors[1]);
+    // sg_destroy_view(cr->offscreen_base.pass.attachments.colors[2]);
+    // sg_destroy_view(cr->offscreen_base.pass.attachments.depth_stencil);
 
     // Make new targets with the new dimensions.
     cr->targets = (struct targets) {
         .colour = sg_make_image(&(sg_image_desc) {
             .usage.color_attachment = true,
-            .pixel_format = SG_PIXELFORMAT_RGBA8,
+            .pixel_format = COLOUR_PIXELFORMAT,
             .width = dim.x,
             .height = dim.y,
             .sample_count = 1,
@@ -25,50 +27,77 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
         }),
         .normal = sg_make_image(&(sg_image_desc) {
             .usage.color_attachment = true,
-            .pixel_format = SG_PIXELFORMAT_RGBA16F,
+            .pixel_format = NORMAL_PIXELFORMAT,
             .width = dim.x,
             .height = dim.y,
             .sample_count = 1,
             .label = "offscreen-chunk-normal-image"
         }),
         .depth = sg_make_image(&(sg_image_desc) {
-            .usage.depth_stencil_attachment = true,
-            .pixel_format = SG_PIXELFORMAT_DEPTH_STENCIL,
+            .usage.color_attachment = true,
+            .pixel_format = DEPTH_PIXELFORMAT,
             .width = dim.x,
             .height = dim.y,
             .sample_count = 1,
             .label = "offscreen-chunk-depth-image"
+        }),
+        .position = sg_make_image(&(sg_image_desc) {
+            .usage.color_attachment = true,
+            .pixel_format = POSITION_PIXELFORMAT,
+            .width = dim.x,
+            .height = dim.y,
+            .sample_count = 1,
+            .label = "offscreen-chunk-position-image"
+        }),
+        .zbuf = sg_make_image(&(sg_image_desc) {
+            .usage.depth_stencil_attachment = true,
+            .pixel_format = SG_PIXELFORMAT_DEPTH,
+            .width = dim.x,
+            .height = dim.y,
+            .sample_count = 1,
+            .label = "offscreen-chunk-zbuf-image"
         })
     };
 
     // Make new target views from the new images
-    cr->offscreen_base.pass.attachments.colors[0] = sg_make_view(&(sg_view_desc) {
-        .color_attachment.image = cr->targets.colour,
-        .label = "offscreen-chunk-colour-attachment"
-    });
-    cr->offscreen_base.pass.attachments.colors[1] = sg_make_view(&(sg_view_desc) {
-        .color_attachment.image = cr->targets.normal,
-        .label = "offscreen-chunk-normal-attachment"
-    });
-    cr->offscreen_base.pass.attachments.depth_stencil = sg_make_view(&(sg_view_desc) {
-        .depth_stencil_attachment = cr->targets.depth,
-        .label = "offscreen-chunk-depth-attachment"
-    });
+    cr->offscreen_base.pass.attachments = (sg_attachments) {
+        .colors[0] = sg_make_view(&(sg_view_desc) {
+            .color_attachment = { .image = cr->targets.colour },
+            .label = "offscreen-chunk-colour-attachment",
+        }),
+        .colors[1] = sg_make_view(&(sg_view_desc) {
+            .color_attachment = { .image = cr->targets.normal },
+            .label = "offscreen-chunk-normal-attachment"
+        }),
+        .colors[2] = sg_make_view(&(sg_view_desc) {
+            .color_attachment = { .image = cr->targets.depth },
+            .label = "offscreen-chunk-depth-attachment"
+        }),
+        .colors[3] = sg_make_view(&(sg_view_desc) {
+            .color_attachment = { .image = cr->targets.position },
+            .label = "offscreen-chunk-position-attachment"
+        }),
+        .depth_stencil = sg_make_view(&(sg_view_desc) {
+            .depth_stencil_attachment = { .image = cr->targets.zbuf },
+            .label = "offscreen-chunk-zbuf-attachment"
+        })
+    };
 
     cr->display_base.bind.views[0] = sg_make_view(&(sg_view_desc) {
-        .texture.image = cr->targets.colour,
-        // .color_attachment.image = cr->targets.colour,
-        .label = "display-chunk-colour-view"
+        .texture = { .image = cr->targets.colour },
+        .label = "display-chunk-colour-view",
     });
     cr->display_base.bind.views[1] = sg_make_view(&(sg_view_desc) {
-        .texture.image = cr->targets.normal,
-        // .color_attachment.image = cr->targets.normal,
+        .texture = { .image = cr->targets.normal },
         .label = "display-chunk-normal-view"
     });
     cr->display_base.bind.views[2] = sg_make_view(&(sg_view_desc) {
-        .texture.image = cr->targets.depth,
-        // .depth_stencil_attachment.image = cr->targets.depth,
+        .texture = { .image = cr->targets.depth },
         .label = "display-chunk-depth-view"
+    });
+    cr->display_base.bind.views[3] = sg_make_view(&(sg_view_desc) {
+        .texture = { .image = cr->targets.position },
+        .label = "display-chunk-position-view"
     });
 }
 
@@ -82,35 +111,53 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
 
     // Offscreen pass
     cr->offscreen_base.pass.action = (sg_pass_action) {
-        .colors[0].load_action = SG_LOADACTION_CLEAR,
-        .colors[1].load_action = SG_LOADACTION_CLEAR,
-        .depth.load_action = SG_LOADACTION_CLEAR,
+        .colors = {
+            [0] = { 
+                .load_action = SG_LOADACTION_CLEAR,
+                .clear_value = { 0.0, 0.0, 0.0, 1.0 }
+            },
+            [1] = { 
+                .load_action = SG_LOADACTION_CLEAR,
+                .clear_value = { 0.0, 0.0, 0.0, 1.0 }
+            },
+            [2] = { 
+                .load_action = SG_LOADACTION_CLEAR,
+                .clear_value = { 0.0, 0.0, 0.0, 1.0 }
+            },
+            [3] = { 
+                .load_action = SG_LOADACTION_CLEAR,
+                .clear_value = { 0.0, 0.0, 0.0, 1.0 }
+            },
+        },
+        .depth = {
+            .load_action = SG_LOADACTION_CLEAR,
+            .clear_value = 1.0
+        }
     };
     cr->offscreen_base.pass.label = "offscreen-chunks-pass";
 
     // Offscreen pipeline
     cr->offscreen_base.pip = sg_make_pipeline(&(sg_pipeline_desc) {
         .shader = sg_make_shader(chunk_shader_desc(sg_query_backend())),
-        .layout = {
-            .attrs = {
-                // 1: xz, 2: y, 3: tex id, 4: normal
-                [ATTR_chunk_a_vertex].format = SG_VERTEXFORMAT_UBYTE4,
-            }
-        },
+        // |Byte 1 |Byte 2 |Byte 3 |Byte 4 |
+        // |5  | 3 |       | 5 | 3 | 4 | 4 |
+        // |x  | o |  y    | z | n | u | v |
+        .layout.attrs[ATTR_chunk_a_vertex].format = SG_VERTEXFORMAT_UBYTE4,
         .index_type = SG_INDEXTYPE_UINT16,
         .cull_mode = SG_CULLMODE_BACK,
         .sample_count = 1,
-        .color_count = 2,
+        .color_count = 4,
         .colors = {
-            [0].pixel_format = SG_PIXELFORMAT_RGBA8,
-            [1].pixel_format = SG_PIXELFORMAT_RGBA16F
+            [0].pixel_format = COLOUR_PIXELFORMAT,
+            [1].pixel_format = NORMAL_PIXELFORMAT,
+            [2].pixel_format = DEPTH_PIXELFORMAT,
+            [3].pixel_format = POSITION_PIXELFORMAT
         },
         .depth = {
-            .pixel_format = SG_PIXELFORMAT_DEPTH_STENCIL,
+            .pixel_format = SG_PIXELFORMAT_DEPTH,
             .compare = SG_COMPAREFUNC_LESS_EQUAL,
             .write_enabled = true
         },
-        .label = "offscreen-chunks-pipeline"
         // .colors[0] = {
         //     .blend = {
         //         .enabled = true,
@@ -127,26 +174,21 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
     // Display pipeline 
     cr->display_base.pip = sg_make_pipeline(&(sg_pipeline_desc) {
         .shader = sg_make_shader(composite_shader_desc(sg_query_backend())),
-        .layout.attrs[ATTR_composite_a_pos].format = SG_VERTEXFORMAT_FLOAT2,
-        .cull_mode = SG_CULLMODE_BACK,
-        // .blend_color = {1.0, 0.0, 0.0, 1.0},
-        .colors[0].pixel_format = SG_PIXELFORMAT_RGBA8,
+        .sample_count = 1,
         .primitive_type = SG_PRIMITIVETYPE_TRIANGLE_STRIP,
-        .label = "display-chunks-pipeline",
+        .layout.attrs[ATTR_composite_a_pos].format = SG_VERTEXFORMAT_FLOAT2
     });
 
     // For sampling the render textures from the offscreen pass
-    float quad_verts[] = {0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0};
+    float quad_verts[] = { 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0 };
     cr->display_base.bind.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
-        .data = SG_RANGE(quad_verts),
-        .label = "display-quad-verts"
+        .data = SG_RANGE(quad_verts)
     });
-    cr->display_base.bind.samplers[0] = sg_make_sampler(&(sg_sampler_desc) {
-        .min_filter = SG_FILTER_LINEAR,
-        .mag_filter = SG_FILTER_LINEAR,
+    cr->display_base.bind.samplers[SMP_u_smp] = sg_make_sampler(&(sg_sampler_desc) {
+        .min_filter = SG_FILTER_NEAREST,
+        .mag_filter = SG_FILTER_NEAREST,
         .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
-        .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
-        .label = "chunk-display-sampler"
+        .wrap_v = SG_WRAP_CLAMP_TO_EDGE
     });
 }
 
@@ -157,7 +199,7 @@ void chunk_renderer_load_textures(chunk_renderer_t *cr)
         .min_filter = SG_FILTER_NEAREST,
         .mag_filter = SG_FILTER_NEAREST,
         .mipmap_filter = SG_FILTER_NEAREST,
-        .max_lod = (float) MIP_LEVELS,
+        .max_lod = MIP_LEVELS
     });
     cr->offscreen_base.bind.views[0] = sg_alloc_view();
 
@@ -194,19 +236,17 @@ void chunk_renderer_load_textures(chunk_renderer_t *cr)
 
 void chunk_renderer_cleanup(chunk_renderer_t *cr)
 {
-    sg_destroy_view(cr->offscreen_base.pass.attachments.colors[0]);
-    sg_destroy_view(cr->offscreen_base.pass.attachments.colors[1]);
-    sg_destroy_view(cr->offscreen_base.pass.attachments.depth_stencil);
-    sg_destroy_pipeline(cr->offscreen_base.pip);
-
-    sg_destroy_view(cr->display_base.pass.attachments.colors[0]);
-    sg_destroy_view(cr->display_base.pass.attachments.colors[1]);
-    sg_destroy_view(cr->display_base.pass.attachments.depth_stencil);
-    sg_destroy_pipeline(cr->display_base.pip);
-
-    sg_destroy_image(cr->targets.colour);
-    sg_destroy_image(cr->targets.normal);
-    sg_destroy_image(cr->targets.depth);
+    // sg_destroy_view(cr->offscreen_base.pass.attachments.colors[0]);
+    // sg_destroy_view(cr->offscreen_base.pass.attachments.colors[1]);
+    // sg_destroy_view(cr->offscreen_base.pass.attachments.colors[2]);
+    // sg_destroy_view(cr->offscreen_base.pass.attachments.depth_stencil);
+    // sg_destroy_pipeline(cr->offscreen_base.pip);
+    //
+    // sg_destroy_pipeline(cr->display_base.pip);
+    //
+    // sg_destroy_image(cr->targets.colour);
+    // sg_destroy_image(cr->targets.normal);
+    // sg_destroy_image(cr->targets.depth);
 }
 
 static void _render_offscreen_pass(chunk_renderer_t *cr) 
@@ -224,14 +264,10 @@ static void _render_offscreen_pass(chunk_renderer_t *cr)
         if (!cri)
             continue;
 
+        vec3 pos = { cri->pos.x, 0.0, cri->pos.y };
         vs_params_chunk_t vs_params = {
-            .u_mvp = rb->cam->vp,
-            .u_view = rb->cam->view,
-            .u_ccord = { cri->pos.x, 0, cri->pos.y }
-        };
-
-        fs_params_chunk_t fs_params = {
-            .u_fog_data = { 0.35, 0.6, 0.85, rb->cam->far }
+            .u_vp = rb->cam->vp,
+            .u_ccord = pos
         };
 
         if (cri->needs_update)
@@ -253,7 +289,6 @@ static void _render_offscreen_pass(chunk_renderer_t *cr)
         sg_apply_bindings(&rb->bind);
 
         sg_apply_uniforms(UB_vs_params_chunk, &SG_RANGE(vs_params));
-        sg_apply_uniforms(UB_fs_params_chunk, &SG_RANGE(fs_params));
 
         sg_draw(0, cri->mesh->i_cnt, 1);
     }
@@ -268,7 +303,6 @@ static void _render_display_pass(chunk_renderer_t *cr)
     sg_begin_pass(&(sg_pass) {
         .action = rb->pass.action,
         .swapchain = sglue_swapchain(),
-        .label = "chunk-display-pass"
     });
 
     sg_apply_pipeline(rb->pip);

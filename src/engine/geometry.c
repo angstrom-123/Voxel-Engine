@@ -59,9 +59,14 @@ static inline packed_vertex_t _packed_vertex(uint8_t vert_idx, const quad_desc_t
     if (vert_idx == 2 || vert_idx == 3) o |= (1 << 1);
 
     uint8_t n = 0;
-    if (desc->face == FACEIDX_BACK) n |= (1 << 2);
-    if (desc->face == FACEIDX_BOTTOM) n |= (1 << 1);
-    if (desc->face == FACEIDX_LEFT) n |= 1;
+    switch (desc->face) {
+    case FACEIDX_RIGHT : n = 1; break;
+    case FACEIDX_LEFT  : n = 2; break;
+    case FACEIDX_TOP   : n = 3; break;
+    case FACEIDX_BOTTOM: n = 4; break;
+    case FACEIDX_BACK  : n = 5; break;
+    case FACEIDX_FRONT : n = 6; break;
+    }
 
     return (packed_vertex_t) {
         .xo = x | o,

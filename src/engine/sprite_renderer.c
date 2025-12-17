@@ -5,10 +5,10 @@ void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *d
     rbase_init(&sr->base, desc->base_desc);
 
     sr->base.pass = (sg_pass) {
-        .action = (sg_pass_action) {
+        .action = {
             .colors[0] = {
                 .load_action = SG_LOADACTION_LOAD,
-                .clear_value = { 0.0, 0.0, 0.0, 0.0 }
+                .clear_value = { 1.0, 0.0, 1.0, 1.0 }
             }
         },
         .label = "sprites-pass"
@@ -18,9 +18,9 @@ void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *d
         .shader = sg_make_shader(sprite_shader_desc(sg_query_backend())),
         .layout = {
             .attrs = {
-                [ATTR_sprite_a_pos].format = SG_VERTEXFORMAT_FLOAT2,
-                [ATTR_sprite_a_uv].format = SG_VERTEXFORMAT_FLOAT2,
-                [ATTR_sprite_a_z_index].format = SG_VERTEXFORMAT_FLOAT
+                [ATTR_sprite_a_pos]     = { .format = SG_VERTEXFORMAT_FLOAT2 },
+                [ATTR_sprite_a_uv]      = { .format = SG_VERTEXFORMAT_FLOAT2 },
+                [ATTR_sprite_a_z_index] = { .format = SG_VERTEXFORMAT_FLOAT }
             }
         },
         .index_type = SG_INDEXTYPE_UINT16,
@@ -104,7 +104,7 @@ void sprite_renderer_load_textures(sprite_renderer_t *sr)
         .pixel_format = SG_PIXELFORMAT_RGBA8,
         .num_mipmaps = 1.0,
         .data.subimage[0] = {
-            {.ptr = crosshair.pixel_data, .size = crosshair.ih.img_size}
+            { .ptr = crosshair.pixel_data, .size = crosshair.ih.img_size }
         }
     });
 
@@ -135,8 +135,10 @@ void sprite_renderer_cleanup(sprite_renderer_t *sr)
 
 void sprite_renderer_render_all(sprite_renderer_t *sr)
 {
-    sr->base.pass.swapchain = sglue_swapchain();
-    sg_begin_pass(&sr->base.pass);
+    sg_begin_pass(&(sg_pass) {
+        .action = sr->base.pass.action,
+        .swapchain = sglue_swapchain()
+    });
 
     sg_apply_pipeline(sr->base.pip);
 

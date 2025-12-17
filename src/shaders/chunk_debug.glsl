@@ -2,11 +2,11 @@
 precision highp uint;
 
 @ctype mat4 em_mat4
+@ctype vec3 em_vec3
 
 @vs vs_chunk
 layout(binding=0) uniform vs_params_chunk {
-    mat4 u_mvp;
-    mat4 u_view;
+    mat4 u_vp;
     vec3 u_ccord;
 };
 
@@ -14,7 +14,8 @@ in uvec4 a_vertex;
 
 out vec2 v_uv;
 out vec3 v_normal;
-out float v_depth;
+out vec4 v_projection;
+out vec4 v_pos;
 flat out int v_even;
 
 vec3 _unpack_pos(uvec4 vert) {
@@ -35,14 +36,23 @@ vec2 _unpack_uv(uvec4 vert) {
     return vec2(u, v);
 }
 
-/*    8  7  6  5  4  3  2  1
-    |  |  |  |  |  | z| y| x|
-*/
-
 vec3 _unpack_normal(uvec4 vert) {
-    uint packed = (vert.z) & 0x07;
-    vec3 unpacked = vec3(packed & 1, (packed >> 1) & 1, (packed >> 2) & 1);
-    return vec3(1.0) - (unpacked * 2);
+    uint packed = vert.z & 0x07;
+    if (packed == 1) return vec3( 1.0,  0.0,  0.0);
+    else if (packed == 2) return vec3(-1.0,  0.0,  0.0);
+    else if (packed == 3) return vec3( 0.0,  1.0,  0.0);
+    else if (packed == 4) return vec3( 0.0, -1.0,  0.0);
+    else if (packed == 5) return vec3( 0.0,  0.0,  1.0);
+    else if (packed == 6) return vec3( 0.0,  0.0, -1.0);
+    else return vec3(0.0, 0.0, 0.0);
+
+    // int axis = (int(packed) - 1) / 2;
+    //
+    // return vec3(
+    //     sign(packed) * float(axis == 0),
+    //     sign(packed) * float(axis == 1),
+    //     sign(packed) * float(axis == 2)
+    // );
 }
 
 void main() {
@@ -50,11 +60,13 @@ void main() {
     vec2 uv = _unpack_uv(a_vertex);
     vec3 normal = _unpack_normal(a_vertex);
 
-    gl_Position = u_mvp * vec4(pos + u_ccord, 1.0);
+    // Model matrix application here is equivalent to adding u_ccord
+    gl_Position = u_vp * vec4(pos + u_ccord, 1.0);
 
     v_uv = uv;
     v_normal = normal;
-    v_depth = -(u_view * vec4(pos + u_ccord, 1.0)).z;
+    v_projection = gl_Position;
+    v_pos = vec4(pos + u_ccord, 1.0);
 
     int xeven = int((u_ccord.x / 16.0) - 2.0 * floor((u_ccord.x / 16.0) / 2.0));
     int zeven = int((u_ccord.z / 16.0) - 2.0 * floor((u_ccord.z / 16.0) / 2.0));
@@ -66,28 +78,26 @@ void main() {
 @fs fs_chunk
 layout(binding=0) uniform texture2D u_tex;
 layout(binding=0) uniform sampler u_smp;
-layout(binding=1) uniform fs_params_chunk {
-    vec4 u_fog_data;
-};
 
 in vec2 v_uv;
 in vec3 v_normal;
-in float v_depth;
+in vec4 v_projection;
+in vec4 v_pos;
 flat in int v_even;
 
-out vec4 frag_color;
+layout(location=0) out vec4 frag_col;
+layout(location=1) out vec4 frag_nrm;
+layout(location=2) out float frag_dep;
+layout(location=3) out vec4 frag_pos;
 
 void main() {
-    if (frag_color.a < 0.01) discard;
+    // TODO: Handle transparency
+    // if (frag_color.a < 0.01) discard;
 
-    vec4 fog_col = vec4(u_fog_data.xyz, 1.0);
-    float fog_dist = u_fog_data.w;
-
-    float fog_factor = smoothstep(fog_dist - 10, fog_dist, v_depth);
-
-    frag_color = mix(texture(sampler2D(u_tex, u_smp), v_uv), fog_col, fog_factor);
-    if (v_even == 1)
-        frag_color.xyz = frag_color.xyz * 0.9;
+    frag_col = texture(sampler2D(u_tex, u_smp), v_uv) * ((v_even == 1) ? 0.9 : 1.0);
+    frag_nrm = vec4(v_normal, 1.0);
+    frag_dep = 1.0 - v_projection.z / v_projection.w;
+    frag_pos = v_pos;
 }
 
 @end 

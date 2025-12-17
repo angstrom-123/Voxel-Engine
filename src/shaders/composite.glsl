@@ -5,7 +5,7 @@ precision highp uint
 @ctype vec2 em_vec2
 
 @vs vs_composite
-@glsl_options flip_vert_y
+// @glsl_options flip_vert_y
 
 in vec2 a_pos;
 
@@ -20,10 +20,11 @@ void main() {
 
 @fs fs_composite
 
+layout(binding=0) uniform sampler u_smp;
 layout(binding=0) uniform texture2D u_tex_col;
 layout(binding=1) uniform texture2D u_tex_nrm;
 layout(binding=2) uniform texture2D u_tex_dep;
-layout(binding=0) uniform sampler u_smp;
+layout(binding=3) uniform texture2D u_tex_pos;
 
 in vec2 v_uv;
 
@@ -32,11 +33,42 @@ out vec4 frag_color;
 void main() {
     vec3 col = texture(sampler2D(u_tex_col, u_smp), v_uv).xyz;
     vec3 nrm = texture(sampler2D(u_tex_nrm, u_smp), v_uv).xyz;
-    float dep = texture(sampler2D(u_tex_dep, u_smp), v_uv).x;
+    vec3 dep = texture(sampler2D(u_tex_dep, u_smp), v_uv).xxx;
+    vec3 pos = texture(sampler2D(u_tex_pos, u_smp), v_uv).xyz;
 
-    frag_color = vec4(col, 1.0);
+    // Debugging outputs
+    // frag_color = vec4(col, 1.0);
     // frag_color = vec4(nrm, 1.0);
-    // frag_color = vec4(vec3(dep), 1.0);
+    // frag_color = vec4(nrm * 0.5 + 0.5, 1.0);
+    // frag_color = vec4(dep * 15.0, 1.0);
+    // frag_color = vec4(normalize(pos), 1.0);
+
+    vec3 light_pos = vec3(0, 80, 0);
+    vec3 to_light = light_pos - pos;
+    float dist = length(to_light);
+    vec3 light_dir = to_light / max(dist, 0.001);
+
+    // if (dist > 100.0) {
+    //     frag_color = vec4(0.0, 0.0, 0.0, 1.0);
+    //     return;
+    // }
+
+    float n_dot_l = max(dot(nrm, light_dir), 0.0);
+    float atten = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist *dist);
+
+    vec3 light_col = vec3(1.0, 1.0, 0.8);
+    float intensity = 5.0;
+
+    vec3 diffuse = n_dot_l + light_col * intensity;
+    vec3 lit = diffuse * atten;
+
+    vec3 final = col * lit;
+    // final += 0.1;
+
+    float gamma = 2.2;
+    vec3 gamma_corrected = pow(final, vec3(1.0 / gamma));
+
+    frag_color = vec4(gamma_corrected, 1.0);
 }
 
 @end
