@@ -7,7 +7,7 @@ precision highp uint
 
 @vs vs_sprite
 layout(binding=0) uniform vs_params_sprite {
-    mat4 u_mvp;
+    mat4 u_vp;
 };
 
 in vec2 a_pos;
@@ -17,7 +17,7 @@ in float a_z_index;
 out vec2 v_uv;
 
 void main() {
-    gl_Position = u_mvp * vec4(a_pos, a_z_index, 1.0);
+    gl_Position = u_vp * vec4(a_pos, a_z_index, 1.0);
 
     v_uv = a_uv;
 }

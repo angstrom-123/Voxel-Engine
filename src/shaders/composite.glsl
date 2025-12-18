@@ -48,22 +48,17 @@ void main() {
     float dist = length(to_light);
     vec3 light_dir = to_light / max(dist, 0.001);
 
-    // if (dist > 100.0) {
-    //     frag_color = vec4(0.0, 0.0, 0.0, 1.0);
-    //     return;
-    // }
-
     float n_dot_l = max(dot(nrm, light_dir), 0.0);
-    float atten = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist *dist);
+    float atten = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist);
 
     vec3 light_col = vec3(1.0, 1.0, 0.8);
     float intensity = 5.0;
 
     vec3 diffuse = n_dot_l + light_col * intensity;
-    vec3 lit = diffuse * atten;
+    vec3 ambient = 0.0 * col;
+    vec3 lit = ambient + diffuse * atten;
 
     vec3 final = col * lit;
-    // final += 0.1;
 
     float gamma = 2.2;
     vec3 gamma_corrected = pow(final, vec3(1.0 / gamma));

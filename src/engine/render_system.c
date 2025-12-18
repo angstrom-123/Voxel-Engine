@@ -44,7 +44,6 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
         .pos = {0.0, 0.0, 0.0}
     });
 
-
     /* Renderers */
     chunk_renderer_init(&rs->chunk_renderer, &(chunk_renderer_desc_t) {
         .base_desc = &(renderer_base_desc_t) {
@@ -74,7 +73,7 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
         .max_sprites = 64,
         .base_desc = &(renderer_base_desc_t) {
             .dimensions = desc->window_size,
-            .cam = &rs->cam,
+            .cam = &rs->ortho_cam,
         }
     });
     sprite_renderer_load_textures(&rs->sprite_renderer);

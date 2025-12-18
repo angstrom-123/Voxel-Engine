@@ -48,7 +48,7 @@
 #define SMP_u_smp (0)
 #pragma pack(push,1)
 SOKOL_SHDC_ALIGN(16) typedef struct vs_params_sprite_t {
-    em_mat4 u_mvp;
+    em_mat4 u_vp;
 } vs_params_sprite_t;
 #pragma pack(pop)
 /*

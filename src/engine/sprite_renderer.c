@@ -2,7 +2,45 @@
 
 void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *desc)
 {
+    sr->offset_pool = CIRCULAR_QUEUE_NEW(offset)(&(em_circular_queue_desc_t) {
+        .cln_func = (void_cln_func) CIRCULAR_QUEUE_CLN(offset),
+        .capacity = desc->max_sprites,
+        .flags = EM_FLAG_NO_RESIZE
+    });
+    for (size_t i = 0; i < sr->offset_pool->size; i++)
+    {
+        sr->offset_pool->enqueue(sr->offset_pool, (offset_t) {
+            .v_ofst = i * SPRITE_VERTEX_COUNT,
+            .i_ofst = i * SPRITE_INDEX_COUNT
+        });
+    }
+
+    sr->vbo = malloc(desc->max_sprites * SPRITE_VERTEX_COUNT * sizeof(sprite_vertex_t));
+    sr->ibo = malloc(desc->max_sprites * SPRITE_INDEX_COUNT * sizeof(uint16_t));
+
+    sr->v_buf = sg_make_buffer(&(sg_buffer_desc) {
+        .size = desc->max_sprites *  SPRITE_VERTEX_COUNT * sizeof(sprite_vertex_t),
+        .usage = {
+            .vertex_buffer = true,
+            .dynamic_update = true
+        }
+    });
+    sr->i_buf = sg_make_buffer(&(sg_buffer_desc) {
+        .size = desc->max_sprites *  SPRITE_INDEX_COUNT * sizeof(uint16_t),
+        .usage = {
+            .index_buffer = true,
+            .dynamic_update = true
+        }
+    });
+
     rbase_init(&sr->base, desc->base_desc);
+
+    sr->base.bind.vertex_buffers[0] = sr->v_buf;
+    sr->base.bind.index_buffer = sr->i_buf;
+    
+    sr->needs_update = false;
+    sr->max_sprites = desc->max_sprites;
+    sr->sprites = calloc(desc->max_sprites, sizeof(sprite_t *));
 
     sr->base.pass = (sg_pass) {
         .action = {
@@ -44,43 +82,6 @@ void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *d
         .label = "sprite-pipeline"
     });
 
-    sr->offset_pool = CIRCULAR_QUEUE_NEW(offset)(&(em_circular_queue_desc_t) {
-        .cln_func = (void_cln_func) CIRCULAR_QUEUE_CLN(offset),
-        .capacity = desc->max_sprites,
-        .flags = EM_FLAG_NO_RESIZE
-    });
-    for (size_t i = 0; i < sr->offset_pool->size; i++)
-    {
-        sr->offset_pool->enqueue(sr->offset_pool, (offset_t) {
-            .v_ofst = i * SPRITE_VERTEX_COUNT,
-            .i_ofst = i * SPRITE_INDEX_COUNT
-        });
-    }
-
-    sr->vbo = malloc(desc->max_sprites * SPRITE_VERTEX_COUNT * sizeof(sprite_vertex_t));
-    sr->ibo = malloc(desc->max_sprites * SPRITE_INDEX_COUNT * sizeof(uint16_t));
-
-    sr->v_buf = sg_make_buffer(&(sg_buffer_desc) {
-        .size = desc->max_sprites *  SPRITE_VERTEX_COUNT * sizeof(sprite_vertex_t),
-        .usage = {
-            .vertex_buffer = true,
-            .dynamic_update = true
-        }
-    });
-    sr->i_buf = sg_make_buffer(&(sg_buffer_desc) {
-        .size = desc->max_sprites *  SPRITE_INDEX_COUNT * sizeof(uint16_t),
-        .usage = {
-            .index_buffer = true,
-            .dynamic_update = true
-        }
-    });
-
-    sr->base.bind.vertex_buffers[0] = sr->v_buf;
-    sr->base.bind.index_buffer = sr->i_buf;
-    
-    sr->needs_update = false;
-    sr->max_sprites = desc->max_sprites;
-    sr->sprites = calloc(desc->max_sprites, sizeof(sprite_t *));
 }
 
 void sprite_renderer_load_textures(sprite_renderer_t *sr)
@@ -170,7 +171,7 @@ void sprite_renderer_render_all(sprite_renderer_t *sr)
         }
 
         vs_params_sprite_t vs_params = {
-            .u_mvp = sr->base.cam->vp
+            .u_vp = sr->base.cam->vp
         };
 
         sg_apply_uniforms(UB_vs_params_sprite, &SG_RANGE(vs_params));
