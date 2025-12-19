@@ -79,7 +79,7 @@ static void init(void)
 #if defined(RELEASE) || defined(PROFILING)
     const size_t RENDER_DISTANCE = 32;
 #elif defined(DEBUG)
-    const size_t RENDER_DISTANCE = 8;
+    const size_t RENDER_DISTANCE = 12;
 #endif
 
     ENGINE_ASSERT(RENDER_DISTANCE >= 3, "Render distance too low.\n");

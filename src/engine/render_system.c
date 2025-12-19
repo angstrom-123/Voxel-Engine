@@ -5,18 +5,25 @@ static void _on_resize(const event_t *ev, void *args)
     render_system_t *rs = args;
 
     rs->cam.aspect = ev->window_size.x / ev->window_size.y;
-    rs->ortho_cam.width = ev->window_size.x;
-    rs->ortho_cam.height = ev->window_size.y;
-
-    rs->cam.proj = em_perspective(rs->cam.fov, rs->cam.aspect, 
-                                  rs->cam.near, rs->cam.far);
-    rs->ortho_cam.proj = em_orthographic(rs->ortho_cam.width, rs->ortho_cam.height, 
-                                         rs->ortho_cam.near, rs->ortho_cam.far);
-
+    rs->cam.proj   = em_perspective(rs->cam.fov, rs->cam.aspect, 
+                                    rs->cam.near, rs->cam.far);
     cam_update(&rs->cam);
+
+    rs->ortho_cam.width  = ev->window_size.x;
+    rs->ortho_cam.height = ev->window_size.y;
+    rs->ortho_cam.proj   = em_orthographic(rs->ortho_cam.width, rs->ortho_cam.height, 
+                                           rs->ortho_cam.near, rs->ortho_cam.far);
     cam_update(&rs->ortho_cam);
 
+    rs->shadow_cam.width  = ev->window_size.x;
+    rs->shadow_cam.height = ev->window_size.y;
+    rs->shadow_cam.proj   = em_orthographic(rs->shadow_cam.width, rs->shadow_cam.height, 
+                                            rs->shadow_cam.near, rs->shadow_cam.far);
+    cam_set_scale(&rs->shadow_cam, rs->shadow_cam.scale);
+    cam_update(&rs->shadow_cam);
+
     chunk_renderer_resize(&rs->chunk_renderer, ev->window_size);
+
     rs->cursor_line_renderer.base.dimensions = ev->window_size;
     rs->global_line_renderer.base.dimensions = ev->window_size;
     rs->ui_renderer.base.dimensions = ev->window_size;
@@ -33,23 +40,43 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
         .far       = desc->view_distance,
         .aspect    = w / h,
         .fov       = 60.0,
-        .pos       = {0.0, 0.0, 0.0}
+        .pos       = { 0.0, 0.0, 0.0 }
     });
 
     cam_init(&rs->ortho_cam, PROJECTION_ORTHOGRAPHIC, &(camera_desc_t) {
-        .near = 0.1,
-        .far = 100.0,
-        .width = w,
+        .near   = 0.1,
+        .far    = 100.0,
+        .width  = w,
         .height = h,
-        .pos = {0.0, 0.0, 0.0}
+        .pos    = { 0.0, 0.0, 0.0 }
     });
+
+    cam_init(&rs->shadow_cam, PROJECTION_ORTHOGRAPHIC, &(camera_desc_t) {
+        .near   = 0.0,
+        .far    = 300.0,
+        .width  = 1280,
+        .height = 1280,
+        .pos    = { 0.0, 0.0, 0.0 }
+    });
+    cam_set_scale(&rs->shadow_cam, desc->shadow_scale);
+
+    // vec3 inv_dir = (vec3) { 0.0, -0.5, 0.5 };
+    vec3 inv_sun_dir = (vec3) { -2.0, -4.0, -1.0 };
+    rs->shadow_cam.view = em_look_at(inv_sun_dir, (vec3) { 0.0, 0.0, 0.0 }, (vec3) { 0.0, 1.0, 0.0 });
+
+    cam_update(&rs->shadow_cam);
 
     /* Renderers */
     chunk_renderer_init(&rs->chunk_renderer, &(chunk_renderer_desc_t) {
         .base_desc = &(renderer_base_desc_t) {
             .dimensions = desc->window_size,
             .cam = &rs->cam,
-        }
+        },
+        .shadowmap_base_desc = &(renderer_base_desc_t) {
+            .dimensions = (vec2) { rs->shadow_cam.width, rs->shadow_cam.height },
+            .cam = &rs->shadow_cam,
+        },
+        .inv_sun_dir = inv_sun_dir
     });
     chunk_renderer_load_textures(&rs->chunk_renderer);
 

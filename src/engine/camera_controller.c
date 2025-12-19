@@ -63,7 +63,8 @@ void camera_ctl_cleanup(camera_controller_t *cc)
 
 void camera_ctl_update(camera_controller_t *cc, camera_t *cam, event_system_t *es, double dt)
 {
-    _handle_mouse(cc, cam, es->frame.mouse_delta);
-    _handle_keyboard(cc, cam, es->keys_down, dt);
+    // Order (kind of) matters! - If you do it wrong, it will update next frame anyway.
+    _handle_keyboard(cc, cam, es->keys_down, dt);  // Updates pos before view update.
+    _handle_mouse(cc, cam, es->frame.mouse_delta); // Updates view matrix before vp update.
     cam_update(cam);
 }

@@ -161,6 +161,7 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
         .es = &engine->_event_sys,
         .window_size = {sapp_width(), sapp_height()},
         .view_distance = desc->render_distance * VIEW_DIST_MULTIPLIER,
+        .shadow_scale = 3.0
     });
     ENGINE_LOG_OK("Setup render system.\n", NULL);
 

@@ -11,11 +11,9 @@
 #include <stdio.h>
 
 #include "shaders/composite.glsl.h"
-#ifdef DEBUG
-    #include "shaders/chunk_debug.glsl.h"
-#else
-    #include "shaders/chunk.glsl.h"
-#endif
+#include "shaders/shadowmap.glsl.h"
+
+#include "shaders/chunk.glsl.h"
 
 #define MIP_LEVELS 5
 
@@ -30,16 +28,22 @@ typedef struct chunk_renderer {
         sg_image normal;
         sg_image depth;
         sg_image position;
+        sg_image shadowmap;
         sg_image zbuf;
+        sg_image zbuf_shadow;
     } targets;
     renderer_base_t offscreen_base;
     renderer_base_t display_base;
+    renderer_base_t shadowmap_base;
+    vec3 inv_sun_dir;
     render_data_t data;
     render_coords_t coords;
 } chunk_renderer_t;
 
 typedef struct chunk_renderer_desc {
     const renderer_base_desc_t *base_desc;
+    const renderer_base_desc_t *shadowmap_base_desc;
+    vec3 inv_sun_dir;
 } chunk_renderer_desc_t;
 
 extern void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc);

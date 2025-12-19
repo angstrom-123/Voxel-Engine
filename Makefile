@@ -120,6 +120,13 @@ shaders:
 	@echo ""
 	@$(MAKE) -C src/shaders
 
+.PHONY: link
+link:
+	@echo "" 
+	@echo Linking program.
+	@echo ""
+	@$(MAKE) -C src debug
+
 .PHONY: clean
 clean:
 	@echo ""

@@ -28,6 +28,7 @@ typedef enum offscreen_targets {
 typedef struct render_system {
     camera_t cam;
     camera_t ortho_cam;
+    camera_t shadow_cam;
     chunk_renderer_t chunk_renderer;
     line_renderer_t cursor_line_renderer;
     line_renderer_t global_line_renderer;
@@ -40,6 +41,7 @@ typedef struct render_system_desc {
     event_system_t *es;
     vec2 window_size;
     float view_distance;
+    float shadow_scale;
 } render_system_desc_t;
 
 extern void render_sys_init(render_system_t *rs, const render_system_desc_t *desc);

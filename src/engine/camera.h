@@ -32,6 +32,7 @@ typedef struct camera_desc {
 } camera_desc_t;
 
 typedef struct camera {
+    camera_projection_e kind;
     // parameters
     float near;          // near clipping distance
     float far;           // far clipping distance
@@ -41,6 +42,7 @@ typedef struct camera {
     /* Orthographic only. */
     float width;
     float height;
+    float scale;
     // transform
     float pitch;         // current pitch (up / down) angle (degrees)
     float yaw;           // current yaw (left / right) angle (degrees)
@@ -68,6 +70,7 @@ typedef struct frame_desc {
 
 void cam_init(camera_t *cam, camera_projection_e projection, const camera_desc_t *desc);
 void cam_update(camera_t *cam);
+void cam_set_scale(camera_t *cam, float scale);
 vec3 cam_get_fwd(camera_t *cam);
 vec3 cam_get_right(camera_t *cam);
 vec3 cam_get_up(camera_t *cam);

@@ -11,12 +11,12 @@ typedef struct renderer_base {
     sg_pass pass;
     sg_pipeline pip;
     sg_bindings bind;
-    const camera_t *cam;
+    camera_t *cam;
 } renderer_base_t;
 
 typedef struct renderer_base_desc {
     vec2 dimensions;
-    const camera_t *cam;
+    camera_t *cam;
 } renderer_base_desc_t;
 
 extern void rbase_init(renderer_base_t *rb, const renderer_base_desc_t *desc);

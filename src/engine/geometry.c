@@ -23,7 +23,8 @@ static cube_type_e _get_adj_neighbour(uint8_t x, uint8_t y, uint8_t z,
         return blocks->types[x - 1][y][z];
 
     case FACEIDX_BOTTOM:
-        if (y == 0) return CUBETYPE_AIR;
+        // if (y == 0) return CUBETYPE_AIR;
+        if (y == 0) return CUBETYPE_NUM;
         return blocks->types[x][y - 1][z];
 
     case FACEIDX_TOP:

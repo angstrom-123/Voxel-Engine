@@ -5,7 +5,6 @@ precision highp uint
 @ctype vec2 em_vec2
 
 @vs vs_composite
-// @glsl_options flip_vert_y
 
 in vec2 a_pos;
 
@@ -25,6 +24,7 @@ layout(binding=0) uniform texture2D u_tex_col;
 layout(binding=1) uniform texture2D u_tex_nrm;
 layout(binding=2) uniform texture2D u_tex_dep;
 layout(binding=3) uniform texture2D u_tex_pos;
+layout(binding=4) uniform texture2D u_tex_sha;
 
 in vec2 v_uv;
 
@@ -35,35 +35,37 @@ void main() {
     vec3 nrm = texture(sampler2D(u_tex_nrm, u_smp), v_uv).xyz;
     vec3 dep = texture(sampler2D(u_tex_dep, u_smp), v_uv).xxx;
     vec3 pos = texture(sampler2D(u_tex_pos, u_smp), v_uv).xyz;
+    vec3 sha = texture(sampler2D(u_tex_sha, u_smp), v_uv).xxx;
 
     // Debugging outputs
-    // frag_color = vec4(col, 1.0);
+    frag_color = vec4(col, 1.0);
     // frag_color = vec4(nrm, 1.0);
     // frag_color = vec4(nrm * 0.5 + 0.5, 1.0);
-    // frag_color = vec4(dep * 15.0, 1.0);
+    // frag_color = vec4(dep, 1.0);
     // frag_color = vec4(normalize(pos), 1.0);
+    // frag_color = vec4(sha, 1.0);
 
-    vec3 light_pos = vec3(0, 80, 0);
-    vec3 to_light = light_pos - pos;
-    float dist = length(to_light);
-    vec3 light_dir = to_light / max(dist, 0.001);
-
-    float n_dot_l = max(dot(nrm, light_dir), 0.0);
-    float atten = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist);
-
-    vec3 light_col = vec3(1.0, 1.0, 0.8);
-    float intensity = 5.0;
-
-    vec3 diffuse = n_dot_l + light_col * intensity;
-    vec3 ambient = 0.0 * col;
-    vec3 lit = ambient + diffuse * atten;
-
-    vec3 final = col * lit;
-
-    float gamma = 2.2;
-    vec3 gamma_corrected = pow(final, vec3(1.0 / gamma));
-
-    frag_color = vec4(gamma_corrected, 1.0);
+    // vec3 light_pos = vec3(0, 80, 0);
+    // vec3 to_light = light_pos - pos;
+    // float dist = length(to_light);
+    // vec3 light_dir = to_light / max(dist, 0.001);
+    //
+    // float n_dot_l = max(dot(nrm, light_dir), 0.0);
+    // float atten = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist);
+    //
+    // vec3 light_col = vec3(1.0, 1.0, 0.8);
+    // float intensity = 5.0;
+    //
+    // vec3 diffuse = n_dot_l + light_col * intensity;
+    // vec3 ambient = 0.0 * col;
+    // vec3 lit = ambient + diffuse * atten;
+    //
+    // vec3 final = col * lit;
+    //
+    // float gamma = 2.2;
+    // vec3 gamma_corrected = pow(final, vec3(1.0 / gamma));
+    //
+    // frag_color = vec4(gamma_corrected, 1.0);
 }
 
 @end
