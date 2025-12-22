@@ -16,8 +16,8 @@
 #define DECLARE_CIRCULAR_QUEUE(TYPE, NAME)\
 typedef struct em_circular_queue_##NAME {\
     /* Members. */\
-    size_t size;\
-    size_t count;\
+    SIZE size;\
+    SIZE count;\
     em_circular_queue_t *_cq;\
     /* Methods. */\
     /* Get a new iterator for this queue. */\
@@ -147,13 +147,13 @@ typedef struct em_circular_queue_node {
 } em_circular_queue_node_t;
 
 typedef struct em_circular_queue {
-    size_t size;
-    size_t count;
+    SIZE size;
+    SIZE count;
 
-    int32_t _flags;
+    INT _flags;
     void_cln_func _cln_func;
-    size_t _head;
-    size_t _tail;
+    SIZE _head;
+    SIZE _tail;
     em_circular_queue_node_t **_entries;
 } em_circular_queue_t;
 
@@ -164,14 +164,14 @@ typedef struct em_circular_queue_iter {
 
     em_circular_queue_node_t *_curr;
     em_circular_queue_t *_cq;
-    size_t _cnt;
-    size_t _idx;
+    SIZE _cnt;
+    SIZE _idx;
 } em_circular_queue_iter_t;
 
 typedef struct em_circular_queue_desc {
-    size_t capacity;
+    SIZE capacity;
     void_cln_func cln_func;
-    int32_t flags;
+    INT flags;
 } em_circular_queue_desc_t;
 
 em_circular_queue_node_t *_cq_iter_get(em_circular_queue_iter_t *iter);
@@ -205,9 +205,9 @@ void em_cq_destroy(em_circular_queue_t *this);
 void _em_cq_resize(em_circular_queue_t *this)
 {
     EM_LOG("Circular Queue resizing.\n", NULL);
-    size_t new_size = ceilf(this->size * 1.5);
-    size_t old_size = this->size;
-    size_t difference = new_size - this->size;
+    SIZE new_size = ceilf(this->size * 1.5);
+    SIZE old_size = this->size;
+    SIZE difference = new_size - this->size;
 
     this->size = new_size;
     this->_entries = realloc(this->_entries, new_size * sizeof(em_circular_queue_node_t *));
@@ -221,7 +221,7 @@ void _em_cq_resize(em_circular_queue_t *this)
         return; // Since head is at 0, reallocated space is already above tail. */
 
     /* Shift head and all entries above it to occupy new space which frees up sspace above tail. */
-    size_t num_above_head = old_size - (this->_head + 1);
+    SIZE num_above_head = old_size - (this->_head + 1);
     memmove(&this->_entries[this->_head + difference], &this->_entries[this->_head],
             num_above_head * sizeof(em_circular_queue_node_t *));
     memset(&this->_entries[this->_head], 0, num_above_head * sizeof(em_circular_queue_node_t *));

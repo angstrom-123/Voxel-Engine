@@ -46,7 +46,7 @@ typedef struct camera {
     // transform
     float pitch;         // current pitch (up / down) angle (degrees)
     float yaw;           // current yaw (left / right) angle (degrees)
-    quaternion rot;      // current rotation
+    quat rot;      // current rotation
     vec3 pos;            // current position
     // basis vectors
     vec3 fwd;            // basis forward vector

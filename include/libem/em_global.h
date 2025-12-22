@@ -3,14 +3,44 @@
 
 #include <malloc.h>
 #include <memory.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <stdbool.h>
 
 #ifdef EM_ENABLE_LOGGING
-#define LOG 1
+    #define LOG 1
 #else 
-#define LOG 0
+    #define LOG 0
+#endif
+
+#ifdef EM_ALIAS_TYPES
+    #define ALIAS 1
+#else 
+    #define ALIAS 0
+#endif
+
+#ifdef EM_USE_UNSIZED_TYPES
+    #define INT int
+    #define UINT unsigned int
+    #define SHORT short;
+    #define USHORT unsigned short;
+    #define BYTE char
+    #define UBYTE unsigned char
+    #define LONG long
+    #define ULONG unsigned long
+    #define SIZE ULONG
+    #define FLOAT float
+#else 
+    #include <stdint.h>
+    #include <stddef.h>
+    #define INT int32_t
+    #define UINT uint32_t 
+    #define SHORT int16_t
+    #define USHORT uint16_t
+    #define BYTE int8_t
+    #define UBYTE uint8_t
+    #define LONG int64_t
+    #define ULONG uint64_t
+    #define SIZE size_t
+    #define FLOAT float
 #endif
 
 #define EM_LOG(fmt, ...) do { if (LOG) (fprintf(stderr, "%s:%d:%s(): [LIBEM] " fmt, __FILE__, __LINE__, __func__, __VA_ARGS__)); } while (0)

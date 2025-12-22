@@ -68,7 +68,7 @@ void main() {
 @end
 
 @fs fs_chunk
-layout(binding=0) uniform sampler u_smp;
+layout(binding=0) uniform sampler u_smp_col;
 layout(binding=0) uniform texture2D u_tex_col;
 layout(binding=1) uniform texture2D u_tex_sha;
 layout(binding=1) uniform fs_params_chunk {
@@ -84,7 +84,6 @@ in vec4 v_light_pos;
 layout(location=0) out vec4 frag_col;
 layout(location=1) out vec4 frag_nrm;
 layout(location=2) out float frag_dep;
-layout(location=3) out vec4 frag_pos;
 
 void main() {
     // TODO: Handle transparency
@@ -92,25 +91,22 @@ void main() {
 
     frag_nrm = vec4(v_normal, 1.0);
     frag_dep = v_projection.z / v_projection.w;
-    frag_pos = v_pos;
-
-    // float vis = 1.0;
-    // if (curr_depth > sha_depth) {
-    //     vis = 0.5;
-    // }
 
     vec3 proj_cord = - v_light_pos.xyz / v_light_pos.w;
     proj_cord = proj_cord * 0.5 + 0.5;
     proj_cord.x = 1.0 - proj_cord.x;
 
-    float near_dep = texture(sampler2D(u_tex_sha, u_smp), proj_cord.xy).x;
+    float near_dep = texture(sampler2D(u_tex_sha, u_smp_col), proj_cord.xy).x;
     float curr_dep = proj_cord.z;
 
-    float bias = max(0.005 * (1.0 - dot(v_normal, u_sun_dir)), 0.005);  
-    bias = bias * 0.00000000001 + 0.005;
+    float bias = max(0.005 * (1.0 - dot(v_normal, u_sun_dir)), 0.005);
     float vis = curr_dep + bias > near_dep ? 1.0 : 0.3;
 
-    frag_col = texture(sampler2D(u_tex_col, u_smp), v_uv) * vis;
+    frag_col = texture(sampler2D(u_tex_col, u_smp_col), v_uv) * vis;
+
+    // frag_col = near_dep < 1.0 ? vec4(1.0, 1.0, 1.0, 1.0) : vec4(0.5, 0.5, 0.5, 1.0);
+    // frag_col = vec4(near_dep);
+    // frag_col.xyz = frag_col.xyz + (u_sun_dir * 0.000001);
 }
 
 @end 

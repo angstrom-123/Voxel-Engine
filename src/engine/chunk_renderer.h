@@ -20,14 +20,12 @@
 #define COLOUR_PIXELFORMAT SG_PIXELFORMAT_RGBA8
 #define NORMAL_PIXELFORMAT SG_PIXELFORMAT_RGBA8
 #define DEPTH_PIXELFORMAT SG_PIXELFORMAT_R32F
-#define POSITION_PIXELFORMAT SG_PIXELFORMAT_RGBA32F
 
 typedef struct chunk_renderer {
     struct targets {
         sg_image colour;
         sg_image normal;
         sg_image depth;
-        sg_image position;
         sg_image shadowmap;
         sg_image zbuf;
         sg_image zbuf_shadow;

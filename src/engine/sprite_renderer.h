@@ -3,6 +3,7 @@
 
 #include "renderer_base.h"
 #include "data_structures.h"
+#include "texture_handler.h"
 
 #include "shaders/sprite.glsl.h"
 
@@ -44,6 +45,7 @@ typedef struct sprite_desc {
     vec2 pos;
     vec2 size;
     float z_index;
+    vec2 uv_offset;
 } sprite_desc_t;
 
 extern void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *desc);

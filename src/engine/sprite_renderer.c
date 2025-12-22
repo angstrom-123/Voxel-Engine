@@ -86,34 +86,30 @@ void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *d
 
 void sprite_renderer_load_textures(sprite_renderer_t *sr)
 {
-    /* Bindings. */
-    sr->base.bind.samplers[0] = sg_make_sampler(&(sg_sampler_desc) {
+    ENGINE_TODO("Make an atlas for sprite textures such as crosshair");
+    texture_t crosshair;
+    texture_t font_atlas;
+
+    bool res;
+    res = texture_load(&crosshair, &(texture_desc_t) {
+        .path = "res/tex/sprite/crosshair"
+    });
+    ENGINE_ASSERT(res, "Failed to load sprite atlas texture");
+
+    res = texture_load(&font_atlas, &(texture_desc_t) {
+        .path = "res/tex/sprite/font-atlas",
+        .subimages_x = 10,
+        .subimages_y = 10
+    });
+    ENGINE_ASSERT(res, "Failed to load font atlas texture");
+
+    sr->base.bind.views[VIEW_u_tex_sprite_atlas] = crosshair.as_view;
+    sr->base.bind.views[VIEW_u_tex_font_atlas] = font_atlas.as_view;
+    sr->base.bind.samplers[SMP_u_smp] = sg_make_sampler(&(sg_sampler_desc) {
         .min_filter = SG_FILTER_NEAREST,
         .mag_filter = SG_FILTER_NEAREST,
         .max_lod = 1.0
     });
-    sr->base.bind.views[0] = sg_alloc_view();
-
-    em_bmp_image_t crosshair;
-    bool res = em_bmp_load(&crosshair, "res/tex/sprite/crosshair.bmp");
-    ENGINE_ASSERT(res, "Failed to load texture for crosshair sprite");
-
-    sg_image img = sg_alloc_image();
-    sg_init_image(img, &(sg_image_desc) {
-        .width = crosshair.ih.width,
-        .height = crosshair.ih.height,
-        .pixel_format = SG_PIXELFORMAT_RGBA8,
-        .num_mipmaps = 1.0,
-        .data.subimage[0] = {
-            { .ptr = crosshair.pixel_data, .size = crosshair.ih.img_size }
-        }
-    });
-
-    sg_init_view(sr->base.bind.views[0], &(sg_view_desc) {
-        .texture.image = img
-    });
-
-    free(crosshair.pixel_data);
 }
 
 void sprite_renderer_cleanup(sprite_renderer_t *sr)
@@ -174,7 +170,12 @@ void sprite_renderer_render_all(sprite_renderer_t *sr)
             .u_vp = sr->base.cam->vp
         };
 
+        fs_params_sprite_t fs_params = {
+            .u_is_char = false
+        };
+
         sg_apply_uniforms(UB_vs_params_sprite, &SG_RANGE(vs_params));
+        sg_apply_uniforms(UB_fs_params_sprite, &SG_RANGE(fs_params));
 
         sr->base.bind.vertex_buffer_offsets[0] = s->offset->v_ofst * sizeof(sprite_vertex_t);
         sr->base.bind.index_buffer_offset = s->offset->i_ofst * sizeof(uint16_t);
@@ -184,6 +185,30 @@ void sprite_renderer_render_all(sprite_renderer_t *sr)
     }
 
     sg_end_pass();
+}
+
+void sprite_renderer_update_sprite(sprite_renderer_t *sr, sprite_t *s, const sprite_desc_t *desc)
+{
+    ENGINE_UNIMPLEMENTED("Add sprite updating");
+    // TODO:
+    //      Fetch from buffer.
+    //      Update.
+}
+
+sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str)
+{
+    ENGINE_UNIMPLEMENTED("Add character sprite pushing");
+    size_t len = strlen(str);
+    
+    // TODO:
+    //      Load texture atlas in other func.
+    //      Lookup character in loaded texture atlas.
+    //      Error out if not possible, else proceed.
+    //      Push sprite if possible.
+    //      Save pushed sprite ptr to result array.
+    //      
+    //      Return result array.
+    return NULL;
 }
 
 sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
@@ -197,22 +222,22 @@ sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
     /* Counter clockwise winding. */
     sr->vbo[s->offset->v_ofst] = (sprite_vertex_t) {
         .pos = desc->pos,
-        .uv = {0.0, 0.0},
+        .uv = em_add_vec2(VEC2(0.0, 0.0), desc->uv_offset),
         .z = desc->z_index
     };
     sr->vbo[s->offset->v_ofst + 1] = (sprite_vertex_t) {
         .pos = em_add_vec2(desc->pos, (vec2) {desc->size.x, 0.0}),
-        .uv = {1.0, 0.0},
+        .uv = em_add_vec2(VEC2(1.0, 0.0), desc->uv_offset),
         .z = desc->z_index
     };
     sr->vbo[s->offset->v_ofst + 2] = (sprite_vertex_t) {
         .pos = em_add_vec2(desc->pos, desc->size),
-        .uv = {1.0, 1.0},
+        .uv = em_add_vec2(VEC2(1.0, 1.0), desc->uv_offset),
         .z = desc->z_index
     };
     sr->vbo[s->offset->v_ofst + 3] = (sprite_vertex_t) {
         .pos = em_add_vec2(desc->pos, (vec2) {0.0, desc->size.y}),
-        .uv = {0.0, 1.0},
+        .uv = em_add_vec2(VEC2(0.0, 1.0), desc->uv_offset),
         .z = desc->z_index
     };
 

@@ -17,7 +17,7 @@ vec3 cam_get_up(camera_t *cam)
 
 void cam_init(camera_t *cam, camera_projection_e proj, const camera_desc_t *desc) 
 {
-    const quaternion identity = { 1, 0, 0, 0 };
+    const quat identity = { 1, 0, 0, 0 };
     mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(identity));
     mat4 trans = em_translate_mat4(em_mul_vec3_f(desc->pos, -1.0));
 

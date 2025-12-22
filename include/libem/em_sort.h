@@ -10,7 +10,7 @@
 
 typedef int (*sort_cmp)(const void *lhs, const void *rhs);
 
-extern void em_quicksort(void *arr, size_t n, sort_cmp cmp);
+extern void em_quicksort(void *arr, SIZE n, sort_cmp cmp);
 
 #endif // EM_SORT_INCLUDED
 
@@ -31,11 +31,11 @@ void _swap(void **lhs, void **rhs)
     *rhs = tmp;
 }
 
-size_t _quicksort_partition(void *arr, size_t l, size_t r, sort_cmp cmp)
+SIZE _quicksort_partition(void *arr, SIZE l, SIZE r, sort_cmp cmp)
 {
     void *piv = &arr[r];
-    size_t i = l - 1;
-    for (size_t j = l; j < r; j++)
+    SIZE i = l - 1;
+    for (SIZE j = l; j < r; j++)
     {
         if (cmp(&arr[j], piv) <= 0)
         {
@@ -47,17 +47,17 @@ size_t _quicksort_partition(void *arr, size_t l, size_t r, sort_cmp cmp)
     return i + 1;
 }
 
-void _quicksort(void *arr, size_t l, size_t r, sort_cmp cmp)
+void _quicksort(void *arr, SIZE l, SIZE r, sort_cmp cmp)
 {
     if (l < r)
     {
-        size_t p = _quicksort_partition(arr, l, r, cmp);
+        SIZE p = _quicksort_partition(arr, l, r, cmp);
         _quicksort(arr, l, p - 1, cmp);
         _quicksort(arr, p + 1, r, cmp);
     }
 }
 
-void em_quicksort(void *arr, size_t n, sort_cmp cmp)
+void em_quicksort(void *arr, SIZE n, sort_cmp cmp)
 {
     _quicksort(arr, 0, n - 1, cmp);
 }

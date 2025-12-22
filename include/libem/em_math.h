@@ -6,11 +6,6 @@
 
 #include "em_global.h"
 
-#include <stdbool.h>
-#include <stdint.h>
-
-#define ALIAS_TYPES true
-
 #define em_PI 3.14159265359
 #define em_deg_to_rad(t) (t * (em_PI / 180.0))
 #define em_rad_to_deg(t) (t * (180.0 / em_PI))
@@ -25,99 +20,121 @@
 
 typedef union em_vec2 {
     struct {
-        float x, y;
+        FLOAT x, y;
     };
 
-    float elements[2];
+    FLOAT elements[2];
 } em_vec2;
 
 typedef union em_vec3 {
     struct {
-        float x, y, z;
+        FLOAT x, y, z;
     };
 
-    float elements[3];
+    FLOAT elements[3];
 } em_vec3;
 
 typedef union em_vec4 {
     struct {
-        float x, y, z, w;
+        FLOAT x, y, z, w;
     };
 
-    float elements[4];
+    FLOAT elements[4];
 } em_vec4;
 
 typedef union em_ivec2 {
     struct {
-        int32_t x, y;
+        INT x, y;
     };
 
-    int32_t elements[2];
+    INT elements[2];
 } em_ivec2;
 
 typedef union em_ivec3 {
     struct {
-        int32_t x, y, z;
+        INT x, y, z;
     };
 
-    int32_t elements[3];
+    INT elements[3];
 } em_ivec3;
 
 typedef union em_ivec4 {
     struct {
-        int32_t x, y, z, w;
+        INT x, y, z, w;
     };
 
-    int32_t elements[4];
+    INT elements[4];
 } em_ivec4;
 
 typedef union em_uvec2 {
     struct {
-        uint32_t x, y;
+        UINT x, y;
     };
 
-    uint32_t elements[2];
+    UINT elements[2];
 } em_uvec2;
 
 typedef union em_uvec3 {
     struct {
-        uint32_t x, y, z;
+        UINT x, y, z;
     };
 
-    uint32_t elements[3];
+    UINT elements[3];
 } em_uvec3;
 
 typedef union em_uvec4 {
     struct {
-        uint32_t x, y, z, w;
+        UINT x, y, z, w;
     };
 
-    uint32_t elements[4];
+    UINT elements[4];
 } em_uvec4;
 
 typedef struct em_mat4 {
-    float elements[4][4];
+    FLOAT elements[4][4];
 } em_mat4;
 
 typedef em_vec4 em_quaternion;
 
-#if ALIAS_TYPES
-typedef em_quaternion quaternion;
-
-typedef em_vec2 vec2;
-typedef em_vec3 vec3;
-typedef em_vec4 vec4;
-
-typedef em_ivec2 ivec2;
-typedef em_ivec3 ivec3;
-typedef em_ivec4 ivec4;
-
-typedef em_uvec2 uvec2;
-typedef em_uvec3 uvec3;
-typedef em_uvec4 uvec4;
-
-typedef em_mat4 mat4;
+#if ALIAS
+    typedef em_quaternion quat;
+    
+    typedef em_vec2 vec2;
+    typedef em_vec3 vec3;
+    typedef em_vec4 vec4;
+    
+    typedef em_ivec2 ivec2;
+    typedef em_ivec3 ivec3;
+    typedef em_ivec4 ivec4;
+    
+    typedef em_uvec2 uvec2;
+    typedef em_uvec3 uvec3;
+    typedef em_uvec4 uvec4;
+    
+    typedef em_mat4 mat4;
 #endif
+
+#define VEC2(a, b) (em_vec2) { (FLOAT) (a), (FLOAT) (b) }
+#define VEC3(a, b, c) (em_vec3) { (FLOAT) (a), (FLOAT) (b), (FLOAT) (c) }
+#define VEC4(a, b, c, d) (em_vec4) { (FLOAT) (a), (FLOAT) (b), (FLOAT) (c), (FLOAT) (d) }
+#define QUAT(a, b, c, d) vec4(a, b, c, d)
+#define IVEC2(a, b) (em_ivec2) { (INT) (a), (INT) (b) }
+#define IVEC3(a, b, c) (em_ivec3) { (INT) (a), (INT) (b), (INT) (c) }
+#define IVEC4(a, b, c, d) (em_ivec4) { (INT) (a), (INT) (b), (INT) (c), (INT) (d) }
+#define UVEC2(a, b) (em_uvec2) { (UINT) (a), (UINT) (b) }
+#define UVEC3(a, b, c) (em_uvec3) { (UINT) (a), (UINT) (b), (UINT) (c) }
+#define UVEC4(a, b, c, d) (em_uvec4) { (UINT) (a), (UINT) (b), (UINT) (c), (UINT) (d) }
+
+#define AS_VEC2(v) (em_vec2) { (FLOAT) v.x, (FLOAT) v.y }
+#define AS_VEC3(v) AS_VEC3_(v)
+#define AS_VEC3_(v) (em_vec3) { (FLOAT) v.x, (FLOAT) v.y, (FLOAT) v.z }
+#define AS_VEC4(v) (em_vec4) { (FLOAT) v.x, (FLOAT) v.y, (FLOAT) v.z, (FLOAT) v.w }
+#define AS_IVEC2(v) (em_vec2) { (INT) v.x, (INT) v.y }
+#define AS_IVEC3(v) (em_vec3) { (INT) v.x, (INT) v.y, (INT) v.z }
+#define AS_IVEC4(v) (em_vec4) { (INT) v.x, (INT) v.y, (INT) v.z, (INT) v.w }
+#define AS_UVEC2(v) (em_vec2) { (UINT) v.x, (UINT) v.y }
+#define AS_UVEC3(v) (em_vec3) { (UINT) v.x, (UINT) v.y, (UINT) v.z }
+#define AS_UVEC4(v) (em_vec4) { (UINT) v.x, (UINT) v.y, (UINT) v.z, (UINT) v.w }
 
 bool em_equals_vec4(em_vec4 a, em_vec4 b);
 bool em_equals_quaternion(em_quaternion a, em_quaternion b);
@@ -157,44 +174,44 @@ em_vec2 em_uvec2_as_vec2(em_uvec2 a);
 em_vec3 em_uvec3_as_vec3(em_uvec3 a);
 em_vec4 em_uvec3_as_vec4(em_uvec4 a);
 
-em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, float w);
+em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, FLOAT w);
 em_mat4 em_new_mat4(void);
-em_mat4 em_new_mat4_diagonal(float diagonal);
-em_quaternion em_new_quaternion_vec3_f(em_vec3 xyz, float w);
+em_mat4 em_new_mat4_diagonal(FLOAT diagonal);
+em_quaternion em_new_quaternion_vec3_f(em_vec3 xyz, FLOAT w);
 
 em_vec2 em_normalize_vec2(em_vec2 a);
 em_vec3 em_normalize_vec3(em_vec3 a);
 em_vec4 em_normalize_vec4(em_vec4 a);
 
-float em_length_vec2(em_vec2 a);
-float em_length_vec3(em_vec3 a);
-float em_length_vec4(em_vec4 a);
+FLOAT em_length_vec2(em_vec2 a);
+FLOAT em_length_vec3(em_vec3 a);
+FLOAT em_length_vec4(em_vec4 a);
 
-float em_length_squared_vec2(em_vec2 a);
-float em_length_squared_vec3(em_vec3 a);
-float em_length_squared_vec4(em_vec4 a);
+FLOAT em_length_squared_vec2(em_vec2 a);
+FLOAT em_length_squared_vec3(em_vec3 a);
+FLOAT em_length_squared_vec4(em_vec4 a);
 
-float em_dot_vec2(em_vec2 a, em_vec2 b);
-float em_dot_vec3(em_vec3 a, em_vec3 b);
-float em_dot_vec4(em_vec4 a, em_vec4 b);
-float em_dot_ivec2(em_ivec2 a, em_ivec2 b);
-float em_dot_ivec3(em_ivec3 a, em_ivec3 b);
-float em_dot_ivec4(em_ivec4 a, em_ivec4 b);
+FLOAT em_dot_vec2(em_vec2 a, em_vec2 b);
+FLOAT em_dot_vec3(em_vec3 a, em_vec3 b);
+FLOAT em_dot_vec4(em_vec4 a, em_vec4 b);
+FLOAT em_dot_ivec2(em_ivec2 a, em_ivec2 b);
+FLOAT em_dot_ivec3(em_ivec3 a, em_ivec3 b);
+FLOAT em_dot_ivec4(em_ivec4 a, em_ivec4 b);
 
 em_vec3 em_cross_vec3(em_vec3 a, em_vec3 b);
 
 em_vec2 em_add_vec2(em_vec2 a, em_vec2 b);
 em_vec3 em_add_vec3(em_vec3 a, em_vec3 b);
 em_vec4 em_add_vec4(em_vec4 a, em_vec4 b);
-em_vec2 em_add_vec2_f(em_vec2 a, float b);
-em_vec3 em_add_vec3_f(em_vec3 a, float b);
-em_vec4 em_add_vec4_f(em_vec4 a, float b);
+em_vec2 em_add_vec2_f(em_vec2 a, FLOAT b);
+em_vec3 em_add_vec3_f(em_vec3 a, FLOAT b);
+em_vec4 em_add_vec4_f(em_vec4 a, FLOAT b);
 em_ivec2 em_add_ivec2(em_ivec2 a, em_ivec2 b);
 em_ivec3 em_add_ivec3(em_ivec3 a, em_ivec3 b);
 em_ivec4 em_add_ivec4(em_ivec4 a, em_ivec4 b);
-em_ivec2 em_add_ivec2_i(em_ivec2 a, int32_t b);
-em_ivec3 em_add_ivec3_i(em_ivec3 a, int32_t b);
-em_ivec4 em_add_ivec4_i(em_ivec4 a, int32_t b);
+em_ivec2 em_add_ivec2_i(em_ivec2 a, INT b);
+em_ivec3 em_add_ivec3_i(em_ivec3 a, INT b);
+em_ivec4 em_add_ivec4_i(em_ivec4 a, INT b);
 
 em_vec2 em_sub_vec2(em_vec2 a, em_vec2 b);
 em_vec3 em_sub_vec3(em_vec3 a, em_vec3 b);
@@ -206,42 +223,42 @@ em_ivec4 em_sub_ivec4(em_ivec4 a, em_ivec4 b);
 em_vec2 em_mul_vec2(em_vec2 a, em_vec2 b);
 em_vec3 em_mul_vec3(em_vec3 a, em_vec3 b);
 em_vec4 em_mul_vec4(em_vec4 a, em_vec4 b);
-em_vec2 em_mul_vec2_f(em_vec2 a, float b);
-em_vec3 em_mul_vec3_f(em_vec3 a, float b);
-em_vec4 em_mul_vec4_f(em_vec4 a, float b);
+em_vec2 em_mul_vec2_f(em_vec2 a, FLOAT b);
+em_vec3 em_mul_vec3_f(em_vec3 a, FLOAT b);
+em_vec4 em_mul_vec4_f(em_vec4 a, FLOAT b);
 em_ivec2 em_mul_ivec2(em_ivec2 a, em_ivec2 b);
 em_ivec3 em_mul_ivec3(em_ivec3 a, em_ivec3 b);
 em_ivec4 em_mul_ivec4(em_ivec4 a, em_ivec4 b);
-em_ivec2 em_mul_ivec2_i(em_ivec2 a, int32_t b);
-em_ivec3 em_mul_ivec3_i(em_ivec3 a, int32_t b);
-em_ivec4 em_mul_ivec4_i(em_ivec4 a, int32_t b);
+em_ivec2 em_mul_ivec2_i(em_ivec2 a, INT b);
+em_ivec3 em_mul_ivec3_i(em_ivec3 a, INT b);
+em_ivec4 em_mul_ivec4_i(em_ivec4 a, INT b);
 
 em_vec2 em_div_vec2(em_vec2 a, em_vec2 b);
 em_vec3 em_div_vec3(em_vec3 a, em_vec3 b);
 em_vec4 em_div_vec4(em_vec4 a, em_vec4 b);
-em_vec2 em_div_vec2_f(em_vec2 a, float b);
-em_vec3 em_div_vec3_f(em_vec3 a, float b);
-em_vec4 em_div_vec4_f(em_vec4 a, float b);
+em_vec2 em_div_vec2_f(em_vec2 a, FLOAT b);
+em_vec3 em_div_vec3_f(em_vec3 a, FLOAT b);
+em_vec4 em_div_vec4_f(em_vec4 a, FLOAT b);
 em_ivec2 em_div_ivec2(em_ivec2 a, em_ivec2 b);
 em_ivec3 em_div_ivec3(em_ivec3 a, em_ivec3 b);
 em_ivec4 em_div_ivec4(em_ivec4 a, em_ivec4 b);
-em_ivec2 em_div_ivec2_i(em_ivec2 a, int32_t b);
-em_ivec3 em_div_ivec3_i(em_ivec3 a, int32_t b);
-em_ivec4 em_div_ivec4_i(em_ivec4 a, int32_t b);
+em_ivec2 em_div_ivec2_i(em_ivec2 a, INT b);
+em_ivec3 em_div_ivec3_i(em_ivec3 a, INT b);
+em_ivec4 em_div_ivec4_i(em_ivec4 a, INT b);
 
 em_mat4 em_mul_mat4(em_mat4 a, em_mat4 b);
-em_mat4 em_mul_mat4_f(em_mat4 a, float b);
+em_mat4 em_mul_mat4_f(em_mat4 a, FLOAT b);
 em_vec4 em_mul_mat4_v4(em_mat4 a, em_vec4 b);
 
-em_mat4 em_div_mat4_f(em_mat4 a, float b);
+em_mat4 em_div_mat4_f(em_mat4 a, FLOAT b);
 
-em_mat4 em_orthographic(float width, float height, float near, float far);
-em_mat4 em_perspective(float fov_degrees, float aspect_ratio, float near, float far);
+em_mat4 em_orthographic(FLOAT width, FLOAT height, FLOAT near, FLOAT far);
+em_mat4 em_perspective(FLOAT fov_degrees, FLOAT aspect_ratio, FLOAT near, FLOAT far);
 em_mat4 em_transpose_mat4(em_mat4 matrix);
 em_mat4 em_translate_mat4(em_vec3 translation);
 em_vec3 em_quaternion_rotate_vec3(em_vec3 vector, em_quaternion rotation);
-em_vec3 em_rotate_vec3(em_vec3 vector, float angle_degrees, em_vec3 axis);
-em_mat4 em_rotate_mat4(float angle_degrees, em_vec3 axis);
+em_vec3 em_rotate_vec3(em_vec3 vector, FLOAT angle_degrees, em_vec3 axis);
+em_mat4 em_rotate_mat4(FLOAT angle_degrees, em_vec3 axis);
 em_mat4 em_scale_mat4(em_vec3 scale);
 em_mat4 em_look_at(em_vec3 eye, em_vec3 centre, em_vec3 up);
 
@@ -249,17 +266,17 @@ em_quaternion em_conjugate_quaternion(em_quaternion a);
 em_quaternion em_inverse_quaternion(em_quaternion a);
 em_mat4 em_quaternion_to_mat4(em_quaternion a);
 em_quaternion em_vec3_to_quaternion(em_vec3 a);
-em_quaternion em_quaternion_from_axis_angle(em_vec3 axis, float angle_degrees);
+em_quaternion em_quaternion_from_axis_angle(em_vec3 axis, FLOAT angle_degrees);
 
 em_quaternion em_add_quaternion(em_quaternion a, em_quaternion b);
 em_quaternion em_sub_quaternion(em_quaternion a, em_quaternion b);
 em_quaternion em_mul_quaternion(em_quaternion a, em_quaternion b);
-em_quaternion em_mul_quaternion_f(em_quaternion a, float b);
+em_quaternion em_mul_quaternion_f(em_quaternion a, FLOAT b);
 em_quaternion em_mul_quaternion_vec3(em_quaternion a, em_vec3 b);
 em_quaternion em_div_quaternion(em_quaternion a, em_quaternion b);
-em_quaternion em_div_quaternion_f(em_quaternion a, float b);
+em_quaternion em_div_quaternion_f(em_quaternion a, FLOAT b);
 em_quaternion em_normalize_quaternion(em_quaternion a);
-float em_dot_quaternion(em_quaternion a, em_quaternion b);
+FLOAT em_dot_quaternion(em_quaternion a, em_quaternion b);
 
 #endif // EM_MATH_INCLUDED
 
@@ -411,50 +428,50 @@ bool em_equals_ivec3(em_ivec3 a, em_ivec3 b)
 
 em_vec2 em_ivec2_as_vec2(em_ivec2 a)
 {
-    return (em_vec2) {(float) a.x, (float) a.y};
+    return (em_vec2) {(FLOAT) a.x, (FLOAT) a.y};
 }
 
 em_vec3 em_ivec3_as_vec3(em_ivec3 a)
 {
-    return (em_vec3) {(float) a.x, (float) a.y, (float) a.z};
+    return (em_vec3) {(FLOAT) a.x, (FLOAT) a.y, (FLOAT) a.z};
 }
 
 em_vec4 em_ivec4_as_vec4(em_ivec4 a)
 {
-    return (em_vec4) {(float) a.x, (float) a.y, (float) a.z, (float) a.w};
+    return (em_vec4) {(FLOAT) a.x, (FLOAT) a.y, (FLOAT) a.z, (FLOAT) a.w};
 }
 
 em_ivec2 em_vec2_as_ivec2(em_vec2 a)
 {
-    return (em_ivec2) {(int32_t) a.x, (int32_t) a.y};
+    return (em_ivec2) {(INT) a.x, (INT) a.y};
 }
 
 em_ivec3 em_vec3_as_ivec3(em_vec3 a)
 {
-    return (em_ivec3) {(int32_t) a.x, (int32_t) a.y, (int32_t) a.z};
+    return (em_ivec3) {(INT) a.x, (INT) a.y, (INT) a.z};
 }
 
 em_ivec4 em_vec4_as_ivec4(em_vec4 a)
 {
-    return (em_ivec4) {(int32_t) a.x, (int32_t) a.y, (int32_t) a.z, (int32_t) a.w};
+    return (em_ivec4) {(INT) a.x, (INT) a.y, (INT) a.z, (INT) a.w};
 }
 
 em_vec2 em_uvec2_as_vec2(em_uvec2 a)
 {
-    return (em_vec2) {(float) a.x, (float) a.y};
+    return (em_vec2) {(FLOAT) a.x, (FLOAT) a.y};
 }
 
 em_vec3 em_uvec3_as_vec3(em_uvec3 a)
 {
-    return (em_vec3) {(float) a.x, (float) a.y, (float) a.z};
+    return (em_vec3) {(FLOAT) a.x, (FLOAT) a.y, (FLOAT) a.z};
 }
 
 em_vec4 em_uvec4_as_vec4(em_uvec4 a)
 {
-    return (em_vec4) {(float) a.x, (float) a.y, (float) a.z, (float) a.w};
+    return (em_vec4) {(FLOAT) a.x, (FLOAT) a.y, (FLOAT) a.z, (FLOAT) a.w};
 }
 
-em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, float w)
+em_vec4 em_new_vec4_vec3_f(em_vec3 xyz, FLOAT w)
 {
     return (em_vec4) {xyz.x, xyz.y, xyz.z, w};
 }
@@ -471,7 +488,7 @@ em_mat4 em_new_mat4(void)
     };
 }
 
-em_mat4 em_new_mat4_diagonal(float diagonal) 
+em_mat4 em_new_mat4_diagonal(FLOAT diagonal) 
 {
     return (em_mat4) {
         .elements = {
@@ -483,14 +500,14 @@ em_mat4 em_new_mat4_diagonal(float diagonal)
     };
 }
 
-em_quaternion em_new_quaternion_vec3_f(em_vec3 xyz, float w)
+em_quaternion em_new_quaternion_vec3_f(em_vec3 xyz, FLOAT w)
 {
     return (em_quaternion) {xyz.x, xyz.y, xyz.z, w};
 }
 
 em_vec2 em_normalize_vec2(em_vec2 a) 
 {
-    float len = em_length_vec2(a);
+    FLOAT len = em_length_vec2(a);
     if (len > 1.0E-6)
         return em_div_vec2_f(a, len);
     return a;
@@ -498,7 +515,7 @@ em_vec2 em_normalize_vec2(em_vec2 a)
 
 em_vec3 em_normalize_vec3(em_vec3 a)
 {
-    float len = em_length_vec3(a);
+    FLOAT len = em_length_vec3(a);
     if (len > 1.0E-6)
         return em_div_vec3_f(a, len);
     return a;
@@ -506,68 +523,68 @@ em_vec3 em_normalize_vec3(em_vec3 a)
 
 em_vec4 em_normalize_vec4(em_vec4 a)
 {
-    float len = em_length_vec4(a);
+    FLOAT len = em_length_vec4(a);
     if (len > 1.0E-6)
         return em_div_vec4_f(a, len);
     return a;
 }
 
-float em_length_vec2(em_vec2 a) 
+FLOAT em_length_vec2(em_vec2 a) 
 {
     return sqrtf(em_length_squared_vec2(a));
 }
 
-float em_length_vec3(em_vec3 a)
+FLOAT em_length_vec3(em_vec3 a)
 {
     return sqrtf(em_length_squared_vec3(a));
 }
 
-float em_length_vec4(em_vec4 a)
+FLOAT em_length_vec4(em_vec4 a)
 {
     return sqrtf(em_length_squared_vec4(a));
 }
 
-float em_length_squared_vec2(em_vec2 a)
+FLOAT em_length_squared_vec2(em_vec2 a)
 {
     return em_dot_vec2(a, a);
 }
 
-float em_length_squared_vec3(em_vec3 a)
+FLOAT em_length_squared_vec3(em_vec3 a)
 {
     return em_dot_vec3(a, a);
 }
 
-float em_length_squared_vec4(em_vec4 a)
+FLOAT em_length_squared_vec4(em_vec4 a)
 {
     return em_dot_vec4(a, a);
 }
 
-float em_dot_vec2(em_vec2 a, em_vec2 b) 
+FLOAT em_dot_vec2(em_vec2 a, em_vec2 b) 
 {
     return (a.x * b.x) + (a.y * b.y);
 }
 
-float em_dot_vec3(em_vec3 a, em_vec3 b)
+FLOAT em_dot_vec3(em_vec3 a, em_vec3 b)
 {
     return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
 }
 
-float em_dot_vec4(em_vec4 a, em_vec4 b)
+FLOAT em_dot_vec4(em_vec4 a, em_vec4 b)
 {
     return (a.x * b.x) + (a.y * b.y) + (a.z * b.z) + (a.w * b.w);
 }
 
-float em_dot_ivec2(em_ivec2 a, em_ivec2 b) 
+FLOAT em_dot_ivec2(em_ivec2 a, em_ivec2 b) 
 {
     return (a.x * b.x) + (a.y * b.y);
 }
 
-float em_dot_ivec3(em_ivec3 a, em_ivec3 b)
+FLOAT em_dot_ivec3(em_ivec3 a, em_ivec3 b)
 {
     return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
 }
 
-float em_dot_ivec4(em_ivec4 a, em_ivec4 b)
+FLOAT em_dot_ivec4(em_ivec4 a, em_ivec4 b)
 {
     return (a.x * b.x) + (a.y * b.y) + (a.z * b.z) + (a.w * b.w);
 }
@@ -608,7 +625,7 @@ em_vec4 em_add_vec4(em_vec4 a, em_vec4 b)
     };
 }
 
-em_vec2 em_add_vec2_f(em_vec2 a, float b)
+em_vec2 em_add_vec2_f(em_vec2 a, FLOAT b)
 {
     return (em_vec2) {
         a.x + b, 
@@ -616,7 +633,7 @@ em_vec2 em_add_vec2_f(em_vec2 a, float b)
     };
 }
 
-em_vec3 em_add_vec3_f(em_vec3 a, float b) 
+em_vec3 em_add_vec3_f(em_vec3 a, FLOAT b) 
 {
     return (em_vec3) {
         a.x + b,
@@ -625,7 +642,7 @@ em_vec3 em_add_vec3_f(em_vec3 a, float b)
     };
 }
 
-em_vec4 em_add_vec4_f(em_vec4 a, float b)
+em_vec4 em_add_vec4_f(em_vec4 a, FLOAT b)
 {
     return (em_vec4) {
         a.x + b,
@@ -662,7 +679,7 @@ em_ivec4 em_add_ivec4(em_ivec4 a, em_ivec4 b)
     };
 }
 
-em_ivec2 em_add_ivec2_i(em_ivec2 a, int32_t b)
+em_ivec2 em_add_ivec2_i(em_ivec2 a, INT b)
 {
     return (em_ivec2) {
         a.x + b, 
@@ -670,7 +687,7 @@ em_ivec2 em_add_ivec2_i(em_ivec2 a, int32_t b)
     };
 }
 
-em_ivec3 em_add_ivec3_i(em_ivec3 a, int32_t b) 
+em_ivec3 em_add_ivec3_i(em_ivec3 a, INT b) 
 {
     return (em_ivec3) {
         a.x + b,
@@ -679,7 +696,7 @@ em_ivec3 em_add_ivec3_i(em_ivec3 a, int32_t b)
     };
 }
 
-em_ivec4 em_add_ivec4_i(em_ivec4 a, int32_t b)
+em_ivec4 em_add_ivec4_i(em_ivec4 a, INT b)
 {
     return (em_ivec4) {
         a.x + b,
@@ -770,7 +787,7 @@ em_vec4 em_mul_vec4(em_vec4 a, em_vec4 b)
     };
 }
 
-em_vec2 em_mul_vec2_f(em_vec2 a, float b)
+em_vec2 em_mul_vec2_f(em_vec2 a, FLOAT b)
 {
     return (em_vec2) {
         a.x * b, 
@@ -778,7 +795,7 @@ em_vec2 em_mul_vec2_f(em_vec2 a, float b)
     };
 }
 
-em_vec3 em_mul_vec3_f(em_vec3 a, float b) 
+em_vec3 em_mul_vec3_f(em_vec3 a, FLOAT b) 
 {
     return (em_vec3) {
         a.x * b,
@@ -787,7 +804,7 @@ em_vec3 em_mul_vec3_f(em_vec3 a, float b)
     };
 }
 
-em_vec4 em_mul_vec4_f(em_vec4 a, float b)
+em_vec4 em_mul_vec4_f(em_vec4 a, FLOAT b)
 {
     return (em_vec4) {
         a.x * b,
@@ -824,7 +841,7 @@ em_ivec4 em_mul_ivec4(em_ivec4 a, em_ivec4 b)
     };
 }
 
-em_ivec2 em_mul_ivec2_i(em_ivec2 a, int32_t b)
+em_ivec2 em_mul_ivec2_i(em_ivec2 a, INT b)
 {
     return (em_ivec2) {
         a.x * b, 
@@ -832,7 +849,7 @@ em_ivec2 em_mul_ivec2_i(em_ivec2 a, int32_t b)
     };
 }
 
-em_ivec3 em_mul_ivec3_i(em_ivec3 a, int32_t b) 
+em_ivec3 em_mul_ivec3_i(em_ivec3 a, INT b) 
 {
     return (em_ivec3) {
         a.x * b,
@@ -841,7 +858,7 @@ em_ivec3 em_mul_ivec3_i(em_ivec3 a, int32_t b)
     };
 }
 
-em_ivec4 em_mul_ivec4_i(em_ivec4 a, int32_t b)
+em_ivec4 em_mul_ivec4_i(em_ivec4 a, INT b)
 {
     return (em_ivec4) {
         a.x * b,
@@ -878,7 +895,7 @@ em_vec4 em_div_vec4(em_vec4 a, em_vec4 b)
     };
 }
 
-em_vec2 em_div_vec2_f(em_vec2 a, float b)
+em_vec2 em_div_vec2_f(em_vec2 a, FLOAT b)
 {
     return (em_vec2) {
         a.x / b, 
@@ -886,7 +903,7 @@ em_vec2 em_div_vec2_f(em_vec2 a, float b)
     };
 }
 
-em_vec3 em_div_vec3_f(em_vec3 a, float b) 
+em_vec3 em_div_vec3_f(em_vec3 a, FLOAT b) 
 {
     return (em_vec3) {
         a.x / b,
@@ -895,7 +912,7 @@ em_vec3 em_div_vec3_f(em_vec3 a, float b)
     };
 }
 
-em_vec4 em_div_vec4_f(em_vec4 a, float b)
+em_vec4 em_div_vec4_f(em_vec4 a, FLOAT b)
 {
     return (em_vec4) {
         a.x / b,
@@ -932,7 +949,7 @@ em_ivec4 em_div_ivec4(em_ivec4 a, em_ivec4 b)
     };
 }
 
-em_ivec2 em_div_ivec2_i(em_ivec2 a, int32_t b)
+em_ivec2 em_div_ivec2_i(em_ivec2 a, INT b)
 {
     return (em_ivec2) {
         a.x / b, 
@@ -940,7 +957,7 @@ em_ivec2 em_div_ivec2_i(em_ivec2 a, int32_t b)
     };
 }
 
-em_ivec3 em_div_ivec3_i(em_ivec3 a, int32_t b) 
+em_ivec3 em_div_ivec3_i(em_ivec3 a, INT b) 
 {
     return (em_ivec3) {
         a.x / b,
@@ -949,7 +966,7 @@ em_ivec3 em_div_ivec3_i(em_ivec3 a, int32_t b)
     };
 }
 
-em_ivec4 em_div_ivec4_i(em_ivec4 a, int32_t b)
+em_ivec4 em_div_ivec4_i(em_ivec4 a, INT b)
 {
     return (em_ivec4) {
         a.x / b,
@@ -963,12 +980,12 @@ em_mat4 em_mul_mat4(em_mat4 a, em_mat4 b)
 {
     em_mat4 res = {0};
 
-    for (unsigned i = 0; i < 4; i++)
+    for (SIZE i = 0; i < 4; i++)
     {
-        for (unsigned j = 0; j < 4; j++)
+        for (SIZE j = 0; j < 4; j++)
         {
-            float sum = 0.0;
-            for (unsigned k = 0; k < 4; k++)
+            FLOAT sum = 0.0;
+            for (SIZE k = 0; k < 4; k++)
                 sum += (a.elements[k][j] * b.elements[i][k]);
             res.elements[i][j] = sum;
         }
@@ -977,13 +994,13 @@ em_mat4 em_mul_mat4(em_mat4 a, em_mat4 b)
     return res;
 }
 
-em_mat4 em_mul_mat4_f(em_mat4 a, float b) 
+em_mat4 em_mul_mat4_f(em_mat4 a, FLOAT b) 
 {
     em_mat4 res = {0};
 
-    for (unsigned i = 0; i < 4; i++)
+    for (SIZE i = 0; i < 4; i++)
     {
-        for (unsigned j = 0; j < 4; j++)
+        for (SIZE j = 0; j < 4; j++)
             res.elements[i][j] = a.elements[i][j] * b;
     }
 
@@ -993,10 +1010,10 @@ em_vec4 em_mul_mat4_v4(em_mat4 a, em_vec4 b)
 {
     em_vec4 res = {0};
 
-    for (unsigned i = 0; i < 4; i++)
+    for (SIZE i = 0; i < 4; i++)
     {
-        float sum = 0.0;
-        for (unsigned j = 0; j < 4; j++)
+        FLOAT sum = 0.0;
+        for (SIZE j = 0; j < 4; j++)
             sum += a.elements[j][i] * b.elements[j];
 
         res.elements[i] = sum;
@@ -1005,12 +1022,12 @@ em_vec4 em_mul_mat4_v4(em_mat4 a, em_vec4 b)
     return res;
 }
 
-em_mat4 em_div_mat4_f(em_mat4 a, float b) 
+em_mat4 em_div_mat4_f(em_mat4 a, FLOAT b) 
 {
     return em_mul_mat4_f(a, 1.0 / b);
 }
 
-em_mat4 em_orthographic(float width, float height, float near, float far)
+em_mat4 em_orthographic(FLOAT width, FLOAT height, FLOAT near, FLOAT far)
 {
     em_mat4 res = em_new_mat4_diagonal(1.0);
 
@@ -1022,10 +1039,10 @@ em_mat4 em_orthographic(float width, float height, float near, float far)
     return res;
 }
 
-em_mat4 em_perspective(float fov_degrees, float aspect_ratio, float near, float far)
+em_mat4 em_perspective(FLOAT fov_degrees, FLOAT aspect_ratio, FLOAT near, FLOAT far)
 {
     em_mat4 res = em_new_mat4_diagonal(1.0);
-    float tan_half_theta = tanf(fov_degrees * (em_PI / 360.0));
+    FLOAT tan_half_theta = tanf(fov_degrees * (em_PI / 360.0));
 
     res.elements[0][0] = 1.0 / tan_half_theta;
     res.elements[1][1] = aspect_ratio / tan_half_theta;
@@ -1041,9 +1058,9 @@ em_mat4 em_transpose_mat4(em_mat4 matrix)
 {
     em_mat4 res = {0};
 
-    for (unsigned i = 0; i < 4; i++)
+    for (SIZE i = 0; i < 4; i++)
     {
-        for (unsigned j = 0; j < 4; j++)
+        for (SIZE j = 0; j < 4; j++)
             res.elements[i][j] = matrix.elements[j][i];
     }
 
@@ -1070,7 +1087,7 @@ em_vec3 em_quaternion_rotate_vec3(em_vec3 vector, em_quaternion rotation)
     return (em_vec3) {w.x, w.y, w.z};
 }
 
-em_vec3 em_rotate_vec3(em_vec3 vector, float angle_degrees, em_vec3 axis)
+em_vec3 em_rotate_vec3(em_vec3 vector, FLOAT angle_degrees, em_vec3 axis)
 {
     em_quaternion as_q = em_vec3_to_quaternion(vector);
     em_quaternion rotation = em_quaternion_from_axis_angle(axis, angle_degrees);
@@ -1080,15 +1097,15 @@ em_vec3 em_rotate_vec3(em_vec3 vector, float angle_degrees, em_vec3 axis)
     return (em_vec3) {w.x, w.y, w.z};
 }
 
-em_mat4 em_rotate_mat4(float angle_degrees, em_vec3 axis) 
+em_mat4 em_rotate_mat4(FLOAT angle_degrees, em_vec3 axis) 
 {
     em_mat4 res = em_new_mat4_diagonal(1.0);
 
     axis = em_normalize_vec3(axis);
 
-    float sin_theta = sinf(em_deg_to_rad(angle_degrees));
-    float cos_theta = cosf(em_deg_to_rad(angle_degrees));
-    float cos_val = 1.0 - cos_theta;
+    FLOAT sin_theta = sinf(em_deg_to_rad(angle_degrees));
+    FLOAT cos_theta = cosf(em_deg_to_rad(angle_degrees));
+    FLOAT cos_val = 1.0 - cos_theta;
 
     res.elements[0][0] = (axis.x * axis.x * cos_val) + cos_theta;
     res.elements[0][1] = (axis.x * axis.y * cos_val) + (axis.z * sin_theta);
@@ -1159,7 +1176,7 @@ em_quaternion em_conjugate_quaternion(em_quaternion a)
 em_quaternion em_inverse_quaternion(em_quaternion a)
 {
     em_quaternion conjugate = em_conjugate_quaternion(a);
-    float norm_sqr = em_dot_quaternion(a, a);
+    FLOAT norm_sqr = em_dot_quaternion(a, a);
 
     return em_div_quaternion_f(conjugate, norm_sqr);
 }
@@ -1170,15 +1187,15 @@ em_mat4 em_quaternion_to_mat4(em_quaternion a)
     
     em_quaternion norm_quat = em_normalize_quaternion(a);
 
-    float xx = norm_quat.x * norm_quat.x;
-    float yy = norm_quat.y * norm_quat.y;
-    float zz = norm_quat.z * norm_quat.z;
-    float xy = norm_quat.x * norm_quat.y;
-    float xz = norm_quat.x * norm_quat.z;
-    float yz = norm_quat.y * norm_quat.z;
-    float wx = norm_quat.w * norm_quat.x;
-    float wy = norm_quat.w * norm_quat.y;
-    float wz = norm_quat.w * norm_quat.z;
+    FLOAT xx = norm_quat.x * norm_quat.x;
+    FLOAT yy = norm_quat.y * norm_quat.y;
+    FLOAT zz = norm_quat.z * norm_quat.z;
+    FLOAT xy = norm_quat.x * norm_quat.y;
+    FLOAT xz = norm_quat.x * norm_quat.z;
+    FLOAT yz = norm_quat.y * norm_quat.z;
+    FLOAT wx = norm_quat.w * norm_quat.x;
+    FLOAT wy = norm_quat.w * norm_quat.y;
+    FLOAT wz = norm_quat.w * norm_quat.z;
 
     res.elements[0][0] = 1.0 - (2.0 * yy) - (2.0 * zz);
     res.elements[0][1] = (2.0 * xy) + (2.0 * wz);
@@ -1200,13 +1217,13 @@ em_quaternion em_vec3_to_quaternion(em_vec3 a)
     return (em_quaternion) {a.x, a.y, a.z, 0.0};
 }
 
-em_quaternion em_quaternion_from_axis_angle(em_vec3 axis, float angle_degrees)
+em_quaternion em_quaternion_from_axis_angle(em_vec3 axis, FLOAT angle_degrees)
 {
     em_quaternion res = {0};
 
     axis = em_normalize_vec3(axis);
-    float half_theta = em_deg_to_rad(angle_degrees) / 2.0;
-    float sin_rot = sinf(half_theta);
+    FLOAT half_theta = em_deg_to_rad(angle_degrees) / 2.0;
+    FLOAT sin_rot = sinf(half_theta);
     res.x = axis.x * sin_rot;
     res.y = axis.y * sin_rot;
     res.z = axis.z * sin_rot;
@@ -1235,7 +1252,7 @@ em_quaternion em_mul_quaternion(em_quaternion a, em_quaternion b)
     };
 }
 
-em_quaternion em_mul_quaternion_f(em_quaternion a, float b)
+em_quaternion em_mul_quaternion_f(em_quaternion a, FLOAT b)
 {
     return em_mul_vec4_f(a, b);
 }
@@ -1255,7 +1272,7 @@ em_quaternion em_div_quaternion(em_quaternion a, em_quaternion b)
     return em_div_vec4(a, b);
 }
 
-em_quaternion em_div_quaternion_f(em_quaternion a, float b)
+em_quaternion em_div_quaternion_f(em_quaternion a, FLOAT b)
 {
     return em_div_vec4_f(a, b);
 }
@@ -1265,7 +1282,7 @@ em_quaternion em_normalize_quaternion(em_quaternion a)
     return em_normalize_vec4(a);
 }
 
-float em_dot_quaternion(em_quaternion a, em_quaternion b)
+FLOAT em_dot_quaternion(em_quaternion a, em_quaternion b)
 {
     return em_dot_vec4(a, b);
 }

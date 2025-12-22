@@ -1,5 +1,4 @@
 #include "app.h"
-#include "camera.h"
 
 static void _on_mousedown(const event_t *ev, void *args) 
 {
@@ -25,7 +24,7 @@ void app_init(engine_t *engine, app_t *app, const app_desc_t *desc)
 
     camera_ctl_init(&app->camera_ctl, &engine->_render_sys.cam, &(camera_controller_desc_t) {
         .start_pos = (vec3) {8.0, 100.0, 8.0},
-        .move_speed = 100.0,
+        .move_speed = 30.0,
         .turn_speed = 0.04
     });
 

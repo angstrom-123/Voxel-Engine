@@ -1,4 +1,5 @@
 #include "chunk_renderer.h"
+#include "texture_handler.h"
 
 void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim) 
 {
@@ -9,7 +10,6 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     sg_destroy_image(cr->targets.colour);
     sg_destroy_image(cr->targets.normal);
     sg_destroy_image(cr->targets.depth);
-    sg_destroy_image(cr->targets.position);
     sg_destroy_image(cr->targets.shadowmap);
     sg_destroy_image(cr->targets.zbuf);
     sg_destroy_image(cr->targets.zbuf_shadow);
@@ -19,14 +19,12 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[0]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[1]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[2]);
-    sg_destroy_view(cr->offscreen_base.pass.attachments.colors[3]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.depth_stencil);
 
     sg_destroy_view(cr->offscreen_base.bind.views[1]);
     sg_destroy_view(cr->display_base.bind.views[0]);
     sg_destroy_view(cr->display_base.bind.views[1]);
     sg_destroy_view(cr->display_base.bind.views[2]);
-    sg_destroy_view(cr->display_base.bind.views[3]);
     sg_destroy_view(cr->display_base.bind.views[4]);
 
     // Make new targets with the new dimensions.
@@ -54,14 +52,6 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
             .height = dim.y,
             .sample_count = 1,
             .label = "offscreen-chunk-depth-image"
-        }),
-        .position = sg_make_image(&(sg_image_desc) {
-            .usage.color_attachment = true,
-            .pixel_format = POSITION_PIXELFORMAT,
-            .width = dim.x,
-            .height = dim.y,
-            .sample_count = 1,
-            .label = "offscreen-chunk-position-image"
         }),
         .shadowmap = sg_make_image(&(sg_image_desc) {
             .usage.color_attachment = true,
@@ -114,10 +104,6 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
             .color_attachment = { .image = cr->targets.depth },
             .label = "offscreen-chunk-depth-attachment"
         }),
-        .colors[3] = sg_make_view(&(sg_view_desc) {
-            .color_attachment = { .image = cr->targets.position },
-            .label = "offscreen-chunk-position-attachment"
-        }),
         .depth_stencil = sg_make_view(&(sg_view_desc) {
             .depth_stencil_attachment = { .image = cr->targets.zbuf },
             .label = "offscreen-chunk-zbuf-attachment"
@@ -142,15 +128,11 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
         .texture = { .image = cr->targets.depth },
         .label = "display-chunk-depth-view"
     });
-    cr->display_base.bind.views[3] = sg_make_view(&(sg_view_desc) {
-        .texture = { .image = cr->targets.position },
-        .label = "display-chunk-position-view"
-    });
     // For debugging
-    cr->display_base.bind.views[4] = sg_make_view(&(sg_view_desc) {
-        .texture = { .image = cr->targets.shadowmap },
-        .label = "offscreen-chunk-shadowmap-view"
-    });
+    // cr->display_base.bind.views[4] = sg_make_view(&(sg_view_desc) {
+    //     .texture = { .image = cr->targets.shadowmap },
+    //     .label = "offscreen-chunk-shadowmap-view"
+    // });
 }
 
 void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc)
@@ -214,10 +196,6 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
                 .load_action = SG_LOADACTION_CLEAR,
                 .clear_value = { 0.0, 0.0, 0.0, 1.0 }
             },
-            [3] = { 
-                .load_action = SG_LOADACTION_CLEAR,
-                .clear_value = { 0.0, 0.0, 0.0, 1.0 }
-            }
         },
         .depth = {
             .load_action = SG_LOADACTION_CLEAR,
@@ -235,12 +213,11 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         .index_type = SG_INDEXTYPE_UINT16,
         .cull_mode = SG_CULLMODE_BACK,
         .sample_count = 1,
-        .color_count = 4,
+        .color_count = 3,
         .colors = {
             [0].pixel_format = COLOUR_PIXELFORMAT,
             [1].pixel_format = NORMAL_PIXELFORMAT,
             [2].pixel_format = DEPTH_PIXELFORMAT,
-            [3].pixel_format = POSITION_PIXELFORMAT
         },
         .depth = {
             .pixel_format = SG_PIXELFORMAT_DEPTH,
@@ -284,43 +261,46 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
 void chunk_renderer_load_textures(chunk_renderer_t *cr)
 {
     /* Bindings. */
-    cr->offscreen_base.bind.samplers[SMP_u_smp] = sg_make_sampler(&(sg_sampler_desc) {
+    cr->offscreen_base.bind.samplers[SMP_u_smp_col] = sg_make_sampler(&(sg_sampler_desc) {
         .min_filter = SG_FILTER_NEAREST,
         .mag_filter = SG_FILTER_NEAREST,
         .mipmap_filter = SG_FILTER_NEAREST,
+        .wrap_u = SG_WRAP_REPEAT,
+        .wrap_v = SG_WRAP_REPEAT,
+        // .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
+        // .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
         .max_lod = MIP_LEVELS
     });
-    cr->offscreen_base.bind.views[0] = sg_alloc_view();
 
-    em_bmp_image_t atlases[MIP_LEVELS];
-    const size_t MAX_PATH_LEN = 128;
-    for (size_t i = 0; i < MIP_LEVELS; i++)
-    {
-        char path[MAX_PATH_LEN];
-        snprintf(path, MAX_PATH_LEN, "res/tex/block/atlas-mipmap-%zu.bmp", i);
-        bool res = em_bmp_load(&atlases[i], path);
-        ENGINE_ASSERT(res, "Failed to load texture atlas mip level");
-    }
-
-    sg_image img = sg_alloc_image();
-    sg_init_image(img, &(sg_image_desc) {
-        .width = atlases[0].ih.width,
-        .height = atlases[0].ih.height,
-        .pixel_format = SG_PIXELFORMAT_RGBA8,
-        .num_mipmaps = MIP_LEVELS,
-        .data.subimage[0] = {
-            { .ptr = atlases[0].pixel_data, .size = atlases[0].ih.img_size },
-            { .ptr = atlases[1].pixel_data, .size = atlases[1].ih.img_size },
-            { .ptr = atlases[2].pixel_data, .size = atlases[2].ih.img_size },
-            { .ptr = atlases[3].pixel_data, .size = atlases[3].ih.img_size },
-            { .ptr = atlases[4].pixel_data, .size = atlases[4].ih.img_size }
-        }
+    texture_t atlas;
+    bool res = texture_mip_load(&atlas, &(texture_desc_t) {
+        .path = "res/tex/block/atlas-mipmap-",
+        .mip_levels = MIP_LEVELS,
+        .subimages_x = 16,
+        .subimages_y = 16,
     });
+    ENGINE_ASSERT(res, "Failed to load block texture atlas mipmaps");
 
-    sg_init_view(cr->offscreen_base.bind.views[0], &(sg_view_desc) { .texture.image = img });
+    ENGINE_ASSERT(sg_query_view_state(atlas.as_view) == SG_RESOURCESTATE_VALID, 
+                  "Mipmap texture view state must be valid");
+    cr->offscreen_base.bind.views[0] = atlas.as_view;
 
-    for (size_t i = 0; i < 5; i++)
-        free(atlases[i].pixel_data);
+    // sg_image img = sg_alloc_image();
+    // sg_init_image(img, &(sg_image_desc) {
+    //     .width = atlases[0].width,
+    //     .height = atlases[0].height,
+    //     .pixel_format = SG_PIXELFORMAT_RGBA8,
+    //     .num_mipmaps = MIP_LEVELS,
+    //     // .data.subimage[0] = {
+    //     //     { .ptr = atlases[0].pixel_data, .size = atlases[0].ih.img_size },
+    //     //     { .ptr = atlases[1].pixel_data, .size = atlases[1].ih.img_size },
+    //     //     { .ptr = atlases[2].pixel_data, .size = atlases[2].ih.img_size },
+    //     //     { .ptr = atlases[3].pixel_data, .size = atlases[3].ih.img_size },
+    //     //     { .ptr = atlases[4].pixel_data, .size = atlases[4].ih.img_size }
+    //     // }
+    // });
+
+    // sg_init_view(cr->offscreen_base.bind.views[0], &(sg_view_desc) { .texture.image = img });
 }
 
 void chunk_renderer_cleanup(chunk_renderer_t *cr)
@@ -330,20 +310,17 @@ void chunk_renderer_cleanup(chunk_renderer_t *cr)
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[0]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[1]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[2]);
-    sg_destroy_view(cr->offscreen_base.pass.attachments.colors[3]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.depth_stencil);
 
     sg_destroy_view(cr->offscreen_base.bind.views[1]);
     sg_destroy_view(cr->display_base.bind.views[0]);
     sg_destroy_view(cr->display_base.bind.views[1]);
     sg_destroy_view(cr->display_base.bind.views[2]);
-    sg_destroy_view(cr->display_base.bind.views[3]);
-    sg_destroy_view(cr->display_base.bind.views[4]);
+    // sg_destroy_view(cr->display_base.bind.views[4]);
 
     sg_destroy_image(cr->targets.colour);
     sg_destroy_image(cr->targets.normal);
     sg_destroy_image(cr->targets.depth);
-    sg_destroy_image(cr->targets.position);
     sg_destroy_image(cr->targets.shadowmap);
     sg_destroy_image(cr->targets.zbuf);
     sg_destroy_image(cr->targets.zbuf_shadow);
@@ -422,7 +399,7 @@ static void _render_offscreen_pass(chunk_renderer_t *cr)
         };
 
         fs_params_chunk_t fs_params = {
-            .u_sun_dir = cr->inv_sun_dir
+            .u_sun_dir = em_mul_vec3_f(cr->inv_sun_dir, -1.0)
         };
 
         if (cri->needs_update)
@@ -476,14 +453,23 @@ void chunk_renderer_render_all(chunk_renderer_t *cr)
     camera_t *oc = cr->offscreen_base.cam;
     camera_t *sc = cr->shadowmap_base.cam;
 
-    vec3 orig = (vec3) { oc->pos.x, sc->pos.y, oc->pos.z };
-    mat4 transform = em_translate_mat4(em_mul_vec3_f(em_sub_vec3(orig, sc->pos), -1.0));
+    ivec3 tmp = em_floor_vec3(em_div_vec3_f(oc->pos, CHUNK_SIZE));
+    vec3 target = em_mul_vec3_f(AS_VEC3(tmp), CHUNK_SIZE);
+    target.y = sc->pos.y;
+
+    mat4 transform = em_translate_mat4(em_mul_vec3_f(em_sub_vec3(target, sc->pos), -1.0));
     sc->view = em_mul_mat4(sc->view, transform);
-    sc->pos = orig;
+    sc->pos = target;
 
     cam_update(sc);
 
+    INSTRUMENT_SCOPE_BEGIN(render_shadowmap);
     _render_shadowmap_pass(cr);
+    INSTRUMENT_SCOPE_END(render_shadowmap);
+    INSTRUMENT_SCOPE_BEGIN(render_offscreen);
     _render_offscreen_pass(cr);
+    INSTRUMENT_SCOPE_END(render_offscreen);
+    INSTRUMENT_SCOPE_BEGIN(render_display);
     _render_display_pass(cr);
+    INSTRUMENT_SCOPE_END(render_display);
 }

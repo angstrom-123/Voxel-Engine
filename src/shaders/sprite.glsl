@@ -25,8 +25,13 @@ void main() {
 @end 
 
 @fs fs_sprite
-layout(binding=0) uniform texture2D u_tex;
+layout(binding=1) uniform fs_params_sprite {
+    int u_is_char;
+};
+
 layout(binding=0) uniform sampler u_smp;
+layout(binding=0) uniform texture2D u_tex_sprite_atlas;
+layout(binding=1) uniform texture2D u_tex_font_atlas;
 
 in vec2 v_uv;
 
@@ -35,7 +40,9 @@ out vec4 frag_color;
 void main() {
     if (frag_color.a < 0.01) discard;
 
-    frag_color = texture(sampler2D(u_tex, u_smp), v_uv);
+    frag_color = bool(u_is_char)
+               ? texture(sampler2D(u_tex_font_atlas, u_smp), v_uv)
+               : texture(sampler2D(u_tex_sprite_atlas, u_smp), v_uv);
 }
 
 @end 

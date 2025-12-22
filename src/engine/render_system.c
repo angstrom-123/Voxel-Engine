@@ -15,13 +15,6 @@ static void _on_resize(const event_t *ev, void *args)
                                            rs->ortho_cam.near, rs->ortho_cam.far);
     cam_update(&rs->ortho_cam);
 
-    rs->shadow_cam.width  = ev->window_size.x;
-    rs->shadow_cam.height = ev->window_size.y;
-    rs->shadow_cam.proj   = em_orthographic(rs->shadow_cam.width, rs->shadow_cam.height, 
-                                            rs->shadow_cam.near, rs->shadow_cam.far);
-    cam_set_scale(&rs->shadow_cam, rs->shadow_cam.scale);
-    cam_update(&rs->shadow_cam);
-
     chunk_renderer_resize(&rs->chunk_renderer, ev->window_size);
 
     rs->cursor_line_renderer.base.dimensions = ev->window_size;
@@ -52,17 +45,18 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     });
 
     cam_init(&rs->shadow_cam, PROJECTION_ORTHOGRAPHIC, &(camera_desc_t) {
-        .near   = 0.0,
-        .far    = 300.0,
-        .width  = 1280,
-        .height = 1280,
+        .near   = -10.0,
+        .far    = 200.0,
+        .width  = 1024,
+        .height = 1024,
         .pos    = { 0.0, 0.0, 0.0 }
     });
     cam_set_scale(&rs->shadow_cam, desc->shadow_scale);
 
-    // vec3 inv_dir = (vec3) { 0.0, -0.5, 0.5 };
-    vec3 inv_sun_dir = (vec3) { -2.0, -4.0, -1.0 };
-    rs->shadow_cam.view = em_look_at(inv_sun_dir, (vec3) { 0.0, 0.0, 0.0 }, (vec3) { 0.0, 1.0, 0.0 });
+    // vec3 inv_sun_dir = (vec3) { -2.0, -4.0, -1.0 };
+    vec3 inv_sun_dir = (vec3) { -1.0, -5.0, -3.0 };
+    vec3 centre = { 0.0, 0.0, 0.0 };
+    rs->shadow_cam.view = em_look_at(inv_sun_dir, centre, WORLD_Y);
 
     cam_update(&rs->shadow_cam);
 

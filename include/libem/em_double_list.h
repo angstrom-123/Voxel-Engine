@@ -15,7 +15,7 @@
 #define DECLARE_DOUBLE_LIST(TYPE, NAME)\
 typedef struct em_double_list_##NAME {\
     /* Members. */\
-    size_t count;\
+    SIZE count;\
     em_double_list_t *_dll;\
     /* Methods. */\
     /* Get a new iterator for this dll. */\
@@ -29,11 +29,11 @@ typedef struct em_double_list_##NAME {\
     /* Return the value of the tail of the list. */\
     TYPE *(*get_ptr_last)(struct em_double_list_##NAME *this);\
     /* Get a value at an index in the linked list. WARN: Requires traversal. */\
-    TYPE (*get)(struct em_double_list_##NAME *this, size_t index);\
+    TYPE (*get)(struct em_double_list_##NAME *this, SIZE index);\
     /* Get a pointer to the value at an index in the linked list. WARN: Requires traversal. */\
-    TYPE *(*get_ptr)(struct em_double_list_##NAME *this, size_t index);\
+    TYPE *(*get_ptr)(struct em_double_list_##NAME *this, SIZE index);\
     /* Get a pointer to the node in the dll at an index in the linked list. WARN: Requires traversal. */\
-    em_double_list_node_t *(*get_node)(struct em_double_list_##NAME *this, size_t index);\
+    em_double_list_node_t *(*get_node)(struct em_double_list_##NAME *this, SIZE index);\
     /* Add a new element after an existing element in the list. */\
     void (*insert_after)(struct em_double_list_##NAME *this, em_double_list_node_t *node, TYPE value);\
     /* Add a new element after an existing element in the list. */\
@@ -43,17 +43,17 @@ typedef struct em_double_list_##NAME {\
     /* Add a new element before an existing element in the list. */\
     void (*insert_ptr_before)(struct em_double_list_##NAME *this, em_double_list_node_t *node, TYPE *value_ptr);\
     /* Add a new element at a specified index in the list. WARN: Requires traversal. */\
-    void (*insert_at)(struct em_double_list_##NAME *this, size_t index, TYPE value);\
+    void (*insert_at)(struct em_double_list_##NAME *this, SIZE index, TYPE value);\
     /* Add a new element at a specified index in the list. WARN: Requires traversal. */\
-    void (*insert_ptr_at)(struct em_double_list_##NAME *this, size_t index, TYPE *value_ptr);\
+    void (*insert_ptr_at)(struct em_double_list_##NAME *this, SIZE index, TYPE *value_ptr);\
     /* Add an element onto the end of the linked list. */\
     void (*append)(struct em_double_list_##NAME *this, TYPE value);\
     /* Add an element onto the end of the linked list. */\
     void (*append_ptr)(struct em_double_list_##NAME *this, TYPE *value_ptr);\
     /* Removes and returns the element at index in the list. WARN: Requires traversal. */\
-    TYPE (*pop)(struct em_double_list_##NAME *this, size_t index);\
+    TYPE (*pop)(struct em_double_list_##NAME *this, SIZE index);\
     /* Removes and returns the element at index in the list. WARN: Requires traversal. */\
-    TYPE *(*pop_ptr)(struct em_double_list_##NAME *this, size_t index);\
+    TYPE *(*pop_ptr)(struct em_double_list_##NAME *this, SIZE index);\
     /* Removes and returns the first element in this list. */\
     TYPE (*pop_first)(struct em_double_list_##NAME *this);\
     /* Removes and returns a pointer to the first element in this list. */\
@@ -65,7 +65,7 @@ typedef struct em_double_list_##NAME {\
     /* Remove a given element from the linked list. */\
     void (*remove_node)(struct em_double_list_##NAME *this, em_double_list_node_t *node);\
     /* Remove an element at a specified index in the list. WARN: Requires traversal. */\
-    void (*remove)(struct em_double_list_##NAME *this, size_t index);\
+    void (*remove)(struct em_double_list_##NAME *this, SIZE index);\
     /* Frees all resources associated with the list. WARN: Requires traversal. */\
     void (*destroy)(struct em_double_list_##NAME *this);\
 } em_double_list_##NAME##_t;\
@@ -113,19 +113,19 @@ static TYPE *_get_ptr_last_double_list_##NAME(em_double_list_##NAME##_t *this)\
     return res;\
 }\
 \
-static TYPE _get_double_list_##NAME(em_double_list_##NAME##_t *this, size_t index)\
+static TYPE _get_double_list_##NAME(em_double_list_##NAME##_t *this, SIZE index)\
 {\
     TYPE *res = em_dll_get(this->_dll, index);\
     return *res;\
 }\
 \
-static TYPE *_get_ptr_double_list_##NAME(em_double_list_##NAME##_t *this, size_t index)\
+static TYPE *_get_ptr_double_list_##NAME(em_double_list_##NAME##_t *this, SIZE index)\
 {\
     TYPE *res = em_dll_get(this->_dll, index);\
     return res;\
 }\
 \
-static em_double_list_node_t *_get_node_double_list_##NAME(em_double_list_##NAME##_t *this, size_t index)\
+static em_double_list_node_t *_get_node_double_list_##NAME(em_double_list_##NAME##_t *this, SIZE index)\
 {\
     em_double_list_node_t *res = em_dll_get_node(this->_dll, index);\
     return res;\
@@ -157,14 +157,14 @@ static void _insert_ptr_before_double_list_##NAME(em_double_list_##NAME##_t *thi
     _update_double_list_##NAME(this);\
 }\
 \
-static void _insert_at_double_list_##NAME(em_double_list_##NAME##_t *this, size_t index, TYPE value)\
+static void _insert_at_double_list_##NAME(em_double_list_##NAME##_t *this, SIZE index, TYPE value)\
 {\
     TYPE *value_ptr = malloc(sizeof(TYPE));\
     *value_ptr = value;\
     em_dll_insert_at(this->_dll, index, value_ptr);\
     _update_double_list_##NAME(this);\
 }\
-static void _insert_ptr_at_double_list_##NAME(em_double_list_##NAME##_t *this, size_t index, TYPE *value_ptr)\
+static void _insert_ptr_at_double_list_##NAME(em_double_list_##NAME##_t *this, SIZE index, TYPE *value_ptr)\
 {\
     em_dll_insert_at(this->_dll, index, value_ptr);\
     _update_double_list_##NAME(this);\
@@ -184,7 +184,7 @@ static void _append_ptr_double_list_##NAME(em_double_list_##NAME##_t *this, TYPE
     _update_double_list_##NAME(this);\
 }\
 \
-static TYPE _pop_double_list_##NAME(em_double_list_##NAME##_t *this, size_t idx)\
+static TYPE _pop_double_list_##NAME(em_double_list_##NAME##_t *this, SIZE idx)\
 {\
     TYPE *pop = em_dll_pop(this->_dll, idx);\
     TYPE res = *pop;\
@@ -193,7 +193,7 @@ static TYPE _pop_double_list_##NAME(em_double_list_##NAME##_t *this, size_t idx)
     return res;\
 }\
 \
-static TYPE *_pop_ptr_double_list_##NAME(em_double_list_##NAME##_t *this, size_t idx)\
+static TYPE *_pop_ptr_double_list_##NAME(em_double_list_##NAME##_t *this, SIZE idx)\
 {\
     TYPE *res = em_dll_pop(this->_dll, idx);\
     _update_double_list_##NAME(this);\
@@ -238,7 +238,7 @@ static void _remove_node_double_list_##NAME(em_double_list_##NAME##_t *this, em_
     _update_double_list_##NAME(this);\
 }\
 \
-static void _remove_double_list_##NAME(em_double_list_##NAME##_t *this, size_t index)\
+static void _remove_double_list_##NAME(em_double_list_##NAME##_t *this, SIZE index)\
 {\
     em_dll_remove_at(this->_dll, index);\
     _update_double_list_##NAME(this);\
@@ -306,9 +306,9 @@ typedef struct em_double_list_node {
 } em_double_list_node_t;
 
 typedef struct em_double_list {
-    size_t count;
+    SIZE count;
 
-    int32_t _flags;
+    INT _flags;
     void_cln_func _cln_func;
     em_double_list_node_t *_head;
     em_double_list_node_t *_tail;
@@ -325,7 +325,7 @@ typedef struct em_double_list_iter {
 
 typedef struct em_double_list_desc {
     void_cln_func cln_func;
-    int32_t flags;
+    INT flags;
 } em_double_list_desc_t;
 
 em_double_list_node_t *_dll_iter_get(em_double_list_iter_t *iter);
@@ -335,17 +335,17 @@ em_double_list_iter_t *em_dll_iterator(em_double_list_t *dll);
 em_double_list_t *em_dll_new(const em_double_list_desc_t *desc);
 void *em_dll_first(em_double_list_t *this);
 void *em_dll_last(em_double_list_t *this);
-void *em_dll_get(em_double_list_t *this, size_t index);
-em_double_list_node_t *em_dll_get_node(em_double_list_t *this, size_t index);
+void *em_dll_get(em_double_list_t *this, SIZE index);
+em_double_list_node_t *em_dll_get_node(em_double_list_t *this, SIZE index);
 void em_dll_insert_after(em_double_list_t *this, em_double_list_node_t *node, void *val);
 void em_dll_insert_before(em_double_list_t *this, em_double_list_node_t *node, void *val);
-void em_dll_insert_at(em_double_list_t *this, size_t index, void *val);
+void em_dll_insert_at(em_double_list_t *this, SIZE index, void *val);
 void em_dll_append(em_double_list_t *this, void *val);
-void *em_dll_pop(em_double_list_t *this, size_t index);
+void *em_dll_pop(em_double_list_t *this, SIZE index);
 void *em_dll_pop_first(em_double_list_t *this);
 void *em_dll_pop_last(em_double_list_t *this);
 void em_dll_remove_node(em_double_list_t *this, em_double_list_node_t *node);
-void em_dll_remove_at(em_double_list_t *this, size_t index);
+void em_dll_remove_at(em_double_list_t *this, SIZE index);
 
 void em_dll_destroy(em_double_list_t *this);
 
@@ -425,7 +425,7 @@ void *em_dll_last(em_double_list_t *this)
     return this->_tail;
 }
 
-void *em_dll_get(em_double_list_t *this, size_t idx)
+void *em_dll_get(em_double_list_t *this, SIZE idx)
 {
     if (idx >= this->count || this->count == 0)
     {
@@ -433,7 +433,7 @@ void *em_dll_get(em_double_list_t *this, size_t idx)
         exit(1);
     }
 
-    size_t ctr = 0;
+    SIZE ctr = 0;
     em_double_list_node_t *curr = this->_head;
     while (ctr < idx)
     {
@@ -444,7 +444,7 @@ void *em_dll_get(em_double_list_t *this, size_t idx)
     return curr->val;
 }
 
-em_double_list_node_t *em_dll_get_node(em_double_list_t *this, size_t idx)
+em_double_list_node_t *em_dll_get_node(em_double_list_t *this, SIZE idx)
 {
     if (idx >= this->count || this->count == 0)
     {
@@ -452,7 +452,7 @@ em_double_list_node_t *em_dll_get_node(em_double_list_t *this, size_t idx)
         exit(1);
     }
 
-    size_t ctr = 0;
+    SIZE ctr = 0;
     em_double_list_node_t *curr = this->_head;
     while (ctr < idx)
     {
@@ -507,7 +507,7 @@ void em_dll_insert_before(em_double_list_t *this, em_double_list_node_t *node, v
     this->count++;
 }
 
-void em_dll_insert_at(em_double_list_t *this, size_t idx, void *val)
+void em_dll_insert_at(em_double_list_t *this, SIZE idx, void *val)
 {
     if (idx > this->count) // CAN insert at index == count as it is the same as appending.
     {
@@ -516,7 +516,7 @@ void em_dll_insert_at(em_double_list_t *this, size_t idx, void *val)
     }
 
     em_double_list_node_t *node = this->_head;
-    for (size_t ctr = 0; ctr < idx; ctr++)
+    for (SIZE ctr = 0; ctr < idx; ctr++)
         node = node->_next;
 
     em_double_list_node_t *n = malloc(sizeof(em_double_list_node_t));
@@ -585,7 +585,7 @@ void em_dll_append(em_double_list_t *this, void *val)
     this->count++;
 }
 
-void *em_dll_pop(em_double_list_t *this, size_t idx)
+void *em_dll_pop(em_double_list_t *this, SIZE idx)
 {
     if (this->count == 0 || idx >= this->count)
     {
@@ -593,7 +593,7 @@ void *em_dll_pop(em_double_list_t *this, size_t idx)
         exit(1);
     }
 
-    size_t ctr = 0;
+    SIZE ctr = 0;
     em_double_list_node_t *node = this->_head;
     while (ctr++ < idx)
         node = node->_next;
@@ -692,7 +692,7 @@ void em_dll_remove_node(em_double_list_t *this, em_double_list_node_t *node)
     this->count--;
 }
 
-void em_dll_remove_at(em_double_list_t *this, size_t idx)
+void em_dll_remove_at(em_double_list_t *this, SIZE idx)
 {
     if (this->count == 0 || idx >= this->count)
     {
@@ -700,7 +700,7 @@ void em_dll_remove_at(em_double_list_t *this, size_t idx)
         exit(1);
     }
 
-    size_t ctr = 0;
+    SIZE ctr = 0;
     em_double_list_node_t *node = this->_head;
     while (ctr++ < idx)
         node = node->_next;

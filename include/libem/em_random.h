@@ -31,11 +31,11 @@
 
 #include <stdint.h>
 
-extern void em_romu_duo_init(uint32_t seed);
-extern uint64_t em_romu_duo_random();
+extern void em_romu_duo_init(UINT seed);
+extern ULONG em_romu_duo_random();
 
-extern void em_romu_mono32_init(uint32_t seed);
-extern uint16_t em_romu_mono32_random();
+extern void em_romu_mono32_init(UINT seed);
+extern USHORT em_romu_mono32_random();
 
 #endif // EM_RANDOM_INCLUDED
 
@@ -53,17 +53,17 @@ extern uint16_t em_romu_mono32_random();
 /* Romu-Duo. */
 #define DUO_MAX UINT64_MAX
 
-static uint64_t state_duo_x;
-static uint64_t state_duo_y;
+static ULONG state_duo_x;
+static ULONG state_duo_y;
 
-void em_romu_duo_init(uint32_t seed)
+void em_romu_duo_init(UINT seed)
 {
     state_duo_x = (seed >> 16) + 4182391820u;
     state_duo_y = (seed & 0xFF) + 7401739501u;
 }
 
-uint64_t em_romu_duo_random() {
-   uint64_t xp = state_duo_x;
+ULONG em_romu_duo_random() {
+   ULONG xp = state_duo_x;
    state_duo_x = 15241094284759029579u * state_duo_y;
    state_duo_y = ROTL(state_duo_y,36) + ROTL(state_duo_y,15) - xp;
    return xp;
@@ -72,17 +72,17 @@ uint64_t em_romu_duo_random() {
 /* Romu-Mono32. */
 #define MONO32_MAX UINT16_MAX
 
-static uint32_t state_mono32;
+static UINT state_mono32;
 
-void em_romu_mono32_init(uint32_t seed) 
+void em_romu_mono32_init(UINT seed) 
 {
     /* 29 seed bits used. */
     state_mono32 = (seed & 0x1FFFFFFF) + 1156979152u; 
 }
 
-uint16_t em_romu_mono32_random()
+USHORT em_romu_mono32_random()
 {
-    uint16_t res = state_mono32 >> 16;
+    USHORT res = state_mono32 >> 16;
     state_mono32 *= 3611795771u;
     state_mono32 = ROTL(state_mono32, 12);
     return res;

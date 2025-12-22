@@ -154,14 +154,11 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
     });
     ENGINE_LOG_OK("Setup chunk system.\n", NULL);
 
-    /* This multiplier brings in the fog closer to mostly prevent the player seeing the void. */
-    // const size_t VIEW_DIST_MULTIPLIER = 9;
-    const size_t VIEW_DIST_MULTIPLIER = 100;
     render_sys_init(&engine->_render_sys, &(render_system_desc_t) {
         .es = &engine->_event_sys,
-        .window_size = {sapp_width(), sapp_height()},
-        .view_distance = desc->render_distance * VIEW_DIST_MULTIPLIER,
-        .shadow_scale = 3.0
+        .window_size = { sapp_width(), sapp_height() },
+        .view_distance = desc->render_distance * 50,
+        .shadow_scale = 2.0
     });
     ENGINE_LOG_OK("Setup render system.\n", NULL);
 

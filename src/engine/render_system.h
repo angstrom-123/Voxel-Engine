@@ -17,14 +17,6 @@
 
 #define MAX_UI_COMPONENTS 5
 
-typedef enum offscreen_targets {
-    TARGET_DISPLAY,
-    TARGET_CHUNKS,
-    TARGET_LINES,
-    TARGET_SPRITES,
-    TARGET_NUM
-} offscreen_targets_e;
-
 typedef struct render_system {
     camera_t cam;
     camera_t ortho_cam;

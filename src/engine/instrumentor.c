@@ -1,9 +1,11 @@
 #include "instrumentor.h"
 
 static FILE *prof_fptr = NULL;
+static uint64_t last_sample;
 
 void instrumentor_begin_session(const char *filename)
 {
+    last_sample = 0;
     stm_setup();
 
     char full_name[strlen(filename) + 6];
@@ -53,7 +55,11 @@ void instrumentor_write_profile(profiler_datapoint_t dp)
 
 uint64_t instrumentor_sample_tick(void)
 {
-    return stm_now();
+    /* Stop multiple samples returning same time which helps the flamegraph. */
+    uint64_t sample = stm_now();
+    sample = (sample > last_sample) ? sample : last_sample + 1;
+    last_sample = sample;
+    return sample;
 }
 
 profiler_datapoint_t instrumentor_sample_since(const char *name, uint64_t start_tick)

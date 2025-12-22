@@ -6,18 +6,18 @@
 
 #include "em_global.h"
 
-#include <stddef.h> // size_t
+#include <stddef.h> // SIZE
 #include <stdint.h>
 #include <math.h> // floorf
 
-extern int32_t perlin_hash(int32_t x);
-extern int32_t perlin_pair(int32_t a, int32_t b);
+extern INT perlin_hash(INT x);
+extern INT perlin_pair(INT a, INT b);
 
-extern float perlin_2d(uint32_t seed, float x, float y, float frequency);
-extern float perlin_octave_2d(uint32_t seed, float x, float y, float frequency, uint8_t num_octaves);
+extern FLOAT perlin_2d(UINT seed, FLOAT x, FLOAT y, FLOAT frequency);
+extern FLOAT perlin_octave_2d(UINT seed, FLOAT x, FLOAT y, FLOAT frequency, UBYTE num_octaves);
 
-extern float perlin_3d(uint32_t seed, float x, float y, float z, float frequency);
-extern float perlin_octave_3d(uint32_t seed, float x, float y, float z, float frequency, uint8_t num_octaves);
+extern FLOAT perlin_3d(UINT seed, FLOAT x, FLOAT y, FLOAT z, FLOAT frequency);
+extern FLOAT perlin_octave_3d(UINT seed, FLOAT x, FLOAT y, FLOAT z, FLOAT frequency, UBYTE num_octaves);
 
 #endif // EM_PERLIN_INCLUDED
 
@@ -34,45 +34,45 @@ extern float perlin_octave_3d(uint32_t seed, float x, float y, float z, float fr
 #include "em_math.h" // vectors
 #include "em_random.h" // fast random
 
-vec2 _grad_2d(uint32_t seed, int32_t x, int32_t y)
+vec2 _grad_2d(UINT seed, INT x, INT y)
 {
     em_romu_mono32_init(seed + em_abs(perlin_pair(x, y)));
 
-    float x_01 = (float) em_romu_mono32_random() / (float) MONO32_MAX;
-    float y_01 = (float) em_romu_mono32_random() / (float) MONO32_MAX;
+    FLOAT x_01 = (FLOAT) em_romu_mono32_random() / (FLOAT) MONO32_MAX;
+    FLOAT y_01 = (FLOAT) em_romu_mono32_random() / (FLOAT) MONO32_MAX;
 
-    float x_cmp = (2 * x_01) - 1.0;
-    float y_cmp = (2 * y_01) - 1.0;
+    FLOAT x_cmp = (2 * x_01) - 1.0;
+    FLOAT y_cmp = (2 * y_01) - 1.0;
 
     return em_normalize_vec2((vec2) {x_cmp, y_cmp});
 }
 
-vec3 _grad_3d(uint32_t seed, int32_t x, int32_t y, int32_t z)
+vec3 _grad_3d(UINT seed, INT x, INT y, INT z)
 {
     em_romu_mono32_init(seed + em_abs(perlin_pair(x, perlin_pair(y, z))));
 
-    float x_01 = (float) em_romu_mono32_random() / (float) MONO32_MAX;
-    float y_01 = (float) em_romu_mono32_random() / (float) MONO32_MAX;
-    float z_01 = (float) em_romu_mono32_random() / (float) MONO32_MAX;
+    FLOAT x_01 = (FLOAT) em_romu_mono32_random() / (FLOAT) MONO32_MAX;
+    FLOAT y_01 = (FLOAT) em_romu_mono32_random() / (FLOAT) MONO32_MAX;
+    FLOAT z_01 = (FLOAT) em_romu_mono32_random() / (FLOAT) MONO32_MAX;
 
-    float x_cmp = (2 * x_01) - 1.0;
-    float y_cmp = (2 * y_01) - 1.0;
-    float z_cmp = (2 * z_01) - 1.0;
+    FLOAT x_cmp = (2 * x_01) - 1.0;
+    FLOAT y_cmp = (2 * y_01) - 1.0;
+    FLOAT z_cmp = (2 * z_01) - 1.0;
 
     return em_normalize_vec3((vec3) {x_cmp, y_cmp, z_cmp});
 }
 
-float _fade(float t)
+FLOAT _fade(FLOAT t)
 {
     return t * t * t * (t * (t * 6 - 15.0) + 10.0);
 }
 
-float _lerp(float t, float a, float b)
+FLOAT _lerp(FLOAT t, FLOAT a, FLOAT b)
 {
     return a + t * (b - a);
 }
 
-int32_t perlin_hash(int32_t x)
+INT perlin_hash(INT x)
 {
     x = ~x + (x << 15);
     x = x ^ (x >> 12u);
@@ -83,7 +83,7 @@ int32_t perlin_hash(int32_t x)
     return x;
 }
 
-int32_t perlin_pair(int32_t a, int32_t b)
+INT perlin_pair(INT a, INT b)
 {
     if (a >= 0) a = 2 * a;
     else a = -2 * a - 1;
@@ -96,18 +96,18 @@ int32_t perlin_pair(int32_t a, int32_t b)
         : b * b + a;
 }
 
-float perlin_2d(uint32_t seed, float x, float y, float freq)
+FLOAT perlin_2d(UINT seed, FLOAT x, FLOAT y, FLOAT freq)
 {
     x *= freq;
     y *= freq;
 
     /* Decimal part within grid cell. */
-    const float x_f = x - floorf(x);
-    const float y_f = y - floorf(y);
+    const FLOAT x_f = x - floorf(x);
+    const FLOAT y_f = y - floorf(y);
 
     /* Integer part describing the grid cell. */
-    const int32_t x_i = (int32_t) floorf(x);
-    const int32_t y_i = (int32_t) floorf(y);
+    const INT x_i = (INT) floorf(x);
+    const INT y_i = (INT) floorf(y);
 
     /* Position vectors of grid cell corners. */
     const ivec2 p0 = {x_i, y_i};
@@ -128,31 +128,31 @@ float perlin_2d(uint32_t seed, float x, float y, float freq)
     const vec2 o3 = em_sub_vec2((vec2) {x, y}, (vec2) {p3.x, p3.y});
 
     /* Gradient weights. */
-    const float d0 = em_dot_vec2(g0, o0);
-    const float d1 = em_dot_vec2(g1, o1);
-    const float d2 = em_dot_vec2(g2, o2);
-    const float d3 = em_dot_vec2(g3, o3);
+    const FLOAT d0 = em_dot_vec2(g0, o0);
+    const FLOAT d1 = em_dot_vec2(g1, o1);
+    const FLOAT d2 = em_dot_vec2(g2, o2);
+    const FLOAT d3 = em_dot_vec2(g3, o3);
 
     /* Lerp constants using smoothstep. */
-    const float u = _fade(x_f);
-    const float v = _fade(y_f);
+    const FLOAT u = _fade(x_f);
+    const FLOAT v = _fade(y_f);
 
     /* Interpolate gradients. */
-    const float x0 = _lerp(u, d0, d1);
-    const float x1 = _lerp(u, d2, d3);
+    const FLOAT x0 = _lerp(u, d0, d1);
+    const FLOAT x1 = _lerp(u, d2, d3);
 
-    const float y0 = _lerp(v, x0, x1);
+    const FLOAT y0 = _lerp(v, x0, x1);
 
     return y0;
 }
 
-float perlin_octave_2d(uint32_t seed, float x, float y, float freq, uint8_t num)
+FLOAT perlin_octave_2d(UINT seed, FLOAT x, FLOAT y, FLOAT freq, UBYTE num)
 {
-    float res = 0.0;
-    float amp = 1.0;
-    float f = freq;
+    FLOAT res = 0.0;
+    FLOAT amp = 1.0;
+    FLOAT f = freq;
 
-    for (size_t i = 0; i < num; i++)
+    for (SIZE i = 0; i < num; i++)
     {
         res += amp * perlin_2d(seed, x, y, f);
         amp /= 2.0;
@@ -162,21 +162,21 @@ float perlin_octave_2d(uint32_t seed, float x, float y, float freq, uint8_t num)
     return res;
 }
 
-float perlin_3d(uint32_t seed, float x, float y, float z, float freq)
+FLOAT perlin_3d(UINT seed, FLOAT x, FLOAT y, FLOAT z, FLOAT freq)
 {
     x *= freq;
     y *= freq;
     z *= freq;
 
     /* Decimal part within grid cell. */
-    const float x_f = x - floorf(x);
-    const float y_f = y - floorf(y);
-    const float z_f = z - floorf(z);
+    const FLOAT x_f = x - floorf(x);
+    const FLOAT y_f = y - floorf(y);
+    const FLOAT z_f = z - floorf(z);
 
     /* Integer part describing the grid cell. */
-    const int32_t x_i = (int32_t) floorf(x);
-    const int32_t y_i = (int32_t) floorf(y);
-    const int32_t z_i = (int32_t) floorf(z);
+    const INT x_i = (INT) floorf(x);
+    const INT y_i = (INT) floorf(y);
+    const INT z_i = (INT) floorf(z);
 
     /* Position vectors of grid cell corners. */
     const ivec3 p0 = {x_i    , y_i    , z_i    };
@@ -209,41 +209,41 @@ float perlin_3d(uint32_t seed, float x, float y, float z, float freq)
     const vec3 o7 = em_sub_vec3((vec3) {x, y, z}, (vec3) {p7.x, p7.y, p7.z});
 
     /* Gradient weights. */
-    const float d0 = em_dot_vec3(g0, o0);
-    const float d1 = em_dot_vec3(g1, o1);
-    const float d2 = em_dot_vec3(g2, o2);
-    const float d3 = em_dot_vec3(g3, o3);
-    const float d4 = em_dot_vec3(g4, o4);
-    const float d5 = em_dot_vec3(g5, o5);
-    const float d6 = em_dot_vec3(g6, o6);
-    const float d7 = em_dot_vec3(g7, o7);
+    const FLOAT d0 = em_dot_vec3(g0, o0);
+    const FLOAT d1 = em_dot_vec3(g1, o1);
+    const FLOAT d2 = em_dot_vec3(g2, o2);
+    const FLOAT d3 = em_dot_vec3(g3, o3);
+    const FLOAT d4 = em_dot_vec3(g4, o4);
+    const FLOAT d5 = em_dot_vec3(g5, o5);
+    const FLOAT d6 = em_dot_vec3(g6, o6);
+    const FLOAT d7 = em_dot_vec3(g7, o7);
 
     /* Lerp constants using smoothstep. */
-    const float u = _fade(x_f);
-    const float v = _fade(y_f);
-    const float w = _fade(z_f);
+    const FLOAT u = _fade(x_f);
+    const FLOAT v = _fade(y_f);
+    const FLOAT w = _fade(z_f);
 
     /* Interpolate gradients. */
-    const float x0 = _lerp(u, d0, d1);
-    const float x1 = _lerp(u, d2, d3);
-    const float x2 = _lerp(u, d4, d5);
-    const float x3 = _lerp(u, d6, d7);
+    const FLOAT x0 = _lerp(u, d0, d1);
+    const FLOAT x1 = _lerp(u, d2, d3);
+    const FLOAT x2 = _lerp(u, d4, d5);
+    const FLOAT x3 = _lerp(u, d6, d7);
 
-    const float y0 = _lerp(v, x0, x1);
-    const float y1 = _lerp(v, x2, x3);
+    const FLOAT y0 = _lerp(v, x0, x1);
+    const FLOAT y1 = _lerp(v, x2, x3);
 
-    const float w1 = _lerp(w, y0, y1);
+    const FLOAT w1 = _lerp(w, y0, y1);
 
     return w1;
 }
 
-float perlin_octave_3d(uint32_t seed, float x, float y, float z, float freq, uint8_t num)
+FLOAT perlin_octave_3d(UINT seed, FLOAT x, FLOAT y, FLOAT z, FLOAT freq, UBYTE num)
 {
-    float res = 0.0;
-    float amp = 1.0;
-    float f = freq;
+    FLOAT res = 0.0;
+    FLOAT amp = 1.0;
+    FLOAT f = freq;
 
-    for (size_t i = 0; i < num; i++)
+    for (SIZE i = 0; i < num; i++)
     {
         res += amp * perlin_3d(seed, x, y, z, f);
         amp /= 2.0;

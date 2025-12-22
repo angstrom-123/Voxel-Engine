@@ -15,28 +15,28 @@
 #define DECLARE_ARRAY_LIST(TYPE, NAME)\
 typedef struct em_array_list_##NAME {\
     /* Members. */\
-    size_t count;\
-    size_t size;\
+    SIZE count;\
+    SIZE size;\
     em_array_list_t *_al;\
     /* Methods. */\
     /* Get a new iterator for this list. */\
     em_array_list_iter_t *(*iterator)(struct em_array_list_##NAME *this);\
     /* Get a value at an index in the list. */\
-    TYPE (*get)(struct em_array_list_##NAME *this, size_t index);\
+    TYPE (*get)(struct em_array_list_##NAME *this, SIZE index);\
     /* Get a pointer to the value at an index in the list. */\
-    TYPE *(*get_ptr)(struct em_array_list_##NAME *this, size_t index);\
+    TYPE *(*get_ptr)(struct em_array_list_##NAME *this, SIZE index);\
     /* Add an element onto the end of the list. */\
     void (*append)(struct em_array_list_##NAME *this, TYPE value);\
     /* Add an element onto the end of the list. */\
     void (*append_ptr)(struct em_array_list_##NAME *this, TYPE *value_ptr);\
     /* Removes and returns the element at index in the list. */\
-    TYPE (*pop)(struct em_array_list_##NAME *this, size_t index);\
+    TYPE (*pop)(struct em_array_list_##NAME *this, SIZE index);\
     /* Removes and returns a pointer to the element at index in the list. */\
-    TYPE *(*pop_ptr)(struct em_array_list_##NAME *this, size_t index);\
+    TYPE *(*pop_ptr)(struct em_array_list_##NAME *this, SIZE index);\
     /* Removes and returns the first element in this list. */\
     TYPE (*pop_first)(struct em_array_list_##NAME *this);\
     /* Remove an element at a specified index in the list. */\
-    void (*remove)(struct em_array_list_##NAME *this, size_t index);\
+    void (*remove)(struct em_array_list_##NAME *this, SIZE index);\
     /* Frees all resources associated with the list. WARN: Requires traversal. */\
     void (*destroy)(struct em_array_list_##NAME *this);\
 } em_array_list_##NAME##_t;\
@@ -61,13 +61,13 @@ static em_array_list_iter_t *_iterator_array_list_##NAME(em_array_list_##NAME##_
     return em_al_iterator(this->_al);\
 }\
 \
-static TYPE _get_array_list_##NAME(em_array_list_##NAME##_t *this, size_t index)\
+static TYPE _get_array_list_##NAME(em_array_list_##NAME##_t *this, SIZE index)\
 {\
     TYPE *res = em_al_get(this->_al, index);\
     return *res;\
 }\
 \
-static TYPE *_get_ptr_array_list_##NAME(em_array_list_##NAME##_t *this, size_t index)\
+static TYPE *_get_ptr_array_list_##NAME(em_array_list_##NAME##_t *this, SIZE index)\
 {\
     TYPE *res = em_al_get(this->_al, index);\
     return res;\
@@ -87,7 +87,7 @@ static void _append_ptr_array_list_##NAME(em_array_list_##NAME##_t *this, TYPE *
     _update_array_list_##NAME(this);\
 }\
 \
-static TYPE _pop_array_list_##NAME(em_array_list_##NAME##_t *this, size_t idx)\
+static TYPE _pop_array_list_##NAME(em_array_list_##NAME##_t *this, SIZE idx)\
 {\
     TYPE *pop = em_al_pop(this->_al, idx);\
     TYPE res = *pop;\
@@ -96,14 +96,14 @@ static TYPE _pop_array_list_##NAME(em_array_list_##NAME##_t *this, size_t idx)\
     return res;\
 }\
 \
-static TYPE *_pop_ptr_array_list_##NAME(em_array_list_##NAME##_t *this, size_t idx)\
+static TYPE *_pop_ptr_array_list_##NAME(em_array_list_##NAME##_t *this, SIZE idx)\
 {\
     TYPE *res = em_al_pop(this->_al, idx);\
     _update_array_list_##NAME(this);\
     return res;\
 }\
 \
-static void _remove_array_list_##NAME(em_array_list_##NAME##_t *this, size_t index)\
+static void _remove_array_list_##NAME(em_array_list_##NAME##_t *this, SIZE index)\
 {\
     em_al_remove(this->_al, index);\
     _update_array_list_##NAME(this);\
@@ -153,10 +153,10 @@ typedef struct em_array_list_node {
 } em_array_list_node_t;
 
 typedef struct em_array_list {
-    size_t count;
-    size_t size;
+    SIZE count;
+    SIZE size;
 
-    int32_t _flags;
+    INT _flags;
     void_cln_func _cln_func;
     em_array_list_node_t **_entries;
 } em_array_list_t;
@@ -168,14 +168,14 @@ typedef struct em_array_list_iter {
 
     em_array_list_t *_al;
     em_array_list_node_t *_curr;
-    size_t _idx;
-    size_t _count;
+    SIZE _idx;
+    SIZE _count;
 } em_array_list_iter_t;
 
 typedef struct em_array_list_desc {
-    size_t capacity;
+    SIZE capacity;
     void_cln_func cln_func;
-    int32_t flags;
+    INT flags;
 } em_array_list_desc_t;
 
 em_array_list_node_t *_al_iter_get(em_array_list_iter_t *iter);
@@ -183,11 +183,11 @@ void _al_iter_next(em_array_list_iter_t *iter);
 em_array_list_iter_t *em_al_iterator(em_array_list_t *dll);
 
 em_array_list_t *em_al_new(const em_array_list_desc_t *desc);
-void *em_al_get(em_array_list_t *this, size_t index);
-em_array_list_node_t *em_al_get_node(em_array_list_t *this, size_t index);
+void *em_al_get(em_array_list_t *this, SIZE index);
+em_array_list_node_t *em_al_get_node(em_array_list_t *this, SIZE index);
 void em_al_append(em_array_list_t *this, void *val);
-void *em_al_pop(em_array_list_t *this, size_t index);
-void em_al_remove(em_array_list_t *this, size_t index);
+void *em_al_pop(em_array_list_t *this, SIZE index);
+void em_al_remove(em_array_list_t *this, SIZE index);
 
 void em_al_destroy(em_array_list_t *this);
 
@@ -209,7 +209,7 @@ void em_al_destroy(em_array_list_t *this);
 void _em_array_list_resize(em_array_list_t *this)
 {
     EM_LOG("Array List resizing.\n", NULL);
-    size_t old_size = this->size;
+    SIZE old_size = this->size;
     this->size = ceilf(this->size * 1.5);
     this->_entries = realloc(this->_entries, this->size * sizeof(em_array_list_node_t *));
     if (!this->_entries)
@@ -274,7 +274,7 @@ em_array_list_t *em_al_new(const em_array_list_desc_t *desc)
     return res;
 }
 
-void *em_al_get(em_array_list_t *this, size_t idx)
+void *em_al_get(em_array_list_t *this, SIZE idx)
 {
     if (idx >= this->count || this->count == 0)
     {
@@ -298,7 +298,7 @@ void em_al_append(em_array_list_t *this, void *val)
         _em_array_list_resize(this);
 }
 
-void *em_al_pop(em_array_list_t *this, size_t idx)
+void *em_al_pop(em_array_list_t *this, SIZE idx)
 {
     if (this->count == 0 || idx >= this->count)
     {
@@ -333,7 +333,7 @@ void *em_al_pop(em_array_list_t *this, size_t idx)
     return res;
 }
 
-void em_al_remove(em_array_list_t *this, size_t idx)
+void em_al_remove(em_array_list_t *this, SIZE idx)
 {
     if (this->count == 0 || idx >= this->count)
     {
@@ -369,7 +369,7 @@ void em_al_remove(em_array_list_t *this, size_t idx)
 
 void em_al_destroy(em_array_list_t *this)
 {
-    for (size_t i = 0; i < this->count; i++)
+    for (SIZE i = 0; i < this->count; i++)
     {
         em_array_list_node_t *n = this->_entries[i];
         if (n)
