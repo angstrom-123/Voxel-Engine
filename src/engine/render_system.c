@@ -91,7 +91,7 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     });
 
     sprite_renderer_init(&rs->sprite_renderer, &(sprite_renderer_desc_t) {
-        .max_sprites = 64,
+        .max_sprites = 256,
         .base_desc = &(renderer_base_desc_t) {
             .dimensions = desc->window_size,
             .cam = &rs->ortho_cam,
@@ -135,6 +135,36 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
         .size = crosshair_size,
         .z_index = 1.0
     });
+
+    const char *text_0 = "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG";
+    const char *text_1 = "the quick brown fox jumps over the lazy dog";
+    const char *text_2 = "1234567890!?\"#$%^&*()[]{}-_=+/\\<>,.|`";
+    const char *text_3 = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz";
+    sprite_t **s_0 = sprite_renderer_push_str(&rs->sprite_renderer, text_0, &(sprite_desc_t) {
+        .z_index = 1.0,
+        .size = { 18.0, 26.0 },
+        .pos = { 0.0, 100.0 }
+    });
+    sprite_t **s_1 = sprite_renderer_push_str(&rs->sprite_renderer, text_1, &(sprite_desc_t) {
+        .z_index = 1.0,
+        .size = { 18.0, 26.0 },
+        .pos = { 0.0, 150.0 }
+    });
+    sprite_t **s_2 = sprite_renderer_push_str(&rs->sprite_renderer, text_2, &(sprite_desc_t) {
+        .z_index = 1.0,
+        .size = { 18.0, 26.0 },
+        .pos = { 0.0, 50.0 }
+    });
+    sprite_t **s_3 = sprite_renderer_push_str(&rs->sprite_renderer, text_3, &(sprite_desc_t) {
+        .z_index = 1.0,
+        .size = { 18.0, 26.0 },
+        .pos = { 0.0, 200.0 }
+    });
+
+    free(s_0);
+    free(s_1);
+    free(s_2);
+    free(s_3);
 }
 
 void render_sys_cleanup(render_system_t *rs)

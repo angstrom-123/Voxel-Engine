@@ -12,6 +12,12 @@
 #define SPRITE_VERTEX_COUNT 4
 #define SPRITE_INDEX_COUNT 6
 
+typedef enum sprite_texture {
+    SPRITETEX_ATLAS,
+    SPRITETEX_FONT,
+    SPRITETEX_NUM
+} sprite_texture_e;
+
 typedef struct sprite_vertex {
     vec2 pos;
     vec2 uv;
@@ -21,6 +27,7 @@ typedef struct sprite_vertex {
 typedef struct sprite {
     offset_t *offset;
     bool removed;
+    bool is_char;
 } sprite_t;
 
 typedef struct sprite_renderer {
@@ -34,6 +41,7 @@ typedef struct sprite_renderer {
     sg_buffer i_buf;
     sprite_vertex_t *vbo;
     uint16_t *ibo;
+    texture_t textures[SPRITETEX_NUM];
 } sprite_renderer_t;
 
 typedef struct sprite_renderer_desc {
@@ -46,12 +54,16 @@ typedef struct sprite_desc {
     vec2 size;
     float z_index;
     vec2 uv_offset;
+    bool is_char;
 } sprite_desc_t;
 
 extern void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *desc);
 extern void sprite_renderer_load_textures(sprite_renderer_t *sr);
 extern void sprite_renderer_cleanup(sprite_renderer_t *sr);
 extern void sprite_renderer_render_all(sprite_renderer_t *sr);
+extern void sprite_renderer_change_char(sprite_renderer_t *sr, sprite_t *s, char c);
+extern sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str, 
+                                           const sprite_desc_t *desc);
 extern sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc);
 extern void sprite_renderer_pop(sprite_renderer_t *sr, sprite_t *sprite);
 

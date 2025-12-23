@@ -1,4 +1,20 @@
 #include "sprite_renderer.h"
+#include "texture_handler.h"
+
+vec2 _uv_lookup(sprite_renderer_t *sr, char c)
+{
+    const texture_t t = sr->textures[SPRITETEX_FONT];
+
+    const uint8_t START = ' ';
+    const uint8_t UNKNOWN = 95;
+
+    uint8_t idx = em_clamp(c - START, 0, UNKNOWN);
+    float y = floorf((float) idx / (float) t.subimages_x);
+    float x = idx - (y * t.subimages_x);
+    vec2 d = texture_query_subimage_uv(&t);
+
+    return em_mul_vec2(d, VEC2(x, t.subimages_y - y - 1));
+}
 
 void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *desc)
 {
@@ -87,24 +103,22 @@ void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *d
 void sprite_renderer_load_textures(sprite_renderer_t *sr)
 {
     ENGINE_TODO("Make an atlas for sprite textures such as crosshair");
-    texture_t crosshair;
-    texture_t font_atlas;
 
     bool res;
-    res = texture_load(&crosshair, &(texture_desc_t) {
+    res = texture_load(&sr->textures[SPRITETEX_ATLAS], &(texture_desc_t) {
         .path = "res/tex/sprite/crosshair"
     });
     ENGINE_ASSERT(res, "Failed to load sprite atlas texture");
 
-    res = texture_load(&font_atlas, &(texture_desc_t) {
+    res = texture_load(&sr->textures[SPRITETEX_FONT], &(texture_desc_t) {
         .path = "res/tex/sprite/font-atlas",
         .subimages_x = 10,
         .subimages_y = 10
     });
     ENGINE_ASSERT(res, "Failed to load font atlas texture");
 
-    sr->base.bind.views[VIEW_u_tex_sprite_atlas] = crosshair.as_view;
-    sr->base.bind.views[VIEW_u_tex_font_atlas] = font_atlas.as_view;
+    sr->base.bind.views[VIEW_u_tex_sprite_atlas] = sr->textures[SPRITETEX_ATLAS].as_view;
+    sr->base.bind.views[VIEW_u_tex_font_atlas] = sr->textures[SPRITETEX_FONT].as_view;
     sr->base.bind.samplers[SMP_u_smp] = sg_make_sampler(&(sg_sampler_desc) {
         .min_filter = SG_FILTER_NEAREST,
         .mag_filter = SG_FILTER_NEAREST,
@@ -171,7 +185,7 @@ void sprite_renderer_render_all(sprite_renderer_t *sr)
         };
 
         fs_params_sprite_t fs_params = {
-            .u_is_char = false
+            .u_is_char = s->is_char
         };
 
         sg_apply_uniforms(UB_vs_params_sprite, &SG_RANGE(vs_params));
@@ -187,28 +201,36 @@ void sprite_renderer_render_all(sprite_renderer_t *sr)
     sg_end_pass();
 }
 
-void sprite_renderer_update_sprite(sprite_renderer_t *sr, sprite_t *s, const sprite_desc_t *desc)
+void sprite_renderer_change_char(sprite_renderer_t *sr, sprite_t *s, char c)
 {
-    ENGINE_UNIMPLEMENTED("Add sprite updating");
-    // TODO:
-    //      Fetch from buffer.
-    //      Update.
+    ENGINE_ASSERT(s->is_char, "Sprite must be a character to change its char");
+    vec2 uv_scale = texture_query_subimage_uv(&sr->textures[SPRITETEX_FONT]);
+    vec2 uv = _uv_lookup(sr, c);
+    sr->vbo[s->offset->v_ofst].uv = em_add_vec2(VEC2(0.0, 0.0), uv);
+    sr->vbo[s->offset->v_ofst + 1].uv = em_add_vec2(VEC2(uv_scale.x, 0.0), uv);
+    sr->vbo[s->offset->v_ofst + 2].uv = em_add_vec2(uv_scale, uv);
+    sr->vbo[s->offset->v_ofst + 3].uv = em_add_vec2(VEC2(0.0, uv_scale.y), uv);
 }
 
-sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str)
+sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str,
+                                    const sprite_desc_t *desc)
 {
-    ENGINE_UNIMPLEMENTED("Add character sprite pushing");
-    size_t len = strlen(str);
-    
-    // TODO:
-    //      Load texture atlas in other func.
-    //      Lookup character in loaded texture atlas.
-    //      Error out if not possible, else proceed.
-    //      Push sprite if possible.
-    //      Save pushed sprite ptr to result array.
-    //      
-    //      Return result array.
-    return NULL;
+    const size_t len = strlen(str);
+    ENGINE_ASSERT(sr->sprite_count + len <= sr->max_sprites,
+                  "String length exceeds maximum sprite count");
+
+    sprite_t **res = malloc(len * sizeof(sprite_t *));
+    sprite_desc_t d = *desc;
+    d.is_char = true;
+
+    for (size_t i = 0; i < len; i++)
+    {
+        d.uv_offset = _uv_lookup(sr, str[i]);
+        res[i] = sprite_renderer_push(sr, &d);
+        d.pos.x += d.size.x;
+    }
+
+    return res;
 }
 
 sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
@@ -218,6 +240,11 @@ sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
     sprite_t *s = malloc(sizeof(sprite_t));
     s->offset = sr->offset_pool->dequeue_ptr(sr->offset_pool);
     s->removed = false;
+    s->is_char = desc->is_char;
+
+    vec2 uv_scale = (desc->is_char)
+                  ? texture_query_subimage_uv(&sr->textures[SPRITETEX_FONT])
+                  : texture_query_subimage_uv(&sr->textures[SPRITETEX_ATLAS]);
 
     /* Counter clockwise winding. */
     sr->vbo[s->offset->v_ofst] = (sprite_vertex_t) {
@@ -227,17 +254,17 @@ sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
     };
     sr->vbo[s->offset->v_ofst + 1] = (sprite_vertex_t) {
         .pos = em_add_vec2(desc->pos, (vec2) {desc->size.x, 0.0}),
-        .uv = em_add_vec2(VEC2(1.0, 0.0), desc->uv_offset),
+        .uv = em_add_vec2(VEC2(uv_scale.x, 0.0), desc->uv_offset),
         .z = desc->z_index
     };
     sr->vbo[s->offset->v_ofst + 2] = (sprite_vertex_t) {
         .pos = em_add_vec2(desc->pos, desc->size),
-        .uv = em_add_vec2(VEC2(1.0, 1.0), desc->uv_offset),
+        .uv = em_add_vec2(uv_scale, desc->uv_offset),
         .z = desc->z_index
     };
     sr->vbo[s->offset->v_ofst + 3] = (sprite_vertex_t) {
         .pos = em_add_vec2(desc->pos, (vec2) {0.0, desc->size.y}),
-        .uv = em_add_vec2(VEC2(0.0, 1.0), desc->uv_offset),
+        .uv = em_add_vec2(VEC2(0.0, uv_scale.y), desc->uv_offset),
         .z = desc->z_index
     };
 

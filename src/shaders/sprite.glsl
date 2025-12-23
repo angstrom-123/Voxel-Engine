@@ -6,6 +6,7 @@ precision highp uint
 @ctype vec2 em_vec2
 
 @vs vs_sprite
+@glsl_options flip_vert_y
 layout(binding=0) uniform vs_params_sprite {
     mat4 u_vp;
 };

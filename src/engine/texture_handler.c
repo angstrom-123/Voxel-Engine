@@ -87,6 +87,6 @@ bool texture_mip_load(texture_t *res, const texture_desc_t *desc)
 
 vec2 texture_query_subimage_uv(const texture_t *tex)
 {
-    return VEC2((float) tex->width / (float) tex->subimages_x, 
-                (float) tex->height / (float) tex->subimages_y);
+    return VEC2(1.0 / (float) tex->subimages_x, 
+                1.0 / (float) tex->subimages_y);
 }
