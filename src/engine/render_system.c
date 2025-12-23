@@ -112,59 +112,29 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
 
     /* Block cursor. */
     rs->cursor_active = false;
-    const vec3 cursor_col = {1.0, 1.0, 1.0};
+    const vec3 cursor_col = VEC3(1.0, 1.0, 1.0);
     line_renderer_push_all(&rs->cursor_line_renderer, NULL, 12, (line_desc_t[]) {
-        {.from = {0.0, 0.0, 0.0}, .to = {0.0, 0.0, 1.0}, .col = cursor_col},
-        {.from = {0.0, 0.0, 1.0}, .to = {1.0, 0.0, 1.0}, .col = cursor_col},
-        {.from = {1.0, 0.0, 1.0}, .to = {1.0, 0.0, 0.0}, .col = cursor_col},
-        {.from = {1.0, 0.0, 0.0}, .to = {0.0, 0.0, 0.0}, .col = cursor_col},
-        {.from = {0.0, 1.0, 0.0}, .to = {0.0, 1.0, 1.0}, .col = cursor_col},
-        {.from = {0.0, 1.0, 1.0}, .to = {1.0, 1.0, 1.0}, .col = cursor_col},
-        {.from = {1.0, 1.0, 1.0}, .to = {1.0, 1.0, 0.0}, .col = cursor_col},
-        {.from = {1.0, 1.0, 0.0}, .to = {0.0, 1.0, 0.0}, .col = cursor_col},
-        {.from = {0.0, 0.0, 0.0}, .to = {0.0, 1.0, 0.0}, .col = cursor_col},
-        {.from = {0.0, 0.0, 1.0}, .to = {0.0, 1.0, 1.0}, .col = cursor_col},
-        {.from = {1.0, 0.0, 1.0}, .to = {1.0, 1.0, 1.0}, .col = cursor_col},
-        {.from = {1.0, 0.0, 0.0}, .to = {1.0, 1.0, 0.0}, .col = cursor_col}
+        { .from = VEC3(0.0, 0.0, 0.0), .to = VEC3(0.0, 0.0, 1.0), .col = cursor_col },
+        { .from = VEC3(0.0, 0.0, 1.0), .to = VEC3(1.0, 0.0, 1.0), .col = cursor_col },
+        { .from = VEC3(1.0, 0.0, 1.0), .to = VEC3(1.0, 0.0, 0.0), .col = cursor_col },
+        { .from = VEC3(1.0, 0.0, 0.0), .to = VEC3(0.0, 0.0, 0.0), .col = cursor_col },
+        { .from = VEC3(0.0, 1.0, 0.0), .to = VEC3(0.0, 1.0, 1.0), .col = cursor_col },
+        { .from = VEC3(0.0, 1.0, 1.0), .to = VEC3(1.0, 1.0, 1.0), .col = cursor_col },
+        { .from = VEC3(1.0, 1.0, 1.0), .to = VEC3(1.0, 1.0, 0.0), .col = cursor_col },
+        { .from = VEC3(1.0, 1.0, 0.0), .to = VEC3(0.0, 1.0, 0.0), .col = cursor_col },
+        { .from = VEC3(0.0, 0.0, 0.0), .to = VEC3(0.0, 1.0, 0.0), .col = cursor_col },
+        { .from = VEC3(0.0, 0.0, 1.0), .to = VEC3(0.0, 1.0, 1.0), .col = cursor_col },
+        { .from = VEC3(1.0, 0.0, 1.0), .to = VEC3(1.0, 1.0, 1.0), .col = cursor_col },
+        { .from = VEC3(1.0, 0.0, 0.0), .to = VEC3(1.0, 1.0, 0.0), .col = cursor_col }
     });
 
     /* Crosshair. */
-    const vec2 crosshair_size = {40.0, 40.0};
+    const vec2 crosshair_size = VEC2(40.0, 40.0);
     sprite_renderer_push(&rs->sprite_renderer, &(sprite_desc_t) {
         .pos = em_mul_vec2_f(crosshair_size, -0.5),
         .size = crosshair_size,
         .z_index = 1.0
     });
-
-    const char *text_0 = "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG";
-    const char *text_1 = "the quick brown fox jumps over the lazy dog";
-    const char *text_2 = "1234567890!?\"#$%^&*()[]{}-_=+/\\<>,.|`";
-    const char *text_3 = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz";
-    sprite_t **s_0 = sprite_renderer_push_str(&rs->sprite_renderer, text_0, &(sprite_desc_t) {
-        .z_index = 1.0,
-        .size = { 18.0, 26.0 },
-        .pos = { 0.0, 100.0 }
-    });
-    sprite_t **s_1 = sprite_renderer_push_str(&rs->sprite_renderer, text_1, &(sprite_desc_t) {
-        .z_index = 1.0,
-        .size = { 18.0, 26.0 },
-        .pos = { 0.0, 150.0 }
-    });
-    sprite_t **s_2 = sprite_renderer_push_str(&rs->sprite_renderer, text_2, &(sprite_desc_t) {
-        .z_index = 1.0,
-        .size = { 18.0, 26.0 },
-        .pos = { 0.0, 50.0 }
-    });
-    sprite_t **s_3 = sprite_renderer_push_str(&rs->sprite_renderer, text_3, &(sprite_desc_t) {
-        .z_index = 1.0,
-        .size = { 18.0, 26.0 },
-        .pos = { 0.0, 200.0 }
-    });
-
-    free(s_0);
-    free(s_1);
-    free(s_2);
-    free(s_3);
 }
 
 void render_sys_cleanup(render_system_t *rs)

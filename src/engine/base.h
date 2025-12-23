@@ -19,6 +19,9 @@
 #define COL_RST
 #endif
 
+#define SCREEN_WIDTH 1920
+#define SCREEN_HEIGHT 1080
+
 #define THREAD_AWAIT_NS 50000000
 
 typedef enum chunk_data_index {

@@ -24,12 +24,15 @@ static app_t *app;
 static void frame(void)
 {
     INSTRUMENT_FUNC_BEGIN();
+    bool do_fps_update = engine->meta.fps.frame_ctr % 10 == 0;
+    if (do_fps_update) engine_record_frame_start(engine);
 
     engine_render(engine);
 
     app_frame(engine, app, sapp_frame_duration());
     engine_frame(engine);
 
+    if (do_fps_update) engine_record_frame_end(engine);
     INSTRUMENT_FUNC_END();
 }
 
@@ -75,12 +78,12 @@ static void init(void)
 {
     INSTRUMENTOR_SESSION_BEGIN("Minecraft_Session");
 
-    // TODO: Make this editable by the user at runtime.
-#if defined(RELEASE) || defined(PROFILING)
-    const size_t RENDER_DISTANCE = 32;
-#elif defined(DEBUG)
-    const size_t RENDER_DISTANCE = 12;
-#endif
+    ENGINE_TODO("Make the render distance editable at run time");
+    #if defined(RELEASE) || defined(PROFILING)
+        const size_t RENDER_DISTANCE = 32;
+    #elif defined(DEBUG)
+        const size_t RENDER_DISTANCE = 12;
+    #endif
 
     ENGINE_ASSERT(RENDER_DISTANCE >= 3, "Render distance too low.\n");
 
@@ -112,8 +115,8 @@ sapp_desc sokol_main(int argc, char* argv[])
         .cleanup_cb         = cleanup,
         .event_cb           = event,
         .logger.func        = slog_func,
-        .width              = 1280,
-        .height             = 720,
+        .width              = SCREEN_WIDTH,
+        .height             = SCREEN_HEIGHT,
         .sample_count       = 1,
         .window_title       = "Minecraft Remake",
         .icon.sokol_default = true

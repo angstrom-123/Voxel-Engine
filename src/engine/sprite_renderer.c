@@ -1,5 +1,4 @@
 #include "sprite_renderer.h"
-#include "texture_handler.h"
 
 vec2 _uv_lookup(sprite_renderer_t *sr, char c)
 {
@@ -210,6 +209,7 @@ void sprite_renderer_change_char(sprite_renderer_t *sr, sprite_t *s, char c)
     sr->vbo[s->offset->v_ofst + 1].uv = em_add_vec2(VEC2(uv_scale.x, 0.0), uv);
     sr->vbo[s->offset->v_ofst + 2].uv = em_add_vec2(uv_scale, uv);
     sr->vbo[s->offset->v_ofst + 3].uv = em_add_vec2(VEC2(0.0, uv_scale.y), uv);
+    sr->needs_update = true;
 }
 
 sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str,
