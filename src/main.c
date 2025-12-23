@@ -24,15 +24,12 @@ static app_t *app;
 static void frame(void)
 {
     INSTRUMENT_FUNC_BEGIN();
-    bool do_fps_update = engine->meta.fps.frame_ctr % 10 == 0;
-    if (do_fps_update) engine_record_frame_start(engine);
 
     engine_render(engine);
 
     app_frame(engine, app, sapp_frame_duration());
     engine_frame(engine);
 
-    if (do_fps_update) engine_record_frame_end(engine);
     INSTRUMENT_FUNC_END();
 }
 

@@ -85,42 +85,18 @@ event_t event_sys_convert_event(const sapp_event *sev)
     /* Ugly conversion between event types, ignoring events I don't need. */
     event_type_e type;
     switch (sev->type) {
-    case SAPP_EVENTTYPE_KEY_DOWN:
-        type = EVENT_KEYDOWN;
-        break;
-    case SAPP_EVENTTYPE_KEY_UP:
-        type = EVENT_KEYUP;
-        break;
-    case SAPP_EVENTTYPE_CHAR:
-        type = EVENT_KEYTYPED;
-        break;
-    case SAPP_EVENTTYPE_MOUSE_DOWN:
-        type = EVENT_MOUSEDOWN;
-        break;
-    case SAPP_EVENTTYPE_MOUSE_UP:
-        type = EVENT_MOUSEUP;
-        break;
-    case SAPP_EVENTTYPE_MOUSE_MOVE:
-        type = EVENT_MOUSEMOVE;
-        break;
-    case SAPP_EVENTTYPE_MOUSE_SCROLL:
-        type = EVENT_MOUSESCROLL;
-        break;
-    case SAPP_EVENTTYPE_FOCUSED:
-        type = EVENT_FOCUSED;
-        break;
-    case SAPP_EVENTTYPE_UNFOCUSED:
-        type = EVENT_UNFOCUSED;
-        break;
-    case SAPP_EVENTTYPE_QUIT_REQUESTED:
-        type = EVENT_QUITREQUEST;
-        break;
-    case SAPP_EVENTTYPE_RESIZED:
-        type = EVENT_RESIZED;
-        break;
-    default:
-        type = EVENT_NONE;
-        break;
+    case SAPP_EVENTTYPE_KEY_DOWN:       type = EVENT_KEYDOWN;     break;
+    case SAPP_EVENTTYPE_KEY_UP:         type = EVENT_KEYUP;       break;
+    case SAPP_EVENTTYPE_CHAR:           type = EVENT_KEYTYPED;    break;
+    case SAPP_EVENTTYPE_MOUSE_DOWN:     type = EVENT_MOUSEDOWN;   break;
+    case SAPP_EVENTTYPE_MOUSE_UP:       type = EVENT_MOUSEUP;     break;
+    case SAPP_EVENTTYPE_MOUSE_MOVE:     type = EVENT_MOUSEMOVE;   break;
+    case SAPP_EVENTTYPE_MOUSE_SCROLL:   type = EVENT_MOUSESCROLL; break;
+    case SAPP_EVENTTYPE_FOCUSED:        type = EVENT_FOCUSED;     break;
+    case SAPP_EVENTTYPE_UNFOCUSED:      type = EVENT_UNFOCUSED;   break;
+    case SAPP_EVENTTYPE_QUIT_REQUESTED: type = EVENT_QUITREQUEST; break;
+    case SAPP_EVENTTYPE_RESIZED:        type = EVENT_RESIZED;     break;
+    default:                            type = EVENT_NONE;        break;
     };
 
     return (event_t) {
@@ -129,11 +105,11 @@ event_t event_sys_convert_event(const sapp_event *sev)
         .modifiers     = sev->modifiers,
         .code_utf32    = sev->char_code,
         .mouse_button  = (mouse_button_e) sev->mouse_button,
-        .mouse_pos     = (vec2) {sev->mouse_x, sev->mouse_y},
-        .mouse_delta   = (vec2) {sev->mouse_dx, sev->mouse_dy},
-        .mouse_scroll  = (ivec2) {sev->scroll_x, sev->scroll_y},
-        .window_size   = (vec2) {sev->window_width, sev->window_height},
-        .framebuf_size = (ivec2) {sev->framebuffer_width, sev->framebuffer_height},
+        .mouse_pos     = VEC2(sev->mouse_x, sev->mouse_y),
+        .mouse_delta   = VEC2(sev->mouse_dx, sev->mouse_dy),
+        .mouse_scroll  = IVEC2(sev->scroll_x, sev->scroll_y),
+        .window_size   = VEC2(sev->window_width, sev->window_height),
+        .framebuf_size = IVEC2(sev->framebuffer_width, sev->framebuffer_height),
         .handled       = false
     };
 }
@@ -167,7 +143,7 @@ void event_sys_subscribe_to_event(event_system_t *es, event_type_e type,
 void event_sys_new_frame(event_system_t *es)
 {
     es->frame = (struct es_frame) {
-        .mouse_delta = (vec2) {0, 0},
+        .mouse_delta = VEC2(0.0, 0.0),
         .modifiers_pressed = 0
     };
 }

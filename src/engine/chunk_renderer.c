@@ -1,4 +1,5 @@
 #include "chunk_renderer.h"
+#include "include_sokol.h"
 #include "texture_handler.h"
 
 void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim) 
@@ -265,11 +266,14 @@ void chunk_renderer_load_textures(chunk_renderer_t *cr)
         .min_filter = SG_FILTER_NEAREST,
         .mag_filter = SG_FILTER_NEAREST,
         .mipmap_filter = SG_FILTER_NEAREST,
-        .wrap_u = SG_WRAP_REPEAT,
-        .wrap_v = SG_WRAP_REPEAT,
-        // .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
-        // .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
-        .max_lod = MIP_LEVELS
+        .max_lod = MIP_LEVELS,
+    });
+    cr->offscreen_base.bind.samplers[SMP_u_smp_sha] = sg_make_sampler(&(sg_sampler_desc) {
+        .min_filter = SG_FILTER_LINEAR,
+        .mag_filter = SG_FILTER_LINEAR,
+        .wrap_u = SG_WRAP_CLAMP_TO_BORDER,
+        .wrap_v = SG_WRAP_CLAMP_TO_BORDER,
+        .border_color = SG_BORDERCOLOR_OPAQUE_WHITE
     });
 
     texture_t atlas;

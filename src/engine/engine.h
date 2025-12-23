@@ -30,12 +30,6 @@ typedef struct engine_meta {
         ivec3 cell;
         cube_face_idx_e face;
     } cursor;
-    struct {
-        uint64_t frame_ctr;
-        uint64_t frame_start;
-        sprite_t *fps_sprites[3];
-        sprite_t *mspf_sprites[3];
-    } fps;
 } engine_meta_t;
 
 typedef enum block_action {
@@ -63,8 +57,6 @@ typedef struct engine {
 
 extern void engine_init(engine_t *engine, const engine_desc_t *desc);
 extern void engine_cleanup(engine_t *engine);
-extern void engine_record_frame_start(engine_t *engine);
-extern void engine_record_frame_end(engine_t *engine);
 extern void engine_event(engine_t *engine, const event_t *event);
 extern void engine_render(engine_t *engine);
 extern void engine_frame(engine_t *engine);

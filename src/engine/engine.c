@@ -161,7 +161,7 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
         .es = &engine->_event_sys,
         .window_size = { sapp_width(), sapp_height() },
         .view_distance = desc->render_distance * 50,
-        .shadow_scale = 2.0
+        .shadow_scale = 8.0
     });
     ENGINE_LOG_OK("Setup render system.\n", NULL);
 
@@ -198,23 +198,12 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
     engine->meta = (engine_meta_t) {
         .cursor = {
             .active = false,
-            .cell = {-1, -1, -1},
-            .chunk = {0, 0},
+            .cell = IVEC3(-1, -1, -1),
+            .chunk = IVEC2(0, 0),
             .face = -1,
             .range = -1
-        },
-        .fps.frame_ctr = 0
+        }
     };
-
-    sprite_renderer_t *sr = &engine->_render_sys.sprite_renderer;
-    sprite_t **sprites = sprite_renderer_push_str(sr, "000@000", &(sprite_desc_t) {
-        .pos = VEC2(-(SCREEN_WIDTH / 2.0), (SCREEN_HEIGHT / 2.0) - 26),
-        .size = VEC2(18, 26),
-        .z_index = 1.0
-    });
-    memcpy(&engine->meta.fps.fps_sprites, &sprites[0], sizeof(engine->meta.fps.fps_sprites));
-    memcpy(&engine->meta.fps.mspf_sprites, &sprites[4], sizeof(engine->meta.fps.mspf_sprites));
-    free(sprites);
     ENGINE_LOG_OK("Setup engine metadata.\n", NULL);
 
     load_sys_load_initial(&engine->_load_sys, &engine->_chunk_sys);
@@ -232,38 +221,6 @@ void engine_cleanup(engine_t *engine)
     ui_sys_cleanup(&engine->_ui_sys);
 }
 
-void engine_record_frame_start(engine_t *engine)
-{
-    engine->meta.fps.frame_start = stm_now();
-}
-
-void engine_record_frame_end(engine_t *engine)
-{
-    uint64_t frame_ticks = stm_now() - engine->meta.fps.frame_start;
-    double frame_time = stm_ms(frame_ticks);
-    uint16_t fps = 1000.0 / frame_time;
-    uint16_t mspf = floor(frame_time);
-
-    char fps_str[4];
-    char mspf_str[4];
-    snprintf(fps_str, 4, "%03d", fps);
-    snprintf(mspf_str, 4, "%03d", mspf);
-
-    sprite_renderer_change_char(&engine->_render_sys.sprite_renderer,
-                                engine->meta.fps.fps_sprites[0], fps_str[0]);
-    sprite_renderer_change_char(&engine->_render_sys.sprite_renderer,
-                                engine->meta.fps.fps_sprites[1], fps_str[1]);
-    sprite_renderer_change_char(&engine->_render_sys.sprite_renderer,
-                                engine->meta.fps.fps_sprites[2], fps_str[2]);
-
-    sprite_renderer_change_char(&engine->_render_sys.sprite_renderer,
-                                engine->meta.fps.mspf_sprites[0], mspf_str[0]);
-    sprite_renderer_change_char(&engine->_render_sys.sprite_renderer,
-                                engine->meta.fps.mspf_sprites[1], mspf_str[1]);
-    sprite_renderer_change_char(&engine->_render_sys.sprite_renderer,
-                                engine->meta.fps.mspf_sprites[2], mspf_str[2]);
-}
-
 void engine_event(engine_t *engine, const event_t *event)
 {
     event_sys_get_event(&engine->_event_sys, event);
@@ -277,7 +234,6 @@ void engine_render(engine_t *engine)
 
 void engine_frame(engine_t *engine)
 {
-    engine->meta.fps.frame_ctr++;
     event_sys_new_frame(&engine->_event_sys);
 
     ivec2 cam_chunk = {

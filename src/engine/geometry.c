@@ -65,8 +65,8 @@ static inline packed_vertex_t _packed_vertex(uint8_t vert_idx, const quad_desc_t
     case FACEIDX_LEFT  : n = 2; break;
     case FACEIDX_TOP   : n = 3; break;
     case FACEIDX_BOTTOM: n = 4; break;
-    case FACEIDX_BACK  : n = 5; break;
-    case FACEIDX_FRONT : n = 6; break;
+    case FACEIDX_FRONT : n = 5; break;
+    case FACEIDX_BACK  : n = 6; break;
     }
 
     return (packed_vertex_t) {

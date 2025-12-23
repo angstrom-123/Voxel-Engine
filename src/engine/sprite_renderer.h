@@ -61,6 +61,11 @@ extern void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_de
 extern void sprite_renderer_load_textures(sprite_renderer_t *sr);
 extern void sprite_renderer_cleanup(sprite_renderer_t *sr);
 extern void sprite_renderer_render_all(sprite_renderer_t *sr);
+extern void sprite_renderer_move(sprite_renderer_t *sr, sprite_t *s, vec2 pos);
+extern void sprite_renderer_move_str(sprite_renderer_t *sr, sprite_t **sprites, 
+                                     size_t len, vec2 pos);
+extern void sprite_renderer_change_str(sprite_renderer_t *sr, sprite_t **sprites, 
+                                       const char *str);
 extern void sprite_renderer_change_char(sprite_renderer_t *sr, sprite_t *s, char c);
 extern sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str, 
                                            const sprite_desc_t *desc);

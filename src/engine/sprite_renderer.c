@@ -15,6 +15,12 @@ vec2 _uv_lookup(sprite_renderer_t *sr, char c)
     return em_mul_vec2(d, VEC2(x, t.subimages_y - y - 1));
 }
 
+vec2 _sprite_dimensions(sprite_renderer_t *sr, sprite_t *s)
+{
+    // Subtracting vertex positions of opposite corners.
+    return em_sub_vec2(sr->vbo[s->offset->v_ofst + 2].pos, sr->vbo[s->offset->v_ofst].pos);
+}
+
 void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *desc)
 {
     sr->offset_pool = CIRCULAR_QUEUE_NEW(offset)(&(em_circular_queue_desc_t) {
@@ -200,6 +206,35 @@ void sprite_renderer_render_all(sprite_renderer_t *sr)
     sg_end_pass();
 }
 
+void sprite_renderer_move(sprite_renderer_t *sr, sprite_t *s, vec2 pos)
+{
+    vec2 d = _sprite_dimensions(sr, s);
+    sr->vbo[s->offset->v_ofst].pos = pos;
+    sr->vbo[s->offset->v_ofst + 1].pos = em_add_vec2(pos, VEC2(d.x, 0.0));
+    sr->vbo[s->offset->v_ofst + 2].pos = em_add_vec2(pos, d);
+    sr->vbo[s->offset->v_ofst + 3].pos = em_add_vec2(pos, VEC2(0.0, d.y));
+    sr->needs_update = true;
+}
+
+void sprite_renderer_move_str(sprite_renderer_t *sr, sprite_t **sprites, size_t len, vec2 pos)
+{
+    vec2 d = _sprite_dimensions(sr, sprites[0]);
+    vec2 spr_pos = pos;
+    for (size_t i = 0; i < len; i++)
+    {
+        sprite_t *s = sprites[i];
+        ENGINE_ASSERT(s->is_char, "Sprite must be a character to move it as a string");
+
+        sr->vbo[s->offset->v_ofst].pos = spr_pos;
+        sr->vbo[s->offset->v_ofst + 1].pos = em_add_vec2(spr_pos, VEC2(d.x, 0.0));
+        sr->vbo[s->offset->v_ofst + 2].pos = em_add_vec2(spr_pos, d);
+        sr->vbo[s->offset->v_ofst + 3].pos = em_add_vec2(spr_pos, VEC2(0.0, d.y));
+
+        spr_pos.x += d.x;
+    }
+    sr->needs_update = true;
+}
+
 void sprite_renderer_change_char(sprite_renderer_t *sr, sprite_t *s, char c)
 {
     ENGINE_ASSERT(s->is_char, "Sprite must be a character to change its char");
@@ -209,6 +244,26 @@ void sprite_renderer_change_char(sprite_renderer_t *sr, sprite_t *s, char c)
     sr->vbo[s->offset->v_ofst + 1].uv = em_add_vec2(VEC2(uv_scale.x, 0.0), uv);
     sr->vbo[s->offset->v_ofst + 2].uv = em_add_vec2(uv_scale, uv);
     sr->vbo[s->offset->v_ofst + 3].uv = em_add_vec2(VEC2(0.0, uv_scale.y), uv);
+    sr->needs_update = true;
+}
+
+void sprite_renderer_change_str(sprite_renderer_t *sr, sprite_t **sprites, const char *str)
+{
+    vec2 uv_scale = texture_query_subimage_uv(&sr->textures[SPRITETEX_FONT]);
+
+    char c;
+    for (size_t i = 0; (c = str[i]); i++)
+    {
+        sprite_t *s = sprites[i];
+        ENGINE_ASSERT(s->is_char, "Sprite must be a character to change its char");
+
+        vec2 uv = _uv_lookup(sr, c);
+        sr->vbo[s->offset->v_ofst].uv = em_add_vec2(VEC2(0.0, 0.0), uv);
+        sr->vbo[s->offset->v_ofst + 1].uv = em_add_vec2(VEC2(uv_scale.x, 0.0), uv);
+        sr->vbo[s->offset->v_ofst + 2].uv = em_add_vec2(uv_scale, uv);
+        sr->vbo[s->offset->v_ofst + 3].uv = em_add_vec2(VEC2(0.0, uv_scale.y), uv);
+    }
+
     sr->needs_update = true;
 }
 
@@ -253,7 +308,7 @@ sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
         .z = desc->z_index
     };
     sr->vbo[s->offset->v_ofst + 1] = (sprite_vertex_t) {
-        .pos = em_add_vec2(desc->pos, (vec2) {desc->size.x, 0.0}),
+        .pos = em_add_vec2(desc->pos, VEC2(desc->size.x, 0.0)),
         .uv = em_add_vec2(VEC2(uv_scale.x, 0.0), desc->uv_offset),
         .z = desc->z_index
     };
@@ -263,7 +318,7 @@ sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
         .z = desc->z_index
     };
     sr->vbo[s->offset->v_ofst + 3] = (sprite_vertex_t) {
-        .pos = em_add_vec2(desc->pos, (vec2) {0.0, desc->size.y}),
+        .pos = em_add_vec2(desc->pos, VEC2(0.0, desc->size.y)),
         .uv = em_add_vec2(VEC2(0.0, uv_scale.y), desc->uv_offset),
         .z = desc->z_index
     };
