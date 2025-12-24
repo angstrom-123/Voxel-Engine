@@ -1,11 +1,12 @@
 #version 300 es
-precision highp uint;
 
 @ctype mat4 em_mat4
 @ctype vec3 em_vec3
 
 @vs vs_shadowmap
 @glsl_options flip_vert_y
+// @glsl_options fixup_clipspace
+
 layout(binding=0) uniform vs_params_shadowmap {
     mat4 u_vp;
     vec3 u_ccord;
@@ -30,6 +31,7 @@ void main() {
 @end
 
 @fs fs_shadowmap
+// void main() {}
 layout(location=0) out float frag_sha;
 
 void main() {

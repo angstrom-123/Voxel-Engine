@@ -1,6 +1,4 @@
 #include "chunk_renderer.h"
-#include "include_sokol.h"
-#include "texture_handler.h"
 
 void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim) 
 {
@@ -11,7 +9,7 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     sg_destroy_image(cr->targets.colour);
     sg_destroy_image(cr->targets.normal);
     sg_destroy_image(cr->targets.depth);
-    sg_destroy_image(cr->targets.shadowmap);
+    // sg_destroy_image(cr->targets.shadowmap);
     sg_destroy_image(cr->targets.zbuf);
     sg_destroy_image(cr->targets.zbuf_shadow);
 
@@ -26,7 +24,6 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     sg_destroy_view(cr->display_base.bind.views[0]);
     sg_destroy_view(cr->display_base.bind.views[1]);
     sg_destroy_view(cr->display_base.bind.views[2]);
-    sg_destroy_view(cr->display_base.bind.views[4]);
 
     // Make new targets with the new dimensions.
     cr->targets = (struct targets) {
@@ -76,7 +73,7 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
             .width = cr->shadowmap_base.dimensions.x,  // Do not scale shadowmap.
             .height = cr->shadowmap_base.dimensions.y,
             .sample_count = 1,
-            .label = "chunk-zbuf-image"
+            .label = "chunk-shadowmap-image"
         })
     };
 
@@ -84,11 +81,11 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     cr->shadowmap_base.pass.attachments = (sg_attachments) {
         .colors[0] = sg_make_view(&(sg_view_desc) {
             .color_attachment = { .image = cr->targets.shadowmap },
-            .label = "shadowmap-chunk-depth-attachment"
+            .label = "shadowmap-chunk-attachment",
         }),
         .depth_stencil = sg_make_view(&(sg_view_desc) {
             .depth_stencil_attachment = { .image = cr->targets.zbuf_shadow },
-            .label = "shadowmap-chunk-zbuf-attachment"
+            .label = "shadowmap-chunk-zbuf-attachment",
         })
     };
 
@@ -113,6 +110,7 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
 
     // Binding at index 0 is reserved for the block textures.
     cr->offscreen_base.bind.views[1] = sg_make_view(&(sg_view_desc) {
+        // .texture = { .image = cr->targets.zbuf_shadow },
         .texture = { .image = cr->targets.shadowmap },
         .label = "offscreen-chunk-shadowmap-view"
     });
@@ -130,8 +128,8 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
         .label = "display-chunk-depth-view"
     });
     // For debugging
-    // cr->display_base.bind.views[4] = sg_make_view(&(sg_view_desc) {
-    //     .texture = { .image = cr->targets.shadowmap },
+    // cr->display_base.bind.views[3] = sg_make_view(&(sg_view_desc) {
+    //     .texture = { .image = cr->targets.zbuf_shadow },
     //     .label = "offscreen-chunk-shadowmap-view"
     // });
 }
@@ -149,12 +147,17 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
 
     // Shadowmap pass 
     cr->shadowmap_base.pass.action = (sg_pass_action) {
-        .colors = {
+        .colors = { 
             [0] = {
                 .load_action = SG_LOADACTION_CLEAR,
-                .clear_value = 1.0
+                .clear_value = 1.0,
             }
         },
+        // .depth = {
+        //     .load_action = SG_LOADACTION_CLEAR,
+        //     .store_action = SG_STOREACTION_STORE,
+        //     .clear_value = 1.0
+        // }
         .depth = {
             .load_action = SG_LOADACTION_CLEAR,
             .clear_value = 1.0
@@ -172,12 +175,14 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         .cull_mode = SG_CULLMODE_BACK,
         .sample_count = 1,
         .color_count = 1,
-        .colors = {
+        .colors = { 
             [0].pixel_format = DEPTH_PIXELFORMAT,
         },
+        // .colors[0].pixel_format = SG_PIXELFORMAT_NONE,
         .depth = {
             .pixel_format = SG_PIXELFORMAT_DEPTH,
             .compare = SG_COMPAREFUNC_LESS_EQUAL,
+            // .write_enabled = true
             .write_enabled = false
         }
     });
@@ -225,17 +230,6 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
             .compare = SG_COMPAREFUNC_LESS_EQUAL,
             .write_enabled = true
         },
-        // .colors[0] = {
-        //     .blend = {
-        //         .enabled = true,
-        //         .src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
-        //         .dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-        //         .op_rgb = SG_BLENDOP_ADD,
-        //         .src_factor_alpha = SG_BLENDFACTOR_ONE,
-        //         .dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-        //         .op_alpha = SG_BLENDOP_ADD
-        //     }
-        // }
     });
 
     // Display pipeline 
@@ -269,11 +263,11 @@ void chunk_renderer_load_textures(chunk_renderer_t *cr)
         .max_lod = MIP_LEVELS,
     });
     cr->offscreen_base.bind.samplers[SMP_u_smp_sha] = sg_make_sampler(&(sg_sampler_desc) {
-        .min_filter = SG_FILTER_LINEAR,
-        .mag_filter = SG_FILTER_LINEAR,
-        .wrap_u = SG_WRAP_CLAMP_TO_BORDER,
-        .wrap_v = SG_WRAP_CLAMP_TO_BORDER,
-        .border_color = SG_BORDERCOLOR_OPAQUE_WHITE
+        .min_filter = SG_FILTER_NEAREST,
+        .mag_filter = SG_FILTER_NEAREST,
+        // .compare = SG_COMPAREFUNC_LESS,
+        .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
+        .wrap_v = SG_WRAP_CLAMP_TO_EDGE
     });
 
     texture_t atlas;
@@ -309,7 +303,6 @@ void chunk_renderer_load_textures(chunk_renderer_t *cr)
 
 void chunk_renderer_cleanup(chunk_renderer_t *cr)
 {
-    sg_destroy_view(cr->shadowmap_base.pass.attachments.colors[0]);
     sg_destroy_view(cr->shadowmap_base.pass.attachments.depth_stencil);
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[0]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[1]);
@@ -320,12 +313,10 @@ void chunk_renderer_cleanup(chunk_renderer_t *cr)
     sg_destroy_view(cr->display_base.bind.views[0]);
     sg_destroy_view(cr->display_base.bind.views[1]);
     sg_destroy_view(cr->display_base.bind.views[2]);
-    // sg_destroy_view(cr->display_base.bind.views[4]);
 
     sg_destroy_image(cr->targets.colour);
     sg_destroy_image(cr->targets.normal);
     sg_destroy_image(cr->targets.depth);
-    sg_destroy_image(cr->targets.shadowmap);
     sg_destroy_image(cr->targets.zbuf);
     sg_destroy_image(cr->targets.zbuf_shadow);
 

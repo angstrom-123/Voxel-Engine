@@ -45,13 +45,22 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     });
 
     cam_init(&rs->shadow_cam, PROJECTION_ORTHOGRAPHIC, &(camera_desc_t) {
-        .near   = -10.0,
-        .far    = 300.0,
+        // .near   = -10.0,
+        // .far    = 300.0,
+        .near   = 50.0,
+        .far    = 200.0,
         .width  = 1024,
         .height = 1024,
         .pos    = { 0.0, 0.0, 0.0 }
     });
     cam_set_scale(&rs->shadow_cam, desc->shadow_scale);
+
+    // TODO: Stop fiddling with this crap and add:
+    //       Texel-perfect-alignment: Move cam in discrete steps aligning with texel,
+    //                                this should let me just move it with the player
+    //                                without stepping at each chunk.
+    //       Cascades: For this, need to figure out how to tightly fit the camera 
+    //                 frustum to the player's surroundings.
 
     // vec3 inv_sun_dir = (vec3) { -2.0, -4.0, -1.0 };
     vec3 inv_sun_dir = { -1.0, -5.0, -3.0 };

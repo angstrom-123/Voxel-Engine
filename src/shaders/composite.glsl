@@ -18,13 +18,10 @@ void main() {
 @end
 
 @fs fs_composite
-
 layout(binding=0) uniform sampler u_smp;
 layout(binding=0) uniform texture2D u_tex_col;
 layout(binding=1) uniform texture2D u_tex_nrm;
 layout(binding=2) uniform texture2D u_tex_dep;
-// layout(binding=3) uniform texture2D u_tex_pos;
-// layout(binding=4) uniform texture2D u_tex_sha;
 
 in vec2 v_uv;
 
@@ -34,16 +31,12 @@ void main() {
     vec3 col = texture(sampler2D(u_tex_col, u_smp), v_uv).xyz;
     vec3 nrm = texture(sampler2D(u_tex_nrm, u_smp), v_uv).xyz;
     vec3 dep = texture(sampler2D(u_tex_dep, u_smp), v_uv).xxx;
-    // vec3 sha = texture(sampler2D(u_tex_sha, u_smp), v_uv).xxx;
 
     // Debugging outputs
     frag_color = vec4(col, 1.0);
     // frag_color = vec4(nrm, 1.0);
     // frag_color = vec4(nrm * 0.5 + 0.5, 1.0);
     // frag_color = vec4(dep, 1.0);
-
-    // Need to uncomment this in chunk_renderer: not available by default.
-    // frag_color = vec4(sha, 1.0);
 
     // vec3 light_pos = vec3(0, 80, 0);
     // vec3 to_light = light_pos - pos;

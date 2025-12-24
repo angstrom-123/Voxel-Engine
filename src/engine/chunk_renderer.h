@@ -6,6 +6,7 @@
 #include "renderer_base.h"
 
 #include "include_sokol.h"
+#include "texture_handler.h"
 #include <libem/em_bmp.h>
 
 #include <stdio.h>
