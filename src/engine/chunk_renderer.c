@@ -440,7 +440,9 @@ static void _render_display_pass(chunk_renderer_t *cr)
     });
 
     fs_params_composite_t fs_params = {
-        .u_inv_proj = em_inverse_mat4(cr->offscreen_base.cam->vp)
+        .u_inv_vp = em_inverse_mat4(cr->offscreen_base.cam->vp),
+        .u_light_dir = VEC3(1.0, 5.0, 3.0),
+        .u_eye_pos = cr->offscreen_base.cam->pos
     };
 
     sg_apply_pipeline(rb->pip);
