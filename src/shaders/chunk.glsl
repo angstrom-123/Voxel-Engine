@@ -86,10 +86,10 @@ in vec4 v_light_pos;
 layout(location=0) out vec4 frag_col;
 layout(location=1) out vec4 frag_nrm;
 layout(location=2) out float frag_dep;
+layout(location=3) out float frag_sha;
 
 float calc_visibility() {
     vec3 proj_cord = -v_light_pos.xyz / v_light_pos.w;
-    // proj_cord.xy = proj_cord.xy * 0.5 + 0.5;
     proj_cord = proj_cord * 0.5 + 0.5;
     proj_cord.x = 1.0 - proj_cord.x;
 
@@ -103,15 +103,21 @@ float calc_visibility() {
 
     float curr_dep = proj_cord.z;
 
-    for (int x = -1; x <= 1; x++) {
-        for (int y = -1; y <= 1; y++) {
+    // for (int x = -1; x <= 1; x++) {
+    //     for (int y = -1; y <= 1; y++) {
+    // for (int x = -4; x <= 4; x++) {
+    //     for (int y = -4; y <= 4; y++) {
+            int x = 0;
+            int y = 0;
             vec2 pcf_uv = proj_cord.xy + vec2(x, y) * texel_size;
             float pcf_dep = texture(sampler2D(u_tex_sha, u_smp_sha), pcf_uv).x;
-            vis += curr_dep + bias > pcf_dep ? 1.0 : 0.3;
-        }
-    }
+            // vis += curr_dep + bias > pcf_dep ? 1.0 : 0.3;
+            vis = curr_dep + bias > pcf_dep ? 1.0 : 0.0;
+    //     }
+    // }
 
-    vis /= 9.0;
+    // vis /= 9.0;
+    // vis /= 81.0;
 
     return vis;
 }
@@ -122,34 +128,9 @@ void main() {
 
     frag_nrm = vec4(v_normal, 1.0);
     frag_dep = v_projection.z / v_projection.w;
-    frag_col = texture(sampler2D(u_tex_col, u_smp_col), v_uv) * calc_visibility();
+    frag_col = texture(sampler2D(u_tex_col, u_smp_col), v_uv);
+    frag_sha = calc_visibility();
 }
-
-// void main() {
-//     // TODO: Handle transparency
-//     // if (frag_color.a < 0.01) discard;
-//
-//     frag_nrm = vec4(v_normal, 1.0);
-//     frag_dep = v_projection.z / v_projection.w;
-//
-//     vec3 proj_cord = -v_light_pos.xyz / v_light_pos.w;
-//     proj_cord = proj_cord * 0.5 + 0.5;
-//     proj_cord.x = 1.0 - proj_cord.x;
-//
-//     float vis;
-//
-//     // if (proj_cord.x > 1.0 || proj_cord.x < 0.0 || proj_cord.y > 1.0 || proj_cord.y < 0.0) {
-//     //     vis = 1.0;
-//     // } else {
-//         float near_dep = texture(sampler2D(u_tex_sha, u_smp_sha), proj_cord.xy).x;
-//         float curr_dep = proj_cord.z;
-//
-//         float bias = max(0.003 * (1.0 - dot(v_normal, u_sun_dir)), 0.003);
-//         vis = curr_dep + bias > near_dep ? 1.0 : 0.3;
-//     // }
-//
-//     frag_col = texture(sampler2D(u_tex_col, u_smp_col), v_uv) * vis;
-// }
 
 @end 
 

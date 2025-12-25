@@ -9,7 +9,8 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     sg_destroy_image(cr->targets.colour);
     sg_destroy_image(cr->targets.normal);
     sg_destroy_image(cr->targets.depth);
-    // sg_destroy_image(cr->targets.shadowmap);
+    sg_destroy_image(cr->targets.shadow);
+    sg_destroy_image(cr->targets.shadowmap);
     sg_destroy_image(cr->targets.zbuf);
     sg_destroy_image(cr->targets.zbuf_shadow);
 
@@ -18,12 +19,14 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[0]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[1]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[2]);
+    sg_destroy_view(cr->offscreen_base.pass.attachments.colors[3]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.depth_stencil);
 
     sg_destroy_view(cr->offscreen_base.bind.views[1]);
     sg_destroy_view(cr->display_base.bind.views[0]);
     sg_destroy_view(cr->display_base.bind.views[1]);
     sg_destroy_view(cr->display_base.bind.views[2]);
+    sg_destroy_view(cr->display_base.bind.views[3]);
 
     // Make new targets with the new dimensions.
     cr->targets = (struct targets) {
@@ -51,6 +54,14 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
             .sample_count = 1,
             .label = "offscreen-chunk-depth-image"
         }),
+        .shadow = sg_make_image(&(sg_image_desc) {
+            .usage.color_attachment = true,
+            .pixel_format = SHADOW_PIXELFORMAT,
+            .width = dim.x,
+            .height = dim.y,
+            .sample_count = 1,
+            .label = "shadow-chunk-mask-image",
+        }),
         .shadowmap = sg_make_image(&(sg_image_desc) {
             .usage.color_attachment = true,
             .pixel_format = DEPTH_PIXELFORMAT,
@@ -77,6 +88,7 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
         })
     };
 
+
     // Make new target views from the new images
     cr->shadowmap_base.pass.attachments = (sg_attachments) {
         .colors[0] = sg_make_view(&(sg_view_desc) {
@@ -101,6 +113,10 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
         .colors[2] = sg_make_view(&(sg_view_desc) {
             .color_attachment = { .image = cr->targets.depth },
             .label = "offscreen-chunk-depth-attachment"
+        }),
+        .colors[3] = sg_make_view(&(sg_view_desc) {
+            .color_attachment = { .image = cr->targets.shadow },
+            .label = "offscreen-chunk-shadow-attachment"
         }),
         .depth_stencil = sg_make_view(&(sg_view_desc) {
             .depth_stencil_attachment = { .image = cr->targets.zbuf },
@@ -127,11 +143,10 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
         .texture = { .image = cr->targets.depth },
         .label = "display-chunk-depth-view"
     });
-    // For debugging
-    // cr->display_base.bind.views[3] = sg_make_view(&(sg_view_desc) {
-    //     .texture = { .image = cr->targets.zbuf_shadow },
-    //     .label = "offscreen-chunk-shadowmap-view"
-    // });
+    cr->display_base.bind.views[3] = sg_make_view(&(sg_view_desc) {
+        .texture = { .image = cr->targets.shadow },
+        .label = "display-chunk-shadow-view"
+    });
 }
 
 void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc)
@@ -202,6 +217,10 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
                 .load_action = SG_LOADACTION_CLEAR,
                 .clear_value = { 0.0, 0.0, 0.0, 1.0 }
             },
+            [3] = { 
+                .load_action = SG_LOADACTION_CLEAR,
+                .clear_value = { 0.0, 0.0, 0.0, 1.0 }
+            },
         },
         .depth = {
             .load_action = SG_LOADACTION_CLEAR,
@@ -219,11 +238,12 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         .index_type = SG_INDEXTYPE_UINT16,
         .cull_mode = SG_CULLMODE_BACK,
         .sample_count = 1,
-        .color_count = 3,
+        .color_count = 4,
         .colors = {
             [0].pixel_format = COLOUR_PIXELFORMAT,
             [1].pixel_format = NORMAL_PIXELFORMAT,
             [2].pixel_format = DEPTH_PIXELFORMAT,
+            [3].pixel_format = SHADOW_PIXELFORMAT,
         },
         .depth = {
             .pixel_format = SG_PIXELFORMAT_DEPTH,
@@ -282,23 +302,6 @@ void chunk_renderer_load_textures(chunk_renderer_t *cr)
     ENGINE_ASSERT(sg_query_view_state(atlas.as_view) == SG_RESOURCESTATE_VALID, 
                   "Mipmap texture view state must be valid");
     cr->offscreen_base.bind.views[0] = atlas.as_view;
-
-    // sg_image img = sg_alloc_image();
-    // sg_init_image(img, &(sg_image_desc) {
-    //     .width = atlases[0].width,
-    //     .height = atlases[0].height,
-    //     .pixel_format = SG_PIXELFORMAT_RGBA8,
-    //     .num_mipmaps = MIP_LEVELS,
-    //     // .data.subimage[0] = {
-    //     //     { .ptr = atlases[0].pixel_data, .size = atlases[0].ih.img_size },
-    //     //     { .ptr = atlases[1].pixel_data, .size = atlases[1].ih.img_size },
-    //     //     { .ptr = atlases[2].pixel_data, .size = atlases[2].ih.img_size },
-    //     //     { .ptr = atlases[3].pixel_data, .size = atlases[3].ih.img_size },
-    //     //     { .ptr = atlases[4].pixel_data, .size = atlases[4].ih.img_size }
-    //     // }
-    // });
-
-    // sg_init_view(cr->offscreen_base.bind.views[0], &(sg_view_desc) { .texture.image = img });
 }
 
 void chunk_renderer_cleanup(chunk_renderer_t *cr)
@@ -307,16 +310,19 @@ void chunk_renderer_cleanup(chunk_renderer_t *cr)
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[0]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[1]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[2]);
+    sg_destroy_view(cr->offscreen_base.pass.attachments.colors[3]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.depth_stencil);
 
     sg_destroy_view(cr->offscreen_base.bind.views[1]);
     sg_destroy_view(cr->display_base.bind.views[0]);
     sg_destroy_view(cr->display_base.bind.views[1]);
     sg_destroy_view(cr->display_base.bind.views[2]);
+    sg_destroy_view(cr->display_base.bind.views[3]);
 
     sg_destroy_image(cr->targets.colour);
     sg_destroy_image(cr->targets.normal);
     sg_destroy_image(cr->targets.depth);
+    sg_destroy_image(cr->targets.shadow);
     sg_destroy_image(cr->targets.zbuf);
     sg_destroy_image(cr->targets.zbuf_shadow);
 
@@ -433,8 +439,14 @@ static void _render_display_pass(chunk_renderer_t *cr)
         .swapchain = sglue_swapchain(),
     });
 
+    fs_params_composite_t fs_params = {
+        .u_inv_proj = em_inverse_mat4(cr->offscreen_base.cam->vp)
+    };
+
     sg_apply_pipeline(rb->pip);
     sg_apply_bindings(&rb->bind);
+
+    sg_apply_uniforms(UB_fs_params_composite, &SG_RANGE(fs_params));
 
     // Render the fullscreen quad
     sg_draw(0, 4, 1);

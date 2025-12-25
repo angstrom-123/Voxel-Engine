@@ -45,10 +45,8 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     });
 
     cam_init(&rs->shadow_cam, PROJECTION_ORTHOGRAPHIC, &(camera_desc_t) {
-        // .near   = -10.0,
-        // .far    = 300.0,
         .near   = 50.0,
-        .far    = 200.0,
+        .far    = 250.0,
         .width  = 1024,
         .height = 1024,
         .pos    = { 0.0, 0.0, 0.0 }

@@ -21,14 +21,18 @@
 #define COLOUR_PIXELFORMAT SG_PIXELFORMAT_RGBA8
 #define NORMAL_PIXELFORMAT SG_PIXELFORMAT_RGBA8
 #define DEPTH_PIXELFORMAT SG_PIXELFORMAT_R32F
+#define SHADOW_PIXELFORMAT SG_PIXELFORMAT_R16F
 
 typedef struct chunk_renderer {
     struct targets {
+        // offscreen
         sg_image colour;
         sg_image normal;
         sg_image depth;
-        sg_image shadowmap;
+        sg_image shadow;
         sg_image zbuf;
+        // shadowmap
+        sg_image shadowmap;
         sg_image zbuf_shadow;
     } targets;
     renderer_base_t offscreen_base;

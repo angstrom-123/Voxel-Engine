@@ -22,21 +22,42 @@ layout(binding=0) uniform sampler u_smp;
 layout(binding=0) uniform texture2D u_tex_col;
 layout(binding=1) uniform texture2D u_tex_nrm;
 layout(binding=2) uniform texture2D u_tex_dep;
+layout(binding=3) uniform texture2D u_tex_sha;
+
+layout(binding=0) uniform fs_params_composite {
+    mat4 u_inv_proj;
+};
 
 in vec2 v_uv;
 
 out vec4 frag_color;
 
+vec3 world_pos_from_depth(float d) {
+    float z = d * 2.0 - 1.0;
+
+    vec4 clip = vec4(v_uv * 2.0 - 1.0, z, 1.0);
+    vec4 view = u_inv_proj * clip;
+
+    return view.xyz;
+}
+
 void main() {
-    vec3 col = texture(sampler2D(u_tex_col, u_smp), v_uv).xyz;
-    vec3 nrm = texture(sampler2D(u_tex_nrm, u_smp), v_uv).xyz;
-    vec3 dep = texture(sampler2D(u_tex_dep, u_smp), v_uv).xxx;
+    vec3 col = texture(sampler2D(u_tex_col, u_smp), v_uv).xyz; // Colour buffer
+    vec3 nrm = texture(sampler2D(u_tex_nrm, u_smp), v_uv).xyz; // Normal buffer
+    vec3 dep = texture(sampler2D(u_tex_dep, u_smp), v_uv).xxx; // Depth buffer
+    vec3 sha = texture(sampler2D(u_tex_sha, u_smp), v_uv).xxx; // Shadow mask
+    vec3 pos = world_pos_from_depth(dep.x);                    // World position
+
+    // vec4 tmp = vec4(v_uv * 2.0 - 1.0, dep.x * 2.0 - 1.0, 1.0) * u_inv_proj;
+    // vec3 pos = ((u_inv_proj * tmp) / tmp.z).xyz;
 
     // Debugging outputs
-    frag_color = vec4(col, 1.0);
+    // frag_color = vec4(col, 1.0);
     // frag_color = vec4(nrm, 1.0);
     // frag_color = vec4(nrm * 0.5 + 0.5, 1.0);
     // frag_color = vec4(dep, 1.0);
+    frag_color = vec4(normalize(pos), 1.0);
+    // frag_color = vec4(sha, 1.0);
 
     // vec3 light_pos = vec3(0, 80, 0);
     // vec3 to_light = light_pos - pos;

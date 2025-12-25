@@ -90,7 +90,11 @@ typedef union em_uvec4 {
     UINT elements[4];
 } em_uvec4;
 
-typedef struct em_mat4 {
+typedef union em_mat4 {
+    struct {
+        em_vec4 x, y, z, w;
+    };
+
     FLOAT elements[4][4];
 } em_mat4;
 
@@ -260,6 +264,8 @@ em_vec3 em_quaternion_rotate_vec3(em_vec3 vector, em_quaternion rotation);
 em_vec3 em_rotate_vec3(em_vec3 vector, FLOAT angle_degrees, em_vec3 axis);
 em_mat4 em_rotate_mat4(FLOAT angle_degrees, em_vec3 axis);
 em_mat4 em_scale_mat4(em_vec3 scale);
+em_mat4 em_inverse_mat4(em_mat4 matrix);
+FLOAT em_determinant_mat4(em_mat4 matrix);
 em_mat4 em_look_at(em_vec3 eye, em_vec3 centre, em_vec3 up);
 
 em_quaternion em_conjugate_quaternion(em_quaternion a);
@@ -1131,6 +1137,67 @@ em_mat4 em_scale_mat4(em_vec3 scale)
     res.elements[2][2] = scale.z;
 
     return res;
+}
+
+em_mat4 em_inverse_mat4(em_mat4 m)
+{
+    FLOAT d = em_determinant_mat4(m); 
+    if(d == 0.0) return em_new_mat4();
+
+    return (em_mat4) {
+        .x = (em_vec4) { 
+            (m.y.z * m.z.w * m.w.y - m.y.w * m.z.z * m.w.y + m.y.w * m.z.y * m.w.z - m.y.y * m.z.w * m.w.z - m.y.z * m.z.y * m.w.w + m.y.y * m.z.z * m.w.w) / d,
+            (m.x.w * m.z.z * m.w.y - m.x.z * m.z.w * m.w.y - m.x.w * m.z.y * m.w.z + m.x.y * m.z.w * m.w.z + m.x.z * m.z.y * m.w.w - m.x.y * m.z.z * m.w.w) / d,
+            (m.x.z * m.y.w * m.w.y - m.x.w * m.y.z * m.w.y + m.x.w * m.y.y * m.w.z - m.x.y * m.y.w * m.w.z - m.x.z * m.y.y * m.w.w + m.x.y * m.y.z * m.w.w) / d,
+            (m.x.w * m.y.z * m.z.y - m.x.z * m.y.w * m.z.y - m.x.w * m.y.y * m.z.z + m.x.y * m.y.w * m.z.z + m.x.z * m.y.y * m.z.w - m.x.y * m.y.z * m.z.w) / d 
+        },
+        .y = (em_vec4) { 
+            (m.y.w * m.z.z * m.w.x - m.y.z * m.z.w * m.w.x - m.y.w * m.z.x * m.w.z + m.y.x * m.z.w * m.w.z + m.y.z * m.z.x * m.w.w - m.y.x * m.z.z * m.w.w) / d,
+            (m.x.z * m.z.w * m.w.x - m.x.w * m.z.z * m.w.x + m.x.w * m.z.x * m.w.z - m.x.x * m.z.w * m.w.z - m.x.z * m.z.x * m.w.w + m.x.x * m.z.z * m.w.w) / d,
+            (m.x.w * m.y.z * m.w.x - m.x.z * m.y.w * m.w.x - m.x.w * m.y.x * m.w.z + m.x.x * m.y.w * m.w.z + m.x.z * m.y.x * m.w.w - m.x.x * m.y.z * m.w.w) / d,
+            (m.x.z * m.y.w * m.z.x - m.x.w * m.y.z * m.z.x + m.x.w * m.y.x * m.z.z - m.x.x * m.y.w * m.z.z - m.x.z * m.y.x * m.z.w + m.x.x * m.y.z * m.z.w) / d 
+        },
+        .z = (em_vec4) { 
+            (m.y.y * m.z.w * m.w.x - m.y.w * m.z.y * m.w.x + m.y.w * m.z.x * m.w.y - m.y.x * m.z.w * m.w.y - m.y.y * m.z.x * m.w.w + m.y.x * m.z.y * m.w.w) / d,
+            (m.x.w * m.z.y * m.w.x - m.x.y * m.z.w * m.w.x - m.x.w * m.z.x * m.w.y + m.x.x * m.z.w * m.w.y + m.x.y * m.z.x * m.w.w - m.x.x * m.z.y * m.w.w) / d,
+            (m.x.y * m.y.w * m.w.x - m.x.w * m.y.y * m.w.x + m.x.w * m.y.x * m.w.y - m.x.x * m.y.w * m.w.y - m.x.y * m.y.x * m.w.w + m.x.x * m.y.y * m.w.w) / d,
+            (m.x.w * m.y.y * m.z.x - m.x.y * m.y.w * m.z.x - m.x.w * m.y.x * m.z.y + m.x.x * m.y.w * m.z.y + m.x.y * m.y.x * m.z.w - m.x.x * m.y.y * m.z.w) / d 
+        },
+        .w = (em_vec4) { 
+            (m.y.z * m.z.y * m.w.x - m.y.y * m.z.z * m.w.x - m.y.z * m.z.x * m.w.y + m.y.x * m.z.z * m.w.y + m.y.y * m.z.x * m.w.z - m.y.x * m.z.y * m.w.z) / d,
+            (m.x.y * m.z.z * m.w.x - m.x.z * m.z.y * m.w.x + m.x.z * m.z.x * m.w.y - m.x.x * m.z.z * m.w.y - m.x.y * m.z.x * m.w.z + m.x.x * m.z.y * m.w.z) / d,
+            (m.x.z * m.y.y * m.w.x - m.x.y * m.y.z * m.w.x - m.x.z * m.y.x * m.w.y + m.x.x * m.y.z * m.w.y + m.x.y * m.y.x * m.w.z - m.x.x * m.y.y * m.w.z) / d,
+            (m.x.y * m.y.z * m.z.x - m.x.z * m.y.y * m.z.x + m.x.z * m.y.x * m.z.y - m.x.x * m.y.z * m.z.y - m.x.y * m.y.x * m.z.z + m.x.x * m.y.y * m.z.z) / d 
+        } 
+    };
+}
+
+FLOAT em_determinant_mat4(em_mat4 m)
+{
+    return m.x.w * m.y.z * m.z.y * m.w.x - 
+           m.x.z * m.y.w * m.z.y * m.w.x - 
+           m.x.w * m.y.y * m.z.z * m.w.x + 
+           m.x.y * m.y.w * m.z.z * m.w.x +
+           m.x.z * m.y.y * m.z.w * m.w.x - 
+           m.x.y * m.y.z * m.z.w * m.w.x - 
+           m.x.w * m.y.z * m.z.x * m.w.y +
+           m.x.z * m.y.w * m.z.x * m.w.y +
+           m.x.w * m.y.x * m.z.z * m.w.y -
+           m.x.x * m.y.w * m.z.z * m.w.y -
+           m.x.z * m.y.x * m.z.w * m.w.y + 
+           m.x.x * m.y.z * m.z.w * m.w.y +
+           m.x.w * m.y.y * m.z.x * m.w.z -
+           m.x.y * m.y.w * m.z.x * m.w.z -
+           m.x.w * m.y.x * m.z.y * m.w.z +
+           m.x.x * m.y.w * m.z.y * m.w.z +
+           m.x.y * m.y.x * m.z.w * m.w.z -
+           m.x.x * m.y.y * m.z.w * m.w.z -
+           m.x.z * m.y.y * m.z.x * m.w.w +
+           m.x.y * m.y.z * m.z.x * m.w.w +
+           m.x.z * m.y.x * m.z.y * m.w.w -
+           m.x.x * m.y.z * m.z.y * m.w.w -
+           m.x.y * m.y.x * m.z.z * m.w.w +
+           m.x.x * m.y.y * m.z.z * m.w.w;
 }
 
 em_mat4 em_look_at(em_vec3 eye, em_vec3 centre, em_vec3 up)
