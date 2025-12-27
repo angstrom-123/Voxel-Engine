@@ -4,15 +4,23 @@ static void _on_resize(const event_t *ev, void *args)
 {
     render_system_t *rs = args;
 
-    rs->cam.aspect = ev->window_size.x / ev->window_size.y;
-    rs->cam.proj   = em_perspective(rs->cam.fov, rs->cam.aspect, 
-                                    rs->cam.near, rs->cam.far);
+    rs->cam.perspective.aspect = ev->window_size.x / ev->window_size.y;
+    rs->cam.proj               = em_perspective(rs->cam.perspective.fov, 
+                                                rs->cam.perspective.aspect, 
+                                                rs->cam.near, rs->cam.far);
     cam_update(&rs->cam);
 
-    rs->ortho_cam.width  = ev->window_size.x;
-    rs->ortho_cam.height = ev->window_size.y;
-    rs->ortho_cam.proj   = em_orthographic(rs->ortho_cam.width, rs->ortho_cam.height, 
-                                           rs->ortho_cam.near, rs->ortho_cam.far);
+    rs->ortho_cam.orthographic = (struct orthographic) {
+        .left   = -ev->window_size.x / 2.0,
+        .right  = ev->window_size.x / 2.0,
+        .bottom = -ev->window_size.y / 2.0,
+        .top    = ev->window_size.y / 2.0
+    };
+    rs->ortho_cam.proj = em_orthographic(rs->ortho_cam.orthographic.left, 
+                                         rs->ortho_cam.orthographic.right,
+                                         rs->ortho_cam.orthographic.bottom,
+                                         rs->ortho_cam.orthographic.top,
+                                         rs->ortho_cam.near, rs->ortho_cam.far);
     cam_update(&rs->ortho_cam);
 
     chunk_renderer_resize(&rs->chunk_renderer, ev->window_size);
@@ -29,29 +37,36 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
 
     /* Cameras. */
     cam_init(&rs->cam, PROJECTION_PERSPECTIVE, &(camera_desc_t) {
-        .near      = 0.1,
-        .far       = desc->view_distance,
-        .aspect    = w / h,
-        .fov       = 60.0,
-        .pos       = { 0.0, 0.0, 0.0 }
+        .near   = 0.1,
+        .far    = desc->view_distance,
+        .aspect = w / h,
+        .fov    = 60.0,
+        .pos    = VEC3(0.0, 0.0, 0.0)
     });
 
     cam_init(&rs->ortho_cam, PROJECTION_ORTHOGRAPHIC, &(camera_desc_t) {
         .near   = 0.1,
         .far    = 100.0,
-        .width  = w,
-        .height = h,
-        .pos    = { 0.0, 0.0, 0.0 }
+        .left   = -w / 2.0,
+        .right  = w / 2.0,
+        .bottom = -h / 2.0,
+        .top    = h / 2.0,
+        .pos    = VEC3(0.0, 0.0, 0.0)
     });
 
     cam_init(&rs->shadow_cam, PROJECTION_ORTHOGRAPHIC, &(camera_desc_t) {
-        .near   = 50.0,
-        .far    = 250.0,
-        .width  = 1024,
-        .height = 1024,
-        .pos    = { 0.0, 0.0, 0.0 }
+        .near   = -10.0,
+        .far    = 300.0,
+        .left   = -512.0,
+        .right  = 512.0,
+        .bottom = -512.0,
+        .top    = 512.0,
+        .pos    = VEC3(0.0, 0.0, 0.0)
     });
     cam_set_scale(&rs->shadow_cam, desc->shadow_scale);
+
+    // TODO: Why are the shadows broken rn?
+    //       Cross reference git !!
 
     // TODO: Stop fiddling with this crap and add:
     //       Texel-perfect-alignment: Move cam in discrete steps aligning with texel,
@@ -60,11 +75,7 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     //       Cascades: For this, need to figure out how to tightly fit the camera 
     //                 frustum to the player's surroundings.
 
-    // vec3 inv_sun_dir = (vec3) { -2.0, -4.0, -1.0 };
-    vec3 inv_sun_dir = { -1.0, -5.0, -3.0 };
-    vec3 centre = { 0.0, 0.0, 0.0 };
-    rs->shadow_cam.view = em_look_at(inv_sun_dir, centre, WORLD_Y);
-
+    rs->shadow_cam.view = em_look_at(desc->inv_sun_dir, VEC3(0, 0, 0), WORLD_Y);
     cam_update(&rs->shadow_cam);
 
     /* Renderers */
@@ -74,10 +85,10 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
             .cam = &rs->cam,
         },
         .shadowmap_base_desc = &(renderer_base_desc_t) {
-            .dimensions = (vec2) { rs->shadow_cam.width, rs->shadow_cam.height },
+            .dimensions = VEC2(1024.0, 1024.0),
             .cam = &rs->shadow_cam,
         },
-        .inv_sun_dir = inv_sun_dir
+        .inv_sun_dir = desc->inv_sun_dir
     });
     chunk_renderer_load_textures(&rs->chunk_renderer);
 

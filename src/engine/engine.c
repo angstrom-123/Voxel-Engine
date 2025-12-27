@@ -14,7 +14,7 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action)
     ivec3 cell = engine->meta.cursor.cell;
     ivec2 chunk = engine->meta.cursor.chunk;
 
-    ivec2 data_idx = {1, 1};
+    ivec2 data_idx = { 1, 1 };
     chunk_data_t *cd[3][3];
     chunk_sys_borrow_surrounding_data(&engine->_chunk_sys, chunk, cd);
 
@@ -83,6 +83,7 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action)
             break;
         };
         
+        ENGINE_TODO("add a selection for different blocks to place");
         cd[data_idx.x][data_idx.y]->types[cell.x][cell.y][cell.z] = CUBETYPE_SAND;
 
         break;
@@ -110,8 +111,8 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action)
 
 void engine_init(engine_t *engine, const engine_desc_t *desc)
 {
-    const size_t MAX_ACTIVE = (2 * em_sqr(desc->render_distance)) 
-                            + (2 * desc->render_distance) + 1;
+    const size_t MAX_ACTIVE = (2 * em_sqr(desc->render_distance)) + 
+                              (2 * desc->render_distance) + 1;
     const size_t QUEUE_SIZE = MAX_ACTIVE * 2;
     const size_t BUF_POOL_SIZE = MAX_ACTIVE * 2 + 20;
 
@@ -141,9 +142,6 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
         .free_capacity = MAX_ACTIVE,
         .request_capacity = QUEUE_SIZE
     });
-    update_sys_init_thread(&engine->_update_sys, &(update_system_thread_args_t) {
-        .us = &engine->_update_sys
-    });
     ENGINE_LOG_OK("Setup update system.\n", NULL);
 
     chunk_sys_init(&engine->_chunk_sys, &(chunk_system_desc_t) {
@@ -151,17 +149,14 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
         .request_capacity = QUEUE_SIZE,
         .seed = desc->seed
     });
-    chunk_sys_init_thread(&engine->_chunk_sys, &(chunk_system_thread_args_t) {
-        .cs = &engine->_chunk_sys,
-        .us = &engine->_update_sys
-    });
     ENGINE_LOG_OK("Setup chunk system.\n", NULL);
 
     render_sys_init(&engine->_render_sys, &(render_system_desc_t) {
         .es = &engine->_event_sys,
-        .window_size = { sapp_width(), sapp_height() },
-        .view_distance = desc->render_distance * 50,
-        .shadow_scale = 7.0
+        .window_size = VEC2(sapp_width(), sapp_height()),
+        .view_distance = desc->render_distance * 50.0,
+        .shadow_scale = 4.0,
+        .inv_sun_dir = em_mul_vec3_f(desc->base_sun_dir, -1.0)
     });
     ENGINE_LOG_OK("Setup render system.\n", NULL);
 
@@ -170,7 +165,7 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
     });
     ui_sys_add(&engine->_ui_sys, COMPONENT_CONSOLE, &(ui_component_desc_t) {
         .ptr = console_init(&(console_desc_t) {
-            .es = &engine->_event_sys
+            .es = &engine->_event_sys,
         }),
         .render_callback = console_render,
         .visible = console_visible
@@ -179,15 +174,12 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
 
     load_sys_init(&engine->_load_sys, &(load_system_desc_t) {
         .render_dist = desc->render_distance,
-        .start_pos = (ivec2) {0, 0}
+        .start_pos = IVEC2(0, 0)
     });
     ENGINE_LOG_OK("Setup load system.\n", NULL);
 
     tick_sys_init(&engine->_tick_sys, &(tick_system_desc_t) {
         .tps = desc->ticks_per_second
-    });
-    tick_sys_init_thread(&engine->_tick_sys, &(tick_system_thread_args_t) {
-        .ts = &engine->_tick_sys,
     });
     ENGINE_LOG_OK("Setup tick system.\n", NULL);
 
@@ -202,9 +194,26 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
             .chunk = IVEC2(0, 0),
             .face = -1,
             .range = -1
-        }
+        },
+        .world = {
+            .base_sun_dir = desc->base_sun_dir,
+            .time = 0,
+            .max_time = desc->max_time
+        },
     };
     ENGINE_LOG_OK("Setup engine metadata.\n", NULL);
+
+    update_sys_init_thread(&engine->_update_sys, &(update_system_thread_args_t) {
+        .us = &engine->_update_sys
+    });
+    chunk_sys_init_thread(&engine->_chunk_sys, &(chunk_system_thread_args_t) {
+        .cs = &engine->_chunk_sys,
+        .us = &engine->_update_sys
+    });
+    tick_sys_init_thread(&engine->_tick_sys, &(tick_system_thread_args_t) {
+        .ts = &engine->_tick_sys,
+    });
+    ENGINE_LOG_OK("Start worker threads.\n", NULL);
 
     load_sys_load_initial(&engine->_load_sys, &engine->_chunk_sys);
     ENGINE_LOG_OK("Request initial chunks.\n", NULL);
@@ -275,5 +284,11 @@ void engine_frame(engine_t *engine)
 
 void engine_tick(engine_t *engine)
 {
-    (void) engine;
+    // Progress world time, set sun direction.
+    uint64_t time = atomic_fetch_add(&engine->meta.world.time, 1);
+    uint64_t max = engine->meta.world.max_time;
+    float t = (float) (time % max) / max;
+    float lerp = em_clamp((t * t * (3.0 - 2.0 * t)) * 360.0, 0.0, 359.0);
+    vec3 sun_dir = em_rotate_vec3(engine->meta.world.base_sun_dir, lerp, VEC3(1.0, 0.1, 0.2));
+    engine->_render_sys.chunk_renderer.inv_sun_dir = em_mul_vec3_f(sun_dir, -1.0);
 }

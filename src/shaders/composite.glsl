@@ -31,11 +31,11 @@ void main() {
 @fs fs_composite
 @include_block remap
 
-layout(binding=0) uniform sampler u_smp;
-layout(binding=0) uniform texture2D u_tex_col;
-layout(binding=1) uniform texture2D u_tex_nrm;
-layout(binding=2) uniform texture2D u_tex_dep;
-layout(binding=3) uniform texture2D u_tex_sha;
+layout(binding=0) uniform sampler u_buffer_sampler;
+layout(binding=0) uniform texture2D u_albedo_buffer;
+layout(binding=1) uniform texture2D u_normal_buffer;
+layout(binding=2) uniform texture2D u_depth_buffer;
+layout(binding=3) uniform texture2D u_shadow_buffer;
 
 layout(binding=1) uniform fs_params_composite {
     mat4 u_inv_vp;
@@ -53,48 +53,61 @@ vec3 world_pos_from_depth(float d) {
     return world.xyz / world.w;
 }
 
-vec4 gamma(vec4 c) {
+vec3 gamma(vec3 c) {
     // float gamma = 2.2;
     float gamma = 1.5;
-    return vec4(pow(c.xyz, vec3(1.0 / gamma)), c.w);
+    return pow(c, vec3(1.0 / gamma));
 }
 
-void main() {
-    vec3 col = texture(sampler2D(u_tex_col, u_smp), v_uv).xyz;
-    vec3 nrm = remap(texture(sampler2D(u_tex_nrm, u_smp), v_uv).xyz);
-    float dep = texture(sampler2D(u_tex_dep, u_smp), v_uv).x;
-    float sha = texture(sampler2D(u_tex_sha, u_smp), v_uv).x;
-    vec3 pos = world_pos_from_depth(dep);
+vec3 light(vec3 nrm, float sha) {
+    float night_ambient = 0.2;
+    float day_ambient = 0.5;
+    float sun_dot_up = dot(u_light_dir, vec3(0.0, 1.0, 0.0));
+    float sun_strength = sun_dot_up > 0.0 ? mix(0.0, 1.0, sun_dot_up) : 0.0;
 
-    // Debugging outputs
-    // frag_color = vec4(col, 1.0);
-    // frag_color = vec4(nrm, 1.0);
-    // frag_color = vec4(vec3(dep), 1.0);
-    // frag_color = vec4(vec3(sha), 1.0);
-    // frag_color = vec4(pos, 1.0);
+    vec3 sun_tint = vec3(1.0, vec2(max(abs(sun_dot_up), 0.3)));
+    // vec3 sun_tint = vec3(1.0);
+    // if (sun_dot_up > 0.0)
+    //     sun_tint = vec3(1.0, vec2(max(sun_dot_up, 0.3)));
+    // vec3 sun_tint = vec3(1.0);
+    // vec3 sunset_tint = vec3(1.0, 0.5, 0.5);
+    // sun_tint = mix(sunset_tint, sun_tint, abs_sun);
 
-    // Sokol lighting 
-    float spec_power = 8.0;
-    float ambient = 0.25;
     vec3 l = normalize(u_light_dir);
     vec3 n = normalize(nrm);
     float n_dot_l = dot(n, l);
+
+    float diffuse = 0.0;
     if (n_dot_l > 0.0) {
-        float s = mix(0.3, 0.8, sha);
-        float diffuse = max(n_dot_l * s, 0.0);
-
-        // vec3 v = normalize(u_eye_pos - pos);
-        // vec3 r = reflect(-l, n);
-        // float r_dot_v = max(dot(r, v), 0.0);
-        // float specular = min(pow(r_dot_v, spec_power) * n_dot_l * s, 0.1);
-        float specular = 0.0;
-        // specular *= 0.0000001;
-
-        frag_color = vec4(vec3(specular) + (diffuse + ambient) * col, 1.0);
-    } else {
-        frag_color = vec4(col * ambient, 1.0);
+        float s = sha;
+        diffuse = clamp(n_dot_l * s, 0.0, 0.5);
     }
-    frag_color = gamma(frag_color);
+
+    return vec3(diffuse + day_ambient) * (sun_tint * vec3(max(sun_strength, night_ambient)));
+}
+
+// float ssao(
+
+void main() {
+    vec3 albedo = texture(sampler2D(u_albedo_buffer, u_buffer_sampler), v_uv).xyz;
+    vec3 normal = remap(texture(sampler2D(u_normal_buffer, u_buffer_sampler), v_uv).xyz);
+    float depth = texture(sampler2D(u_depth_buffer, u_buffer_sampler), v_uv).x;
+    float shadow = texture(sampler2D(u_shadow_buffer, u_buffer_sampler), v_uv).x;
+    vec3 position = world_pos_from_depth(depth);
+
+    // Debugging outputs
+    // frag_color = vec4(albedo, 1.0);
+    // frag_color = vec4(normal, 1.0);
+    // frag_color = vec4(vec3(depth), 1.0);
+    // frag_color = vec4(vec3(shadow), 1.0);
+    // frag_color = vec4(position, 1.0);
+
+    vec3 lighting = light(normal, shadow);
+    vec3 output_col = lighting * albedo;
+    frag_color = vec4(gamma(output_col), 1.0);
+
+    if (depth > 100.0)
+        frag_color.xyz *= vec3(max(110.0 - depth, 0.0001) / 10.0);
 }
 
 @end

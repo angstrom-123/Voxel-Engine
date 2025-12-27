@@ -3,11 +3,9 @@
 - Saving edited chunks as files
 - World creation UI (new / load / delete, seed, etc)
 - Colissions with world
-- Placing / Deleting blocks 
 - Add Windows Support (Probably just need to setup the build system)
 
 ## Graphics
-- Shadow Mapping
 - Radial blur god rays (Volumetric lighting)
 - Ambient Occlusion
 - Fix drawing order (transparent blocks last)

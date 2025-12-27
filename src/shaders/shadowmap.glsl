@@ -5,7 +5,6 @@
 
 @vs vs_shadowmap
 @glsl_options flip_vert_y
-// @glsl_options fixup_clipspace
 
 layout(binding=0) uniform vs_params_shadowmap {
     mat4 u_vp;
@@ -31,11 +30,10 @@ void main() {
 @end
 
 @fs fs_shadowmap
-// void main() {}
-layout(location=0) out float frag_sha;
+layout(location=0) out float out_shadowmap;
 
 void main() {
-    frag_sha = 1.0 - gl_FragCoord.z;
+    out_shadowmap = 1.0 - gl_FragCoord.z;
 }
 
 @end 

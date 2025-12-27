@@ -130,15 +130,14 @@ typedef em_vec4 em_quaternion;
 #define UVEC4(a, b, c, d) (em_uvec4) { (UINT) (a), (UINT) (b), (UINT) (c), (UINT) (d) }
 
 #define AS_VEC2(v) (em_vec2) { (FLOAT) v.x, (FLOAT) v.y }
-#define AS_VEC3(v) AS_VEC3_(v)
-#define AS_VEC3_(v) (em_vec3) { (FLOAT) v.x, (FLOAT) v.y, (FLOAT) v.z }
+#define AS_VEC3(v) (em_vec3) { (FLOAT) v.x, (FLOAT) v.y, (FLOAT) v.z }
 #define AS_VEC4(v) (em_vec4) { (FLOAT) v.x, (FLOAT) v.y, (FLOAT) v.z, (FLOAT) v.w }
-#define AS_IVEC2(v) (em_vec2) { (INT) v.x, (INT) v.y }
-#define AS_IVEC3(v) (em_vec3) { (INT) v.x, (INT) v.y, (INT) v.z }
-#define AS_IVEC4(v) (em_vec4) { (INT) v.x, (INT) v.y, (INT) v.z, (INT) v.w }
-#define AS_UVEC2(v) (em_vec2) { (UINT) v.x, (UINT) v.y }
-#define AS_UVEC3(v) (em_vec3) { (UINT) v.x, (UINT) v.y, (UINT) v.z }
-#define AS_UVEC4(v) (em_vec4) { (UINT) v.x, (UINT) v.y, (UINT) v.z, (UINT) v.w }
+#define AS_IVEC2(v) (em_ivec2) { (INT) v.x, (INT) v.y }
+#define AS_IVEC3(v) (em_ivec3) { (INT) v.x, (INT) v.y, (INT) v.z }
+#define AS_IVEC4(v) (em_ivec4) { (INT) v.x, (INT) v.y, (INT) v.z, (INT) v.w }
+#define AS_UVEC2(v) (em_uvec2) { (UINT) v.x, (UINT) v.y }
+#define AS_UVEC3(v) (em_uvec3) { (UINT) v.x, (UINT) v.y, (UINT) v.z }
+#define AS_UVEC4(v) (em_uvec4) { (UINT) v.x, (UINT) v.y, (UINT) v.z, (UINT) v.w }
 
 bool em_equals_vec4(em_vec4 a, em_vec4 b);
 bool em_equals_quaternion(em_quaternion a, em_quaternion b);
@@ -256,7 +255,8 @@ em_vec4 em_mul_mat4_v4(em_mat4 a, em_vec4 b);
 
 em_mat4 em_div_mat4_f(em_mat4 a, FLOAT b);
 
-em_mat4 em_orthographic(FLOAT width, FLOAT height, FLOAT near, FLOAT far);
+em_mat4 em_orthographic(FLOAT left, FLOAT right, FLOAT bottom, FLOAT top, FLOAT near, FLOAT far);
+// em_mat4 em_orthographic(FLOAT width, FLOAT height, FLOAT near, FLOAT far);
 em_mat4 em_perspective(FLOAT fov_degrees, FLOAT aspect_ratio, FLOAT near, FLOAT far);
 em_mat4 em_transpose_mat4(em_mat4 matrix);
 em_mat4 em_translate_mat4(em_vec3 translation);
@@ -1033,17 +1033,36 @@ em_mat4 em_div_mat4_f(em_mat4 a, FLOAT b)
     return em_mul_mat4_f(a, 1.0 / b);
 }
 
-em_mat4 em_orthographic(FLOAT width, FLOAT height, FLOAT near, FLOAT far)
+em_mat4 em_orthographic(FLOAT l, FLOAT r, FLOAT b, FLOAT t, FLOAT n, FLOAT f)
 {
-    em_mat4 res = em_new_mat4_diagonal(1.0);
-
-    res.elements[0][0] = 2.0 / width;
-    res.elements[1][1] = 2.0 / height;
-    res.elements[2][2] = 1.0 / (far - near);
-    res.elements[3][2] = near / (near - far);
-
-    return res;
+    return (em_mat4) {
+        2.0 / (r - l),      0.0,                0.0,                  0.0,
+        0.0,                2.0 / (t - b),      0.0,                  0.0,
+        0.0,                0.0,                1.0 / (f - n),        0.0,
+        // -(r + l) / (r - l), -(t + b) / (t - b), -(f + n) / (f - n),   1.0
+        -(r + l) / (r - l), -(t + b) / (t - b), n / (n - f),   1.0
+    };
+    // em_mat4 res = em_new_mat4_diagonal(1.0);
+    //
+    // res.elements[0][0] = 2.0 / (r - l);
+    // res.elements[1][1] = 2.0 / (t - b);
+    // res.elements[2][2] = 1.0 / (f - n);
+    // res.elements[3][2] = n / (n - f);
+    //
+    // return res;
 }
+
+// em_mat4 em_orthographic(FLOAT width, FLOAT height, FLOAT near, FLOAT far)
+// {
+//     em_mat4 res = em_new_mat4_diagonal(1.0);
+//
+//     res.elements[0][0] = 2.0 / width;
+//     res.elements[1][1] = 2.0 / height;
+//     res.elements[2][2] = 1.0 / (far - near);
+//     res.elements[3][2] = near / (near - far);
+//
+//     return res;
+// }
 
 em_mat4 em_perspective(FLOAT fov_degrees, FLOAT aspect_ratio, FLOAT near, FLOAT far)
 {

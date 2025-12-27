@@ -23,22 +23,25 @@ void cam_init(camera_t *cam, camera_projection_e proj, const camera_desc_t *desc
 
     cam->kind = proj;
     cam->near = desc->near;
-    cam->far = desc->far;
-    cam->rot = identity;
-    cam->pos = desc->pos;
+    cam->far  = desc->far;
+    cam->rot  = identity;
+    cam->pos  = desc->pos;
     cam->view = em_mul_mat4(rot, trans);
 
     switch (proj) {
     case PROJECTION_PERSPECTIVE:
-        cam->aspect = desc->aspect;
-        cam->fov = desc->fov;
+        cam->perspective.aspect = desc->aspect;
+        cam->perspective.fov    = desc->fov;
         cam->proj = em_perspective(desc->fov, desc->aspect, desc->near, desc->far);
         break;
     case PROJECTION_ORTHOGRAPHIC:
-        cam->width = desc->width;
-        cam->height = desc->height;
-        cam->proj = em_orthographic(desc->width, desc->height, desc->near, desc->far);
-        cam->scale = 1.0;
+        cam->orthographic.left   = desc->left;
+        cam->orthographic.right  = desc->right;
+        cam->orthographic.bottom = desc->bottom;
+        cam->orthographic.top    = desc->top;
+        cam->orthographic.scale  = 1.0;
+        cam->proj = em_orthographic(desc->left, desc->right, desc->bottom, 
+                                    desc->top, desc->near, desc->far);
         break;
     default:
         ENGINE_ASSERT(false, "Camera projection must be specified");
@@ -56,7 +59,7 @@ void cam_set_scale(camera_t *cam, float scale)
 {
     ENGINE_ASSERT(cam->kind == PROJECTION_ORTHOGRAPHIC, "Cannot scale perspective camera");
 
-    cam->scale = scale;
+    cam->orthographic.scale = scale;
     cam->proj.elements[0][0] *= scale;
     cam->proj.elements[1][1] *= scale;
 }

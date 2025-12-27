@@ -15,11 +15,14 @@
 
 #include "include_sokol.h"
 #include "include_nuklear.h"
+#include <stdatomic.h>
 
 typedef struct engine_desc {
-    size_t render_distance;
+    uint8_t render_distance;
     uint32_t seed;
-    size_t ticks_per_second;
+    uint8_t ticks_per_second;
+    vec3 base_sun_dir;
+    uint64_t max_time;
 } engine_desc_t;
 
 typedef struct engine_meta {
@@ -30,6 +33,11 @@ typedef struct engine_meta {
         ivec3 cell;
         cube_face_idx_e face;
     } cursor;
+    struct {
+        vec3 base_sun_dir;
+        atomic_uint_least64_t time;
+        uint64_t max_time;
+    } world;
 } engine_meta_t;
 
 typedef enum block_action {

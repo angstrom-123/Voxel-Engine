@@ -27,35 +27,39 @@ typedef struct camera_desc {
     float aspect;
     float fov;
     /* Orthographic only. */
-    float width;
-    float height;
+    float left;
+    float right;
+    float bottom;
+    float top;
 } camera_desc_t;
 
 typedef struct camera {
     camera_projection_e kind;
-    // parameters
-    float near;          // near clipping distance
-    float far;           // far clipping distance
-    /* Perspective only. */
-    float aspect;        // width / height
-    float fov;           // field of view (degrees)
-    /* Orthographic only. */
-    float width;
-    float height;
-    float scale;
-    // transform
-    float pitch;         // current pitch (up / down) angle (degrees)
-    float yaw;           // current yaw (left / right) angle (degrees)
-    quat rot;      // current rotation
-    vec3 pos;            // current position
-    // basis vectors
-    vec3 fwd;            // basis forward vector
-    vec3 right;          // basis right vector
-    vec3 up;             // basis up vector
-    // matrices
-    mat4 view;           // view matrix
-    mat4 proj;           // projection matrix
-    mat4 vp;             // projection matrix * view matrix
+    float near;
+    float far;
+    float pitch;
+    float yaw;
+    quat rot;
+    vec3 pos;
+    vec3 fwd;
+    vec3 right;
+    vec3 up;
+    mat4 view;
+    mat4 proj;
+    mat4 vp;
+    union {
+        struct perspective {
+            float aspect;
+            float fov;
+        } perspective;
+        struct orthographic {
+            float left;
+            float right;
+            float bottom;
+            float top;
+            float scale;
+        } orthographic;
+    };
 } camera_t;
 
 typedef struct frame_desc {

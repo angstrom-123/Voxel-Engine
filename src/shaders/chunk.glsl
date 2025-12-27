@@ -16,6 +16,7 @@ in uvec4 a_vertex;
 out vec2 v_uv;
 out vec3 v_normal;
 out vec4 v_light_pos;
+out vec4 v_position;
 
 vec3 _unpack_pos(uvec4 vert) {
     float x = vert.x >> 3;
@@ -62,15 +63,16 @@ void main() {
     v_uv = _unpack_uv(a_vertex);
     v_normal = _unpack_normal(a_vertex);
     v_light_pos = u_lightspace * model_local;
+    v_position = gl_Position;
 }
 
 @end
 
 @fs fs_chunk
-layout(binding=0) uniform sampler u_smp_col;
-layout(binding=0) uniform texture2D u_tex_col;
-layout(binding=1) uniform sampler u_smp_sha;
-layout(binding=1) uniform texture2D u_tex_sha;
+layout(binding=0) uniform sampler u_atlas_sampler;
+layout(binding=0) uniform texture2D u_atlas;
+layout(binding=1) uniform sampler u_shadowmap_sampler;
+layout(binding=1) uniform texture2D u_shadowmap;
 
 layout(binding=1) uniform fs_params_chunk {
     vec3 u_sun_dir;
@@ -79,13 +81,18 @@ layout(binding=1) uniform fs_params_chunk {
 in vec2 v_uv;
 in vec3 v_normal;
 in vec4 v_light_pos;
+in vec4 v_position;
 
-layout(location=0) out vec4 frag_col;
-layout(location=1) out vec4 frag_nrm;
-layout(location=2) out float frag_dep;
-layout(location=3) out float frag_sha;
+layout(location=0) out vec4 out_albedo;
+layout(location=1) out vec4 out_normal;
+layout(location=2) out float out_depth;
+layout(location=3) out float out_shadow;
 
 float visibility() {
+    vec3 up = vec3(0.0, 1.0, 0.0);
+    if (dot(u_sun_dir, up) < 0.0)
+        return 0.0;
+
     vec3 proj_cord = -v_light_pos.xyz / v_light_pos.w;
     proj_cord = proj_cord * 0.5 + 0.5;
     proj_cord.x = 1.0 - proj_cord.x;
@@ -94,7 +101,7 @@ float visibility() {
     if (proj_cord.x > 1.0 || proj_cord.x < 0.0 || proj_cord.y > 1.0 || proj_cord.y < 0.0)
         return 1.0;
 
-    float bias = max(0.004 * (1.0 - dot(v_normal, u_sun_dir)), 0.004);
+    float bias = max(0.002 * (1.0 - dot(v_normal, u_sun_dir)), 0.002);
 
     float curr_dep = proj_cord.z;
 
@@ -103,7 +110,7 @@ float visibility() {
     for (int x = -1; x <= 1; x++) {
         for (int y = -1; y <= 1; y++) {
             vec2 pcf_uv = proj_cord.xy + vec2(x, y) * texel_size;
-            float pcf_dep = texture(sampler2D(u_tex_sha, u_smp_sha), pcf_uv).x;
+            float pcf_dep = texture(sampler2D(u_shadowmap, u_shadowmap_sampler), pcf_uv).x;
             visibility += (curr_dep + bias < pcf_dep) ? 0.0 : 1.0;
         }
     }
@@ -115,10 +122,11 @@ void main() {
     // TODO: Handle transparency
     // if (frag_color.a < 0.01) discard;
 
-    frag_nrm = vec4(v_normal * 0.5 + 0.5, 1.0);
-    frag_dep = gl_FragCoord.z;
-    frag_col = texture(sampler2D(u_tex_col, u_smp_col), v_uv);
-    frag_sha = visibility();
+    out_normal = vec4(v_normal * 0.5 + 0.5, 1.0);
+    out_depth = gl_FragCoord.z / gl_FragCoord.w;
+    // out_depth = (1.0 - v_position.xyz / v_position.w).z;
+    out_albedo = texture(sampler2D(u_atlas, u_atlas_sampler), v_uv);
+    out_shadow = visibility();
 }
 
 @end 

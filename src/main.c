@@ -82,7 +82,7 @@ static void init(void)
         const size_t RENDER_DISTANCE = 12;
     #endif
 
-    ENGINE_ASSERT(RENDER_DISTANCE >= 3, "Render distance too low.\n");
+    ENGINE_ASSERT(RENDER_DISTANCE >= 3, "Render distance too low");
 
     engine = malloc(sizeof(engine_t));
     app = malloc(sizeof(app_t));
@@ -91,8 +91,10 @@ static void init(void)
 
     engine_init(engine, &(engine_desc_t) {
         .render_distance = RENDER_DISTANCE,
-        .ticks_per_second = 5.0,
-        .seed = 0
+        .ticks_per_second = 20.0,
+        .seed = 0,
+        .max_time = 400,
+        .base_sun_dir = em_normalize_vec3(VEC3(0.0, 1.0, 0.1))
     });
 
     app_init(engine, app, &(app_desc_t) {

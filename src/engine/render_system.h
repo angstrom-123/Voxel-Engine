@@ -32,6 +32,7 @@ typedef struct render_system {
 typedef struct render_system_desc {
     event_system_t *es;
     vec2 window_size;
+    vec3 inv_sun_dir;
     float view_distance;
     float shadow_scale;
 } render_system_desc_t;
