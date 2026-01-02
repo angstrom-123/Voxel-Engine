@@ -41,6 +41,6 @@ clean:
 	@echo ""
 	@echo Cleaning profiling data.
 	@echo ""
-	@for file in $(TRACE_FILES); do\
-		@rm -f $$file;\
-	done
+	@$(foreach file, $(TRACE_FILES),\
+		@rm -f $(file);\
+	)
