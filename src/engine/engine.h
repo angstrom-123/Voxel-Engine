@@ -15,6 +15,7 @@
 
 #include "include_sokol.h"
 #include "include_nuklear.h"
+
 #include <stdatomic.h>
 
 typedef struct engine_desc {

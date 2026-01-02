@@ -75,6 +75,9 @@ static void init(void)
 {
     INSTRUMENTOR_SESSION_BEGIN("Minecraft_Session");
 
+    em_romu_mono32_init(time(NULL));
+    em_romu_duo_init(time(NULL));
+
     ENGINE_TODO("Make the render distance editable at run time");
     #if defined(RELEASE) || defined(PROFILING)
         const size_t RENDER_DISTANCE = 32;
@@ -93,7 +96,7 @@ static void init(void)
         .render_distance = RENDER_DISTANCE,
         .ticks_per_second = 20.0,
         .seed = 0,
-        .max_time = 400,
+        .max_time = 24000, // 20 minute cycle @ 20tps
         .base_sun_dir = em_normalize_vec3(VEC3(0.0, 1.0, 0.1))
     });
 

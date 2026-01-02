@@ -26,12 +26,12 @@
 #define I_MAX 99072
 
 static const uvec3 face_offsets[6][4] = {
-	[FACEIDX_BACK  ] = { { 1, 0, 0 }, { 0, 0, 0 }, { 0, 1, 0 }, { 1, 1, 0 } },
-	[FACEIDX_FRONT ] = { { 0, 0, 1 }, { 1, 0, 1 }, { 1, 1, 1 }, { 0, 1, 1 } },
-	[FACEIDX_LEFT  ] = { { 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 1 }, { 0, 1, 0 } },
-	[FACEIDX_RIGHT ] = { { 1, 0, 1 }, { 1, 0, 0 }, { 1, 1, 0 }, { 1, 1, 1 } },
-	[FACEIDX_BOTTOM] = { { 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 1 }, { 0, 0, 1 } },
-	[FACEIDX_TOP   ] = { { 0, 1, 1 }, { 1, 1, 1 }, { 1, 1, 0 }, { 0, 1, 0 } }
+	[FACEIDX_BACK  ] = { UVEC3(1, 0, 0), UVEC3(0, 0, 0), UVEC3(0, 1, 0), UVEC3(1, 1, 0) },
+	[FACEIDX_FRONT ] = { UVEC3(0, 0, 1), UVEC3(1, 0, 1), UVEC3(1, 1, 1), UVEC3(0, 1, 1) },
+	[FACEIDX_LEFT  ] = { UVEC3(0, 0, 0), UVEC3(0, 0, 1), UVEC3(0, 1, 1), UVEC3(0, 1, 0) },
+	[FACEIDX_RIGHT ] = { UVEC3(1, 0, 1), UVEC3(1, 0, 0), UVEC3(1, 1, 0), UVEC3(1, 1, 1) },
+	[FACEIDX_BOTTOM] = { UVEC3(0, 0, 0), UVEC3(1, 0, 0), UVEC3(1, 0, 1), UVEC3(0, 0, 1) },
+	[FACEIDX_TOP   ] = { UVEC3(0, 1, 1), UVEC3(1, 1, 1), UVEC3(1, 1, 0), UVEC3(0, 1, 0) }
 };
 
 static const tex_type_e tex_lookup[CUBETYPE_NUM][6] = {

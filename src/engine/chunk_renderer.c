@@ -3,16 +3,18 @@
 void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim) 
 {
     cr->offscreen_base.dimensions = dim;
-    cr->display_base.dimensions = dim;
+    cr->composite_base.dimensions = dim;
 
     // Cleanup existing images and texture views.
-    sg_destroy_image(cr->targets.colour);
+    sg_destroy_image(cr->targets.albedo);
     sg_destroy_image(cr->targets.normal);
     sg_destroy_image(cr->targets.depth);
     sg_destroy_image(cr->targets.shadow);
     sg_destroy_image(cr->targets.shadowmap);
+    sg_destroy_image(cr->targets.colour);
     sg_destroy_image(cr->targets.zbuf);
     sg_destroy_image(cr->targets.zbuf_shadow);
+    sg_destroy_image(cr->targets.zbuf_composite);
 
     sg_destroy_view(cr->shadowmap_base.pass.attachments.colors[0]);
     sg_destroy_view(cr->shadowmap_base.pass.attachments.depth_stencil);
@@ -21,16 +23,20 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[2]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[3]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.depth_stencil);
+    sg_destroy_view(cr->composite_base.pass.attachments.colors[0]);
+    sg_destroy_view(cr->composite_base.pass.attachments.depth_stencil);
 
-    sg_destroy_view(cr->offscreen_base.bind.views[VIEW_u_shadowmap]);
-    sg_destroy_view(cr->display_base.bind.views[VIEW_u_albedo_buffer]);
-    sg_destroy_view(cr->display_base.bind.views[VIEW_u_normal_buffer]);
-    sg_destroy_view(cr->display_base.bind.views[VIEW_u_depth_buffer]);
-    sg_destroy_view(cr->display_base.bind.views[VIEW_u_shadow_buffer]);
+    sg_destroy_view(cr->offscreen_base.bind.views[VIEW_u_shadow_map]);
+    sg_destroy_view(cr->composite_base.bind.views[VIEW_u_galbedo]);
+    sg_destroy_view(cr->composite_base.bind.views[VIEW_u_gnormal_composite]);
+    sg_destroy_view(cr->composite_base.bind.views[VIEW_u_gdepth_composite]);
+    sg_destroy_view(cr->composite_base.bind.views[VIEW_u_gshadow]);
+    sg_destroy_view(cr->effects_base.bind.views[VIEW_u_gnormal_effects]);
+    sg_destroy_view(cr->effects_base.bind.views[VIEW_u_gdepth_effects]);
 
     // Make new targets with the new dimensions.
     cr->targets = (struct targets) {
-        .colour = sg_make_image(&(sg_image_desc) {
+        .albedo = sg_make_image(&(sg_image_desc) {
             .usage.color_attachment = true,
             .pixel_format = COLOUR_PIXELFORMAT,
             .width = dim.x,
@@ -65,6 +71,13 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
             .height = cr->shadowmap_base.dimensions.y,
             .sample_count = 1,
         }),
+        .colour = sg_make_image(&(sg_image_desc) {
+            .usage.color_attachment = true,
+            .pixel_format = COLOUR_PIXELFORMAT,
+            .width = dim.x,
+            .height = dim.y,
+            .sample_count = 1
+        }),
         .zbuf = sg_make_image(&(sg_image_desc) {
             .usage.depth_stencil_attachment = true,
             .pixel_format = SG_PIXELFORMAT_DEPTH,
@@ -78,70 +91,131 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
             .width = cr->shadowmap_base.dimensions.x,  // Do not scale shadowmap.
             .height = cr->shadowmap_base.dimensions.y,
             .sample_count = 1,
-        })
+        }),
+        .zbuf_composite = sg_make_image(&(sg_image_desc) {
+            .usage.depth_stencil_attachment = true,
+            .pixel_format = SG_PIXELFORMAT_DEPTH,
+            .width = dim.x,
+            .height = dim.y,
+            .sample_count = 1,
+        }),
     };
 
+    cr->info.ssao_noise_image = sg_make_image(&(sg_image_desc) {
+        .data = SG_RANGE(cr->info.ssao_noise_data),
+        .sample_count = 1,
+        .pixel_format = DATA_PIXELFORMAT,
+        .width = SSAO_NOISE_SCALE,
+        .height = SSAO_NOISE_SCALE,
+        .type = SG_IMAGETYPE_2D
+    });
 
     // Make new target views from the new images
     cr->shadowmap_base.pass.attachments = (sg_attachments) {
         .colors[0] = sg_make_view(&(sg_view_desc) {
-            .color_attachment = { .image = cr->targets.shadowmap },
+            .color_attachment = { .image = cr->targets.shadowmap }
         }),
         .depth_stencil = sg_make_view(&(sg_view_desc) {
-            .depth_stencil_attachment = { .image = cr->targets.zbuf_shadow },
+            .depth_stencil_attachment = { .image = cr->targets.zbuf_shadow }
         })
     };
 
     cr->offscreen_base.pass.attachments = (sg_attachments) {
         .colors[0] = sg_make_view(&(sg_view_desc) {
-            .color_attachment = { .image = cr->targets.colour },
+            .color_attachment = { .image = cr->targets.albedo }
         }),
         .colors[1] = sg_make_view(&(sg_view_desc) {
-            .color_attachment = { .image = cr->targets.normal },
+            .color_attachment = { .image = cr->targets.normal }
         }),
         .colors[2] = sg_make_view(&(sg_view_desc) {
-            .color_attachment = { .image = cr->targets.depth },
+            .color_attachment = { .image = cr->targets.depth }
         }),
         .colors[3] = sg_make_view(&(sg_view_desc) {
-            .color_attachment = { .image = cr->targets.shadow },
+            .color_attachment = { .image = cr->targets.shadow }
         }),
         .depth_stencil = sg_make_view(&(sg_view_desc) {
-            .depth_stencil_attachment = { .image = cr->targets.zbuf },
+            .depth_stencil_attachment = { .image = cr->targets.zbuf }
         })
     };
 
-    cr->offscreen_base.bind.views[VIEW_u_shadowmap] = sg_make_view(&(sg_view_desc) {
+    cr->composite_base.pass.attachments = (sg_attachments) {
+        .colors[0] = sg_make_view(&(sg_view_desc) {
+            .color_attachment = { .image = cr->targets.colour }
+        }),
+        .depth_stencil = sg_make_view(&(sg_view_desc) {
+            .depth_stencil_attachment = { .image = cr->targets.zbuf_composite }
+        })
+    };
+
+    cr->offscreen_base.bind.views[VIEW_u_shadow_map] = sg_make_view(&(sg_view_desc) {
         .texture = { .image = cr->targets.shadowmap },
     });
 
-    cr->display_base.bind.views[VIEW_u_albedo_buffer] = sg_make_view(&(sg_view_desc) {
-        .texture = { .image = cr->targets.colour },
+    cr->composite_base.bind.views[VIEW_u_galbedo] = sg_make_view(&(sg_view_desc) {
+        .texture = { .image = cr->targets.albedo },
     });
-    cr->display_base.bind.views[VIEW_u_normal_buffer] = sg_make_view(&(sg_view_desc) {
+    cr->composite_base.bind.views[VIEW_u_gnormal_composite] = sg_make_view(&(sg_view_desc) {
         .texture = { .image = cr->targets.normal },
     });
-    cr->display_base.bind.views[VIEW_u_depth_buffer] = sg_make_view(&(sg_view_desc) {
+    cr->composite_base.bind.views[VIEW_u_gdepth_composite] = sg_make_view(&(sg_view_desc) {
         .texture = { .image = cr->targets.depth },
     });
-    cr->display_base.bind.views[VIEW_u_shadow_buffer] = sg_make_view(&(sg_view_desc) {
+    cr->composite_base.bind.views[VIEW_u_gshadow] = sg_make_view(&(sg_view_desc) {
         .texture = { .image = cr->targets.shadow },
     });
     // For debugging: Visualize the shadowmap
-    // cr->display_base.bind.views[VIEW_u_shadow_buffer] = sg_make_view(&(sg_view_desc) {
+    // cr->display_base.bind.views[VIEW_u_gshadow] = sg_make_view(&(sg_view_desc) {
     //     .texture = { .image = cr->targets.shadowmap },
     // });
+
+    cr->effects_base.bind.views[VIEW_u_colour] = sg_make_view(&(sg_view_desc) {
+        .texture = { .image = cr->targets.colour }
+    });
+    cr->effects_base.bind.views[VIEW_u_gnormal_effects] = sg_make_view(&(sg_view_desc) {
+        .texture = { .image = cr->targets.normal }
+    });
+    cr->effects_base.bind.views[VIEW_u_gdepth_effects] = sg_make_view(&(sg_view_desc) {
+        .texture = { .image = cr->targets.depth }
+    });
+    cr->effects_base.bind.views[VIEW_u_ssao_noise] = sg_make_view(&(sg_view_desc) {
+        .texture = { .image = cr->info.ssao_noise_image }
+    });
 }
 
 void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc)
 {
     rbase_init(&cr->offscreen_base, desc->base_desc);
-    rbase_init(&cr->display_base, desc->base_desc);
+    rbase_init(&cr->composite_base, desc->base_desc);
+    rbase_init(&cr->effects_base, desc->base_desc);
     rbase_init(&cr->shadowmap_base, desc->shadowmap_base_desc);
 
-    cr->inv_sun_dir = desc-> inv_sun_dir;
+    cr->info.sun_dir = desc->sun_dir;
 
     // Inits the render targets and attachment views for the offscreen pass.
     chunk_renderer_resize(cr, desc->base_desc->dimensions);
+
+    // SSAO kernel
+    for (size_t i = 0; i < SSAO_SAMPLES; i++)
+    {
+        vec3 sample = em_normalize_vec3(VEC3(
+            ((float) em_romu_duo_random() / EM_ROMU_DUO_MAXF) * 2.0 - 1.0,
+            ((float) em_romu_duo_random() / EM_ROMU_DUO_MAXF) * 2.0 - 1.0,
+            ((float) em_romu_duo_random() / EM_ROMU_DUO_MAXF)
+        ));
+        float scale = 0.1 + em_sqr((float) i / SSAO_SAMPLES) * 0.9;
+        sample = em_mul_vec3_f(sample, scale);
+        cr->info.ssao_kernel[i] = VEC4(sample.x, sample.y, sample.z, 0.0);
+    }
+
+    // SSAO noise (for random kernel rotations)
+    for (size_t i = 0; i < em_sqr(SSAO_NOISE_SCALE); i++)
+    {
+        vec2 noise = {
+            ((float) em_romu_duo_random() / EM_ROMU_DUO_MAXF) * 2.0 - 1.0,
+            ((float) em_romu_duo_random() / EM_ROMU_DUO_MAXF) * 2.0 - 1.0,
+        };
+        cr->info.ssao_noise_data[i] = noise;
+    }
 
     // Shadowmap pass 
     cr->shadowmap_base.pass.action = (sg_pass_action) {
@@ -151,11 +225,6 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
                 .clear_value = 1.0,
             }
         },
-        // .depth = {
-        //     .load_action = SG_LOADACTION_CLEAR,
-        //     .store_action = SG_STOREACTION_STORE,
-        //     .clear_value = 1.0
-        // }
         .depth = {
             .load_action = SG_LOADACTION_CLEAR,
             .clear_value = 1.0
@@ -168,7 +237,7 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         // |Byte 1 |Byte 2 |Byte 3 |Byte 4 |
         // | 5 | 3 |       | 5 | 3 | 4 | 4 |
         // | x | o |   y   | z | n | u | v |
-        .layout.attrs[ATTR_chunk_a_vertex].format = SG_VERTEXFORMAT_UBYTE4,
+        .layout.attrs[ATTR_offscreen_a_vert].format = SG_VERTEXFORMAT_UBYTE4,
         .index_type = SG_INDEXTYPE_UINT16,
         .cull_mode = SG_CULLMODE_BACK,
         .sample_count = 1,
@@ -176,11 +245,9 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         .colors = { 
             [0].pixel_format = DEPTH_PIXELFORMAT,
         },
-        // .colors[0].pixel_format = SG_PIXELFORMAT_NONE,
         .depth = {
             .pixel_format = SG_PIXELFORMAT_DEPTH,
             .compare = SG_COMPAREFUNC_LESS_EQUAL,
-            // .write_enabled = true
             .write_enabled = false
         }
     });
@@ -213,11 +280,8 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
 
     // Offscreen pipeline
     cr->offscreen_base.pip = sg_make_pipeline(&(sg_pipeline_desc) {
-        .shader = sg_make_shader(chunk_shader_desc(sg_query_backend())),
-        // |Byte 1 |Byte 2 |Byte 3 |Byte 4 |
-        // |5  | 3 |       | 5 | 3 | 4 | 4 |
-        // |x  | o |  y    | z | n | u | v |
-        .layout.attrs[ATTR_chunk_a_vertex].format = SG_VERTEXFORMAT_UBYTE4,
+        .shader = sg_make_shader(offscreen_shader_desc(sg_query_backend())),
+        .layout.attrs[ATTR_offscreen_a_vert].format = SG_VERTEXFORMAT_UBYTE4,
         .index_type = SG_INDEXTYPE_UINT16,
         .cull_mode = SG_CULLMODE_BACK,
         .sample_count = 1,
@@ -235,37 +299,63 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         },
     });
 
-    // Display pipeline 
-    cr->display_base.pip = sg_make_pipeline(&(sg_pipeline_desc) {
+    // Composite pipeline 
+    cr->composite_base.pip = sg_make_pipeline(&(sg_pipeline_desc) {
         .shader = sg_make_shader(composite_shader_desc(sg_query_backend())),
         .sample_count = 1,
         .primitive_type = SG_PRIMITIVETYPE_TRIANGLE_STRIP,
-        .layout.attrs[ATTR_composite_a_pos].format = SG_VERTEXFORMAT_FLOAT2
+        .layout.attrs[ATTR_composite_a_pos].format = SG_VERTEXFORMAT_FLOAT2,
+        .color_count = 1,
+        .colors = {
+            [0].pixel_format = COLOUR_PIXELFORMAT
+        },
+        .depth = {
+            .pixel_format = SG_PIXELFORMAT_DEPTH,
+            .compare = SG_COMPAREFUNC_LESS_EQUAL,
+            .write_enabled = true
+        },
     });
 
-    // For sampling the render textures from the offscreen pass
     float quad_verts[] = { 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0 };
-    cr->display_base.bind.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
+    cr->composite_base.bind.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
         .data = SG_RANGE(quad_verts)
     });
-    cr->display_base.bind.samplers[SMP_u_buffer_sampler] = sg_make_sampler(&(sg_sampler_desc) {
+    cr->composite_base.bind.samplers[SMP_u_composite_smp] = sg_make_sampler(&(sg_sampler_desc) {
         .min_filter = SG_FILTER_NEAREST,
         .mag_filter = SG_FILTER_NEAREST,
         .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
         .wrap_v = SG_WRAP_CLAMP_TO_EDGE
+    });
+
+    // Effects pipeline 
+    cr->effects_base.pip = sg_make_pipeline(&(sg_pipeline_desc) {
+        .shader = sg_make_shader(effects_shader_desc(sg_query_backend())),
+        .sample_count = 1,
+        .primitive_type = SG_PRIMITIVETYPE_TRIANGLE_STRIP,
+        .layout.attrs[ATTR_effects_a_pos].format = SG_VERTEXFORMAT_FLOAT2
+    });
+
+    cr->effects_base.bind.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
+        .data = SG_RANGE(quad_verts)
+    });
+    cr->effects_base.bind.samplers[SMP_u_effects_smp] = sg_make_sampler(&(sg_sampler_desc) {
+        .min_filter = SG_FILTER_NEAREST,
+        .mag_filter = SG_FILTER_NEAREST,
+        .wrap_u = SG_WRAP_REPEAT,
+        .wrap_v = SG_WRAP_REPEAT
     });
 }
 
 void chunk_renderer_load_textures(chunk_renderer_t *cr)
 {
     /* Bindings. */
-    cr->offscreen_base.bind.samplers[SMP_u_atlas_sampler] = sg_make_sampler(&(sg_sampler_desc) {
+    cr->offscreen_base.bind.samplers[SMP_u_atlas_smp] = sg_make_sampler(&(sg_sampler_desc) {
         .min_filter = SG_FILTER_NEAREST,
         .mag_filter = SG_FILTER_NEAREST,
         .mipmap_filter = SG_FILTER_NEAREST,
         .max_lod = MIP_LEVELS,
     });
-    cr->offscreen_base.bind.samplers[SMP_u_shadowmap_sampler] = sg_make_sampler(&(sg_sampler_desc) {
+    cr->offscreen_base.bind.samplers[SMP_u_shadow_smp] = sg_make_sampler(&(sg_sampler_desc) {
         .min_filter = SG_FILTER_NEAREST,
         .mag_filter = SG_FILTER_NEAREST,
         .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
@@ -295,43 +385,51 @@ void chunk_renderer_cleanup(chunk_renderer_t *cr)
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[3]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.depth_stencil);
 
-    sg_destroy_view(cr->offscreen_base.bind.views[VIEW_u_shadowmap]);
-    sg_destroy_view(cr->display_base.bind.views[VIEW_u_albedo_buffer]);
-    sg_destroy_view(cr->display_base.bind.views[VIEW_u_normal_buffer]);
-    sg_destroy_view(cr->display_base.bind.views[VIEW_u_depth_buffer]);
-    sg_destroy_view(cr->display_base.bind.views[VIEW_u_shadow_buffer]);
+    sg_destroy_view(cr->offscreen_base.bind.views[VIEW_u_shadow_map]);
+    sg_destroy_view(cr->composite_base.bind.views[VIEW_u_galbedo]);
+    sg_destroy_view(cr->composite_base.bind.views[VIEW_u_gnormal_composite]);
+    sg_destroy_view(cr->composite_base.bind.views[VIEW_u_gdepth_composite]);
+    sg_destroy_view(cr->composite_base.bind.views[VIEW_u_gshadow]);
+    sg_destroy_view(cr->effects_base.bind.views[VIEW_u_gnormal_effects]);
+    sg_destroy_view(cr->effects_base.bind.views[VIEW_u_gdepth_effects]);
+    sg_destroy_view(cr->effects_base.bind.views[VIEW_u_ssao_noise]);
 
-    sg_destroy_image(cr->targets.colour);
+    sg_destroy_image(cr->targets.albedo);
     sg_destroy_image(cr->targets.normal);
     sg_destroy_image(cr->targets.depth);
     sg_destroy_image(cr->targets.shadow);
     sg_destroy_image(cr->targets.shadowmap);
+    sg_destroy_image(cr->targets.colour);
     sg_destroy_image(cr->targets.zbuf);
     sg_destroy_image(cr->targets.zbuf_shadow);
+    sg_destroy_image(cr->info.ssao_noise_image);
 
+    sg_destroy_pipeline(cr->shadowmap_base.pip);
     sg_destroy_pipeline(cr->offscreen_base.pip);
-    sg_destroy_pipeline(cr->display_base.pip);
+    sg_destroy_pipeline(cr->composite_base.pip);
+    sg_destroy_pipeline(cr->effects_base.pip);
 }
 
 static void _render_shadowmap_pass(chunk_renderer_t *cr) 
 {
+    INSTRUMENT_FUNC_BEGIN();
     renderer_base_t *rb = &cr->shadowmap_base;
 
     sg_begin_pass(&rb->pass);
 
     sg_apply_pipeline(rb->pip);
 
-    for (size_t i = 0; i < cr->coords.num; i++)
+    for (size_t i = 0; i < cr->info.chunk_coords.num; i++)
     {
-        ivec2 crd = em_add_ivec2(cr->coords.coords[i], cr->coords.offset);
-        chunk_render_info_t *cri = GET_OR_NULL(cr->data.chunks, crd);
+        ivec2 crd = em_add_ivec2(cr->info.chunk_coords.coords[i], cr->info.chunk_coords.offset);
+        chunk_render_info_t *cri = GET_OR_NULL(cr->info.chunk_data.chunks, crd);
         if (!cri)
             continue;
 
         vec3 pos = { cri->pos.x, 0.0, cri->pos.y };
         vs_params_shadowmap_t vs_params = {
             .u_vp = rb->cam->vp,
-            .u_ccord = pos,
+            .u_chunk = pos,
         };
 
         if (cri->needs_update)
@@ -358,32 +456,34 @@ static void _render_shadowmap_pass(chunk_renderer_t *cr)
     }
 
     sg_end_pass();
+    INSTRUMENT_FUNC_END();
 }
 
 static void _render_offscreen_pass(chunk_renderer_t *cr) 
 {
+    INSTRUMENT_FUNC_BEGIN();
     renderer_base_t *rb = &cr->offscreen_base;
 
     sg_begin_pass(&rb->pass);
 
     sg_apply_pipeline(rb->pip);
 
-    for (size_t i = 0; i < cr->coords.num; i++)
+    for (size_t i = 0; i < cr->info.chunk_coords.num; i++)
     {
-        ivec2 crd = em_add_ivec2(cr->coords.coords[i], cr->coords.offset);
-        chunk_render_info_t *cri = GET_OR_NULL(cr->data.chunks, crd);
+        ivec2 crd = em_add_ivec2(cr->info.chunk_coords.coords[i], cr->info.chunk_coords.offset);
+        chunk_render_info_t *cri = GET_OR_NULL(cr->info.chunk_data.chunks, crd);
         if (!cri)
             continue;
 
         vec3 pos = { cri->pos.x, 0.0, cri->pos.y };
-        vs_params_chunk_t vs_params = {
+        vs_params_offscreen_t vs_params = {
             .u_vp = rb->cam->vp,
-            .u_ccord = pos,
-            .u_lightspace = cr->shadowmap_base.cam->vp,
+            .u_chunk = pos,
+            .u_sun_vp = cr->shadowmap_base.cam->vp,
         };
 
-        fs_params_chunk_t fs_params = {
-            .u_sun_dir = em_mul_vec3_f(cr->inv_sun_dir, -1.0)
+        fs_params_offscreen_t fs_params = {
+            .u_sun_dir = cr->info.sun_dir
         };
 
         if (cri->needs_update)
@@ -404,27 +504,26 @@ static void _render_offscreen_pass(chunk_renderer_t *cr)
         rb->bind.index_buffer = cri->bufs.index;
         sg_apply_bindings(&rb->bind);
 
-        sg_apply_uniforms(UB_vs_params_chunk, &SG_RANGE(vs_params));
-        sg_apply_uniforms(UB_fs_params_chunk, &SG_RANGE(fs_params));
+        sg_apply_uniforms(UB_vs_params_offscreen, &SG_RANGE(vs_params));
+        sg_apply_uniforms(UB_fs_params_offscreen, &SG_RANGE(fs_params));
 
         sg_draw(0, cri->mesh->i_cnt, 1);
     }
 
     sg_end_pass();
+    INSTRUMENT_FUNC_END();
 }
 
-static void _render_display_pass(chunk_renderer_t *cr)
+static void _render_composite_pass(chunk_renderer_t *cr)
 {
-    renderer_base_t *rb = &cr->display_base;
+    INSTRUMENT_FUNC_BEGIN();
+    renderer_base_t *rb = &cr->composite_base;
 
-    sg_begin_pass(&(sg_pass) {
-        .action = rb->pass.action,
-        .swapchain = sglue_swapchain(),
-    });
+    sg_begin_pass(&rb->pass);
 
     fs_params_composite_t fs_params = {
         .u_inv_vp = em_inverse_mat4(cr->offscreen_base.cam->vp),
-        .u_light_dir = em_mul_vec3_f(cr->inv_sun_dir, -1.0),
+        .u_sun_dir = cr->info.sun_dir,
         .u_eye_pos = cr->offscreen_base.cam->pos
     };
 
@@ -437,6 +536,40 @@ static void _render_display_pass(chunk_renderer_t *cr)
     sg_draw(0, 4, 1);
 
     sg_end_pass();
+    INSTRUMENT_FUNC_END();
+}
+
+void _render_effects_pass(chunk_renderer_t *cr) 
+{
+    INSTRUMENT_FUNC_BEGIN();
+    renderer_base_t *rb = &cr->effects_base;
+
+    sg_begin_pass(&(sg_pass) {
+        .action = rb->pass.action,
+        .swapchain = sglue_swapchain(),
+    });
+
+    ENGINE_ASSERT(cr->offscreen_base.cam->kind == PROJECTION_PERSPECTIVE,
+                  "offscreen camera should be perspective");
+
+    fs_params_effects_t fs_params = {
+        .u_inv_vp = em_inverse_mat4(cr->offscreen_base.cam->vp),
+        .u_proj = cr->offscreen_base.cam->proj,
+        // .u_proj = cr->offscreen_base.cam->vp,
+        .u_view = cr->offscreen_base.cam->view
+    };
+    memcpy(fs_params.u_ssao_samples, cr->info.ssao_kernel, sizeof(cr->info.ssao_kernel));
+
+    sg_apply_pipeline(rb->pip);
+    sg_apply_bindings(&rb->bind);
+
+    sg_apply_uniforms(UB_fs_params_effects, &SG_RANGE(fs_params));
+
+    // Render the fullscreen quad
+    sg_draw(0, 4, 1);
+
+    sg_end_pass();
+    INSTRUMENT_FUNC_END();
 }
 
 void chunk_renderer_render_all(chunk_renderer_t *cr)
@@ -449,19 +582,13 @@ void chunk_renderer_render_all(chunk_renderer_t *cr)
     vec3 target = em_mul_vec3_f(AS_VEC3(tmp), CHUNK_SIZE);
     target.y = sc->pos.y;
 
-    sc->view = em_look_at(em_add_vec3(target, cr->inv_sun_dir), target, WORLD_Y);
-    // sc->view = em_look_at(cr->inv_sun_dir, VEC3(0, 0, 0), WORLD_Y);
+    sc->view = em_look_at(em_sub_vec3(target, cr->info.sun_dir), target, WORLD_Y);
     sc->pos = target;
 
     cam_update(sc);
 
-    INSTRUMENT_SCOPE_BEGIN(render_shadowmap);
     _render_shadowmap_pass(cr);
-    INSTRUMENT_SCOPE_END(render_shadowmap);
-    INSTRUMENT_SCOPE_BEGIN(render_offscreen);
     _render_offscreen_pass(cr);
-    INSTRUMENT_SCOPE_END(render_offscreen);
-    INSTRUMENT_SCOPE_BEGIN(render_display);
-    _render_display_pass(cr);
-    INSTRUMENT_SCOPE_END(render_display);
+    _render_composite_pass(cr);
+    _render_effects_pass(cr);
 }

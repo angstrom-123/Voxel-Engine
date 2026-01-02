@@ -118,6 +118,13 @@ typedef em_vec4 em_quaternion;
     typedef em_mat4 mat4;
 #endif
 
+#define NEGATE_VEC2(v) (em_vec2) { -v.x, -v.y }
+#define NEGATE_VEC3(v) (em_vec3) { -v.x, -v.y, -v.z }
+#define NEGATE_VEC4(v) (em_vec4) { -v.x, -v.y, -v.z, -v.w }
+#define NEGATE_IVEC2(v) (em_ivec2) { -v.x, -v.y }
+#define NEGATE_IVEC3(v) (em_ivec3) { -v.x, -v.y, -v.z }
+#define NEGATE_IVEC4(v) (em_ivec4) { -v.x, -v.y, -v.z, -v.w }
+
 #define VEC2(a, b) (em_vec2) { (FLOAT) (a), (FLOAT) (b) }
 #define VEC3(a, b, c) (em_vec3) { (FLOAT) (a), (FLOAT) (b), (FLOAT) (c) }
 #define VEC4(a, b, c, d) (em_vec4) { (FLOAT) (a), (FLOAT) (b), (FLOAT) (c), (FLOAT) (d) }
@@ -139,6 +146,7 @@ typedef em_vec4 em_quaternion;
 #define AS_UVEC3(v) (em_uvec3) { (UINT) v.x, (UINT) v.y, (UINT) v.z }
 #define AS_UVEC4(v) (em_uvec4) { (UINT) v.x, (UINT) v.y, (UINT) v.z, (UINT) v.w }
 
+bool em_equals_vec3(em_vec3 a, em_vec3 b);
 bool em_equals_vec4(em_vec4 a, em_vec4 b);
 bool em_equals_quaternion(em_quaternion a, em_quaternion b);
 bool em_equals_ivec2(em_ivec2 a, em_ivec2 b);
@@ -155,6 +163,20 @@ em_ivec4 em_sign_ivec4(em_ivec4 a);
 em_ivec2 em_floor_vec2(em_vec2 a);
 em_ivec3 em_floor_vec3(em_vec3 a);
 em_ivec4 em_floor_vec4(em_vec4 a);
+
+em_vec2 em_clamp_vec2(em_vec2 a, em_vec2 min, em_vec2 max);
+em_vec3 em_clamp_vec3(em_vec3 a, em_vec3 min, em_vec3 max);
+em_vec4 em_clamp_vec4(em_vec4 a, em_vec4 min, em_vec4 max);
+
+em_vec2 em_min_vec2(em_vec2 a, em_vec2 b);
+em_vec3 em_min_vec3(em_vec3 a, em_vec3 b);
+em_vec4 em_min_vec4(em_vec4 a, em_vec4 b);
+em_ivec2 em_min_ivec2(em_ivec2 a, em_ivec2 b);
+em_ivec3 em_min_ivec3(em_ivec3 a, em_ivec3 b);
+em_ivec4 em_min_ivec4(em_ivec4 a, em_ivec4 b);
+em_uvec2 em_min_uvec2(em_uvec2 a, em_uvec2 b);
+em_uvec3 em_min_uvec3(em_uvec3 a, em_uvec3 b);
+em_uvec4 em_min_uvec4(em_uvec4 a, em_uvec4 b);
 
 em_vec2 em_sqrt_vec2(em_vec2 a);
 em_vec3 em_sqrt_vec3(em_vec3 a);
@@ -367,6 +389,66 @@ em_ivec4 em_floor_vec4(em_vec4 a)
     return (em_ivec4) {floorf(a.x), floorf(a.y), floorf(a.z), floorf(a.w)};
 }
 
+em_vec2 em_clamp_vec2(em_vec2 a, em_vec2 min, em_vec2 max)
+{
+    return (em_vec2) {em_clamp(a.x, min.x, max.x), em_clamp(a.y, min.y, max.y)};
+}
+
+em_vec3 em_clamp_vec3(em_vec3 a, em_vec3 min, em_vec3 max)
+{
+    return (em_vec3) {em_clamp(a.x, min.x, max.x), em_clamp(a.y, min.y, max.y), em_clamp(a.z, min.z, max.z)};
+}
+
+em_vec4 em_clamp_vec4(em_vec4 a, em_vec4 min, em_vec4 max)
+{
+    return (em_vec4) {em_clamp(a.x, min.x, max.x), em_clamp(a.y, min.y, max.y), em_clamp(a.z, min.z, max.z), em_clamp(a.w, min.w, max.w)};
+}
+
+em_vec2 em_min_vec2(em_vec2 a, em_vec2 b)
+{
+    return (em_vec2) {em_min(a.x, b.x), em_min(a.y, b.y)};
+}
+
+em_vec3 em_min_vec3(em_vec3 a, em_vec3 b)
+{
+    return (em_vec3) {em_min(a.x, b.x), em_min(a.y, b.y), em_min(a.z, b.z)};
+}
+
+em_vec4 em_min_vec4(em_vec4 a, em_vec4 b)
+{
+    return (em_vec4) {em_min(a.x, b.x), em_min(a.y, b.y), em_min(a.z, b.z), em_min(a.w, b.w)};
+}
+
+em_ivec2 em_min_ivec2(em_ivec2 a, em_ivec2 b)
+{
+    return (em_ivec2) {em_min(a.x, b.x), em_min(a.y, b.y)};
+}
+
+em_ivec3 em_min_ivec3(em_ivec3 a, em_ivec3 b)
+{
+    return (em_ivec3) {em_min(a.x, b.x), em_min(a.y, b.y), em_min(a.z, b.z)};
+}
+
+em_ivec4 em_min_ivec4(em_ivec4 a, em_ivec4 b)
+{
+    return (em_ivec4) {em_min(a.x, b.x), em_min(a.y, b.y), em_min(a.z, b.z), em_min(a.w, b.w)};
+}
+
+em_uvec2 em_min_uvec2(em_uvec2 a, em_uvec2 b)
+{
+    return (em_uvec2) {em_min(a.x, b.x), em_min(a.y, b.y)};
+}
+
+em_uvec3 em_min_uvec3(em_uvec3 a, em_uvec3 b)
+{
+    return (em_uvec3) {em_min(a.x, b.x), em_min(a.y, b.y), em_min(a.z, b.z)};
+}
+
+em_uvec4 em_min_uvec4(em_uvec4 a, em_uvec4 b)
+{
+    return (em_uvec4) {em_min(a.x, b.x), em_min(a.y, b.y), em_min(a.z, b.z), em_min(a.w, b.w)};
+}
+
 em_vec2 em_abs_vec2(em_vec2 a)
 {
     return (em_vec2) {em_abs(a.x), em_abs(a.y)};
@@ -410,6 +492,11 @@ em_vec3 em_sqrt_vec3(em_vec3 a)
 em_vec4 em_sqrt_vec4(em_vec4 a)
 {
     return (em_vec4) {sqrtf(a.x), sqrtf(a.y), sqrtf(a.z), sqrtf(a.w)};
+}
+
+bool em_equals_vec3(em_vec3 a, em_vec3 b)
+{
+    return (a.x == b.x) && (a.y == b.y) && (a.z == b.z);
 }
 
 bool em_equals_vec4(em_vec4 a, em_vec4 b)
@@ -1161,7 +1248,11 @@ em_mat4 em_scale_mat4(em_vec3 scale)
 em_mat4 em_inverse_mat4(em_mat4 m)
 {
     FLOAT d = em_determinant_mat4(m); 
-    if(d == 0.0) return em_new_mat4();
+    if (em_abs(d) < 1.0E-6) 
+    {
+        EM_LOG("Failed to inverse a matrix\n", NULL);
+        return em_new_mat4();
+    }
 
     return (em_mat4) {
         .x = (em_vec4) { 

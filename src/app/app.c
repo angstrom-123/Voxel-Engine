@@ -23,9 +23,15 @@ void app_init(engine_t *engine, app_t *app, const app_desc_t *desc)
     (void) desc;
 
     camera_ctl_init(&app->camera_ctl, &engine->_render_sys.cam, &(camera_controller_desc_t) {
-        .start_pos = (vec3) {8.0, 100.0, 8.0},
-        .move_speed = 30.0,
-        .turn_speed = 0.04
+        .start_pos      = VEC3(8.0, 100.0, 8.0),
+        .floor_friction = 0.9,
+        .air_friction   = 0.1,
+        .jump_impulse   = 5.0,
+        .acceleration   = 0.02,
+        .turn_speed     = 0.04,
+        .gravity        = -10.0,
+        .max_velocity   = VEC3(3.0, 50.0, 3.0),
+        .collider_size  = VEC3(0.5, 1.8, 0.5)
     });
 
     engine->api.subscribe_to_event(engine, EVENT_MOUSEDOWN, &(event_subscriber_desc_t) {

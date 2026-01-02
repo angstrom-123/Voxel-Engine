@@ -88,7 +88,7 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
             .dimensions = VEC2(1024.0, 1024.0),
             .cam = &rs->shadow_cam,
         },
-        .inv_sun_dir = desc->inv_sun_dir
+        .sun_dir = em_mul_vec3_f(desc->inv_sun_dir, -1.0)
     });
     chunk_renderer_load_textures(&rs->chunk_renderer);
 
@@ -168,12 +168,12 @@ void render_sys_render(render_system_t *rs, update_system_t *us,
                        load_system_t *ls, ui_system_t *uis)
 {
     /* Chunks. */
-    { rs->chunk_renderer.data = update_sys_borrow_render_data(us);
+    { rs->chunk_renderer.info.chunk_data = update_sys_borrow_render_data(us);
 
-        rs->chunk_renderer.coords = load_sys_get_render_coords(ls);
+        rs->chunk_renderer.info.chunk_coords = load_sys_get_render_coords(ls);
         chunk_renderer_render_all(&rs->chunk_renderer);
 
-    } update_sys_return_render_data(us, &rs->chunk_renderer.data);
+    } update_sys_return_render_data(us, &rs->chunk_renderer.info.chunk_data);
 
     /* World Lines. */
     line_renderer_render_all(&rs->global_line_renderer);

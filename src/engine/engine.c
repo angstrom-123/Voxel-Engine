@@ -290,5 +290,5 @@ void engine_tick(engine_t *engine)
     float t = (float) (time % max) / max;
     float lerp = em_clamp((t * t * (3.0 - 2.0 * t)) * 360.0, 0.0, 359.0);
     vec3 sun_dir = em_rotate_vec3(engine->meta.world.base_sun_dir, lerp, VEC3(1.0, 0.1, 0.2));
-    engine->_render_sys.chunk_renderer.inv_sun_dir = em_mul_vec3_f(sun_dir, -1.0);
+    engine->_render_sys.chunk_renderer.info.sun_dir = sun_dir;
 }

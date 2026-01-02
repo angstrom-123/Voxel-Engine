@@ -31,9 +31,13 @@
 
 #include <stdint.h>
 
+#define EM_ROMU_DUO_MAX 18446744073709551615u
+#define EM_ROMU_DUO_MAXF 18446744073709551615.0
 extern void em_romu_duo_init(UINT seed);
 extern ULONG em_romu_duo_random();
 
+#define EM_ROMU_MONO32_MAX 65536u
+#define EM_ROMU_MONO32_MAXF 65536.0
 extern void em_romu_mono32_init(UINT seed);
 extern USHORT em_romu_mono32_random();
 
@@ -51,8 +55,6 @@ extern USHORT em_romu_mono32_random();
 #define ROTL(x, n) ((x << (n)) | (x >> (8 * sizeof(x) - (n))))
 
 /* Romu-Duo. */
-#define DUO_MAX UINT64_MAX
-
 static ULONG state_duo_x;
 static ULONG state_duo_y;
 
@@ -70,8 +72,6 @@ ULONG em_romu_duo_random() {
 }
 
 /* Romu-Mono32. */
-#define MONO32_MAX UINT16_MAX
-
 static UINT state_mono32;
 
 void em_romu_mono32_init(UINT seed) 
