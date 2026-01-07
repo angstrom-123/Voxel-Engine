@@ -1,5 +1,6 @@
 #include "geometry.h"
 
+
 static cube_type_e _get_adj_neighbour(uint8_t x, uint8_t y, uint8_t z,
                                       cube_face_idx_e face, chunk_data_t *blocks,
                                       chunk_data_t *n, chunk_data_t *e, 
@@ -105,6 +106,19 @@ static void _pack_face_to_mesh(uint16_t *v_cnt, uint16_t *i_cnt,
     *i_cnt += 6;
 }
 
+const char *cubename(cube_type_e type)
+{
+    switch (type) {
+    case CUBETYPE_AIR:   return "Air";
+    case CUBETYPE_GRASS: return "Grass";
+    case CUBETYPE_DIRT:  return "Dirt";
+    case CUBETYPE_STONE: return "Stone";
+    case CUBETYPE_SAND:  return "Sand";
+    case CUBETYPE_LOG:   return "Log";
+    case CUBETYPE_LEAF:  return "Leaf";
+    default: return "unknown";
+    }
+}
 
 mesh_t *geom_generate_mesh(chunk_data_t *cb, 
                                   chunk_data_t *nb, chunk_data_t *eb,

@@ -201,6 +201,20 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
             .max_time = desc->max_time
         },
     };
+    // Font is 11x13 so this is a pixel perfect scale.
+    const vec2 DEBUG_TEXT_SIZE = em_mul_vec2_f(VEC2(11.0, 13.0), 2.0);
+    sprite_t **tmp;
+    tmp = sprite_renderer_push_str(&engine->_render_sys.sprite_renderer, 
+                                              "00000 00000 00000", 
+                                              &(sprite_desc_t) {
+        .pos = em_mul_vec2_f(engine->_render_sys.sprite_renderer.base.dimensions, -0.5),
+        .size = DEBUG_TEXT_SIZE,
+        .z_index = 1.0,
+        .is_char = true
+    });
+    memcpy(engine->meta.debug.cur_sprites, tmp, 17 * sizeof(sprite_t *));
+    free(tmp);
+ 
     ENGINE_LOG_OK("Setup engine metadata.\n", NULL);
 
     update_sys_init_thread(&engine->_update_sys, &(update_system_thread_args_t) {
@@ -210,13 +224,18 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
         .cs = &engine->_chunk_sys,
         .us = &engine->_update_sys
     });
-    tick_sys_init_thread(&engine->_tick_sys, &(tick_system_thread_args_t) {
-        .ts = &engine->_tick_sys,
-    });
-    ENGINE_LOG_OK("Start worker threads.\n", NULL);
+    ENGINE_LOG_OK("Start generation threads.\n", NULL);
 
     load_sys_load_initial(&engine->_load_sys, &engine->_chunk_sys);
     ENGINE_LOG_OK("Request initial chunks.\n", NULL);
+
+    chunk_sys_await_initial_load_complete(&engine->_chunk_sys);
+    ENGINE_LOG_OK("Initial chunks loaded.\n", NULL);
+
+    tick_sys_init_thread(&engine->_tick_sys, &(tick_system_thread_args_t) {
+        .ts = &engine->_tick_sys,
+    });
+    ENGINE_LOG_OK("Start tick thread.\n", NULL);
 }
 
 void engine_cleanup(engine_t *engine)
@@ -235,16 +254,18 @@ void engine_event(engine_t *engine, const event_t *event)
     event_sys_get_event(&engine->_event_sys, event);
 }
 
-void engine_render(engine_t *engine)
+void engine_frame(engine_t *engine, double dt)
 {
     render_sys_render(&engine->_render_sys, &engine->_update_sys, 
                       &engine->_load_sys, &engine->_ui_sys);
+
+    atomic_fetch_add(&engine->_tick_sys.cum_dt, dt);
+
+    event_sys_new_frame(&engine->_event_sys);
 }
 
-void engine_frame(engine_t *engine)
+void engine_tick(engine_t *engine)
 {
-    event_sys_new_frame(&engine->_event_sys);
-
     ivec2 cam_chunk = {
         floorf(engine->_render_sys.cam.pos.x / (float) CHUNK_SIZE) * CHUNK_SIZE, 
         floorf(engine->_render_sys.cam.pos.z / (float) CHUNK_SIZE) * CHUNK_SIZE
@@ -275,15 +296,25 @@ void engine_frame(engine_t *engine)
 
         engine->_render_sys.cursor_line_renderer.origin = global_pos;
         engine->_render_sys.cursor_active = true;
+
+        char buf[18];
+        snprintf(buf, 18, "%05i %05i %05i", 
+                 (int) global_pos.x, (int) global_pos.y, (int) global_pos.z);
+        sprite_renderer_change_str(&engine->_render_sys.sprite_renderer,
+                                   engine->meta.debug.cur_sprites,
+                                   buf);
+        sprite_renderer_move_str(&engine->_render_sys.sprite_renderer,
+                                 engine->meta.debug.cur_sprites, 17,
+                                 em_mul_vec2_f(engine->_render_sys.sprite_renderer.base.dimensions, -0.5));
     } 
     else 
     {
         engine->_render_sys.cursor_active = false;
     }
-}
 
-void engine_tick(engine_t *engine)
-{
+    // Set tick duration and reset count.
+    engine->_tick_sys.dt = atomic_exchange(&engine->_tick_sys.cum_dt, 0.0);
+
     // Progress world time, set sun direction.
     uint64_t time = atomic_fetch_add(&engine->meta.world.time, 1);
     uint64_t max = engine->meta.world.max_time;

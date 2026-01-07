@@ -125,6 +125,15 @@ typedef em_vec4 em_quaternion;
 #define NEGATE_IVEC3(v) (em_ivec3) { -v.x, -v.y, -v.z }
 #define NEGATE_IVEC4(v) (em_ivec4) { -v.x, -v.y, -v.z, -v.w }
 
+#define VEC2F(f) (em_vec2) { (FLOAT) (f), (FLOAT) (f) }
+#define VEC3F(f) (em_vec3) { (FLOAT) (f), (FLOAT) (f), (FLOAT) (f) }
+#define VEC4F(f) (em_vec4) { (FLOAT) (f), (FLOAT) (f), (FLOAT) (f), (FLOAT) (f) }
+#define IVEC2I(i) (em_ivec2) { (INT) (i), (INT) (i) }
+#define IVEC3I(i) (em_ivec3) { (INT) (i), (INT) (i), (INT) (i) }
+#define IVEC4I(i) (em_ivec4) { (INT) (i), (INT) (i), (INT) (i), (INT) (i) }
+#define UVEC2U(u) (em_uvec2) { (UINT) (u), (UINT) (u) }
+#define UVEC3U(u) (em_uvec3) { (UINT) (u), (UINT) (u), (UINT) (u) }
+#define UVEC4U(u) (em_uvec4) { (UINT) (u), (UINT) (u), (UINT) (u), (UINT) (u) }
 #define VEC2(a, b) (em_vec2) { (FLOAT) (a), (FLOAT) (b) }
 #define VEC3(a, b, c) (em_vec3) { (FLOAT) (a), (FLOAT) (b), (FLOAT) (c) }
 #define VEC4(a, b, c, d) (em_vec4) { (FLOAT) (a), (FLOAT) (b), (FLOAT) (c), (FLOAT) (d) }
@@ -163,6 +172,9 @@ em_ivec4 em_sign_ivec4(em_ivec4 a);
 em_ivec2 em_floor_vec2(em_vec2 a);
 em_ivec3 em_floor_vec3(em_vec3 a);
 em_ivec4 em_floor_vec4(em_vec4 a);
+em_vec2 em_floor_vec2f(em_vec2 a);
+em_vec3 em_floor_vec3f(em_vec3 a);
+em_vec4 em_floor_vec4f(em_vec4 a);
 
 em_vec2 em_clamp_vec2(em_vec2 a, em_vec2 min, em_vec2 max);
 em_vec3 em_clamp_vec3(em_vec3 a, em_vec3 min, em_vec3 max);
@@ -387,6 +399,21 @@ em_ivec3 em_floor_vec3(em_vec3 a)
 em_ivec4 em_floor_vec4(em_vec4 a)
 {
     return (em_ivec4) {floorf(a.x), floorf(a.y), floorf(a.z), floorf(a.w)};
+}
+
+em_vec2 em_floor_vec2f(em_vec2 a)
+{
+    return (em_vec2) {floorf(a.x), floorf(a.y)};
+}
+
+em_vec3 em_floor_vec3f(em_vec3 a)
+{
+    return (em_vec3) {floorf(a.x), floorf(a.y), floorf(a.z)};
+}
+
+em_vec4 em_floor_vec4f(em_vec4 a)
+{
+    return (em_vec4) {floorf(a.x), floorf(a.y), floorf(a.z), floorf(a.w)};
 }
 
 em_vec2 em_clamp_vec2(em_vec2 a, em_vec2 min, em_vec2 max)

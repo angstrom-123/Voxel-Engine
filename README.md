@@ -29,6 +29,7 @@ Run the executable with:
 ```
 # Features
 - Infinite worlds
+- Physics for colission with world
 - Chunk mesh optimization
 - Multi-threaded engine
 - Custom linear algebra and utility library (libem)
@@ -36,7 +37,6 @@ Run the executable with:
 - Smoothly handles 32-chunk render distance on a regular laptop
 
 # Coming Soon
-- Physics for colission with world
 - Saving edited chunks for persistence
 - Loading world saves
 - Various graphical improvements

@@ -24,6 +24,7 @@ typedef struct chunk_system {
     cnd_t needs_update;
     atomic_bool running;
     atomic_bool thread_ready;
+    atomic_bool initial_load_complete;
 
     uint32_t seed;
     bool synchronized;
@@ -46,5 +47,6 @@ extern void chunk_sys_cleanup(chunk_system_t *cs);
 extern void chunk_sys_make_request(chunk_system_t *cs, cs_request_t request);
 extern void chunk_sys_borrow_surrounding_data(chunk_system_t *cs, ivec2 pos, chunk_data_t *res[3][3]);
 extern void chunk_sys_return_surrounding_data(chunk_system_t *cs, chunk_data_t *data[3][3]);
+extern void chunk_sys_await_initial_load_complete(chunk_system_t *cs);
 
 #endif

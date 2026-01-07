@@ -24,19 +24,6 @@
 
 #define THREAD_AWAIT_NS 50000000
 
-typedef enum chunk_data_index {
-    CURRENT,
-    NORTH,
-    EAST,
-    SOUTH,
-    WEST,
-    NORTHEAST,
-    NORTHWEST,
-    SOUTHEAST,
-    SOUTHWEST,
-    DATA_INDEX_NUM
-} chunk_data_index_e;
-
 typedef enum directions {
     DIR_NORTH = 1,
     DIR_EAST  = 2,

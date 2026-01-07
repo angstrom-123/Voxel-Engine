@@ -39,6 +39,9 @@ typedef struct engine_meta {
         atomic_uint_least64_t time;
         uint64_t max_time;
     } world;
+    struct {
+        sprite_t *cur_sprites[17];
+    } debug;
 } engine_meta_t;
 
 typedef enum block_action {
@@ -67,8 +70,7 @@ typedef struct engine {
 extern void engine_init(engine_t *engine, const engine_desc_t *desc);
 extern void engine_cleanup(engine_t *engine);
 extern void engine_event(engine_t *engine, const event_t *event);
-extern void engine_render(engine_t *engine);
-extern void engine_frame(engine_t *engine);
+extern void engine_frame(engine_t *engine, double dt);
 extern void engine_tick(engine_t *engine);
 
 #endif

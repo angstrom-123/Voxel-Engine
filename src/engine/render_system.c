@@ -28,6 +28,7 @@ static void _on_resize(const event_t *ev, void *args)
     rs->cursor_line_renderer.base.dimensions = ev->window_size;
     rs->global_line_renderer.base.dimensions = ev->window_size;
     rs->ui_renderer.base.dimensions = ev->window_size;
+    rs->sprite_renderer.base.dimensions = ev->window_size;
 }
 
 void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
@@ -40,7 +41,8 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
         .near   = 0.1,
         .far    = desc->view_distance,
         .aspect = w / h,
-        .fov    = 60.0,
+        // .fov    = 60.0,
+        .fov    = 80.0,
         .pos    = VEC3(0.0, 0.0, 0.0)
     });
 

@@ -22,16 +22,18 @@ void app_init(engine_t *engine, app_t *app, const app_desc_t *desc)
 {
     (void) desc;
 
-    camera_ctl_init(&app->camera_ctl, &engine->_render_sys.cam, &(camera_controller_desc_t) {
-        .start_pos      = VEC3(8.0, 100.0, 8.0),
-        .floor_friction = 0.9,
-        .air_friction   = 0.1,
-        .jump_impulse   = 5.0,
-        .acceleration   = 0.02,
+    app->needs_physics_update = false;
+    ctl_init(&app->camera_ctl, &engine->_render_sys.cam, &(ctl_desc_t) {
+        .start_pos      = VEC3(8.5, 100.0, 8.5),
+        .floor_friction = 0.55,
+        .air_friction   = 0.02,
+        .jump_accel     = 650.0,
+        .run_accel      = 600.0,
+        .walk_accel     = 400.0,
+        .air_accel      = 10.0,
         .turn_speed     = 0.04,
-        .gravity        = -10.0,
-        .max_velocity   = VEC3(3.0, 50.0, 3.0),
-        .collider_size  = VEC3(0.5, 1.8, 0.5)
+        .gravity        = -35.0,
+        .collider_size  = VEC3(0.3, 1.8, 0.3)
     });
 
     engine->api.subscribe_to_event(engine, EVENT_MOUSEDOWN, &(event_subscriber_desc_t) {
@@ -45,19 +47,22 @@ void app_init(engine_t *engine, app_t *app, const app_desc_t *desc)
 
 void app_cleanup(app_t *app)
 {
-    camera_ctl_cleanup(&app->camera_ctl);
+    ctl_cleanup(&app->camera_ctl);
 }
 
 void app_frame(engine_t *engine, app_t *app, double dt) 
 {
     INSTRUMENT_FUNC_BEGIN();
 
-    camera_ctl_update(&app->camera_ctl, &engine->_render_sys.cam, 
-                      &engine->_event_sys, dt);
+    ctl_update_surrounding(&app->camera_ctl, &engine->_render_sys.cam, &engine->_chunk_sys);
+    ctl_update_pos(&app->camera_ctl, &engine->_render_sys.cam, &engine->_event_sys, dt);
+    ctl_update_view(&app->camera_ctl, &engine->_render_sys.cam, &engine->_event_sys);
+
+    cam_update(&engine->_render_sys.cam);
+
     INSTRUMENT_FUNC_END();
 }
 
-void app_tick(app_t *app)
+void app_tick(engine_t *engine, app_t *app)
 {
-    (void) app;
 }

@@ -50,6 +50,8 @@ void load_sys_load_initial(load_system_t *ls, chunk_system_t *cs)
     for (size_t i = 0; i < ls->load_dist - 2; i++)
         free(shells[i].crds);
     free(shells);
+
+    CS_REQUEST(cs, CSREQ_INITIAL_LOAD_COMPLETE, 0);
 }
 
 static void _get_direction(uint8_t direction, ivec2 start_crd, ivec2 test_crd, 

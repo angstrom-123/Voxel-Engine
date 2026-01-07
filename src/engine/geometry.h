@@ -93,6 +93,7 @@ static const tex_type_e tex_lookup[CUBETYPE_NUM][6] = {
     },
 };
 
+extern const char *cubename(cube_type_e type);
 extern bool geom_cube_is_transparent(cube_type_e type);
 extern mesh_t *geom_generate_mesh(chunk_data_t *cd, 
                                   chunk_data_t *nd, chunk_data_t *ed, 

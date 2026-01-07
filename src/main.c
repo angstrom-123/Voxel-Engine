@@ -25,10 +25,8 @@ static void frame(void)
 {
     INSTRUMENT_FUNC_BEGIN();
 
-    engine_render(engine);
-
     app_frame(engine, app, sapp_frame_duration());
-    engine_frame(engine);
+    engine_frame(engine, sapp_frame_duration());
 
     INSTRUMENT_FUNC_END();
 }
@@ -37,8 +35,8 @@ static void tick(void)
 {
     INSTRUMENT_FUNC_BEGIN();
 
+    app_tick(engine, app);
     engine_tick(engine);
-    app_tick(app);
 
     INSTRUMENT_FUNC_END();
 }
@@ -50,12 +48,12 @@ static void cleanup(void)
 {
     INSTRUMENTOR_SESSION_END();
 
-    ENGINE_LOG_WARN("Cleaning up engine.\n", NULL);
-    engine_cleanup(engine);
-    free(engine);
     ENGINE_LOG_WARN("Cleaning up app.\n", NULL);
     app_cleanup(app);
     free(app);
+    ENGINE_LOG_WARN("Cleaning up engine.\n", NULL);
+    engine_cleanup(engine);
+    free(engine);
     ENGINE_LOG_WARN("Cleaning up nuklear.\n", NULL);
     snk_shutdown();
     ENGINE_LOG_WARN("Cleaning up sokol.\n", NULL);
@@ -73,7 +71,7 @@ static void event(const sapp_event *event)
 
 static void init(void)
 {
-    INSTRUMENTOR_SESSION_BEGIN("Minecraft_Session");
+    INSTRUMENTOR_SESSION_BEGIN(Minecraft_Session);
 
     em_romu_mono32_init(time(NULL));
     em_romu_duo_init(time(NULL));

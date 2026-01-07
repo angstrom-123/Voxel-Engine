@@ -9,7 +9,6 @@
 #include <libem/em_math.h> // ivec2
 
 #define CHUNK_SIZE 16 
-// #define CHUNK_HEIGHT 64
 #define CHUNK_HEIGHT 128
 
 typedef struct offset {

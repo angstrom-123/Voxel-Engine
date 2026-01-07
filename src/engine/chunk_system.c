@@ -50,6 +50,9 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         if (cs->genned->contains_key(cs->genned, r->pos))
             cs->genned->remove(cs->genned, r->pos);
         break;
+    case CSREQ_INITIAL_LOAD_COMPLETE:
+        atomic_store(&cs->initial_load_complete, true);
+        break;
     }
 
     mtx_unlock(&cs->genned_lock);
@@ -89,6 +92,7 @@ void chunk_sys_init(chunk_system_t *cs, const chunk_system_desc_t *desc)
     cs->seed = desc->seed;
     cs->running = false;
     cs->thread_ready = false;
+    cs->initial_load_complete = false;
 
     cs->genned = HASHMAP_NEW(ivec2_chunk_data)(&(em_hashmap_desc_t) {
         .capacity = desc->chunk_data_capacity,
@@ -152,6 +156,8 @@ void chunk_sys_make_request(chunk_system_t *cs, cs_request_t r)
 
 void chunk_sys_borrow_surrounding_data(chunk_system_t *cs, ivec2 pos, chunk_data_t *res[3][3])
 {
+    if (!atomic_load(&cs->running)) return;
+
     mtx_lock(&cs->genned_lock);
 
     res[0][0] = cs->genned->get_ptr(cs->genned, REL_NW(pos));
@@ -170,4 +176,14 @@ void chunk_sys_return_surrounding_data(chunk_system_t *cs, chunk_data_t *data[3]
     (void) cs;
     (void) data;
     mtx_unlock(&cs->genned_lock);
+}
+
+void chunk_sys_await_initial_load_complete(chunk_system_t *cs)
+{
+    while (!atomic_load(&cs->initial_load_complete))
+    {
+        thrd_sleep(&(struct timespec) {
+            .tv_nsec = THREAD_AWAIT_NS
+        }, NULL);
+    }
 }

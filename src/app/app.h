@@ -5,8 +5,11 @@
 #include "instrumentor.h"
 #include "engine.h"
 
+#include <stdatomic.h>
+
 typedef struct app {
-    camera_controller_t camera_ctl;
+    ctl_t camera_ctl;
+    atomic_bool needs_physics_update;
 } app_t;
 
 typedef struct app_desc {
@@ -15,6 +18,6 @@ typedef struct app_desc {
 extern void app_init(engine_t *engine, app_t *app, const app_desc_t *desc);
 extern void app_cleanup(app_t *app);
 extern void app_frame(engine_t *engine, app_t *app, double dt);
-extern void app_tick(app_t *app);
+extern void app_tick(engine_t *engine, app_t *app);
 
 #endif

@@ -18,7 +18,8 @@ typedef struct cs_request {
         CSREQ_GEN,
         CSREQ_MESH,
         CSREQ_UNLOAD,
-        CSREQ_REMESH
+        CSREQ_REMESH,
+        CSREQ_INITIAL_LOAD_COMPLETE
     } type;
 
     ivec2 pos;

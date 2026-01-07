@@ -27,7 +27,7 @@ typedef struct profiler_datapoint {
 #endif
 
 #if DO_PROFILING
-#define INSTRUMENTOR_SESSION_BEGIN(session_name) instrumentor_begin_session(session_name)
+#define INSTRUMENTOR_SESSION_BEGIN(session_name) instrumentor_begin_session(QUOTE(session_name))
 #define INSTRUMENTOR_SESSION_END() instrumentor_end_session()
 #define INSTRUMENT_SCOPE_BEGIN(scope_name) uint64_t instrumentor_sample_##scope_name = instrumentor_sample_tick()
 #define INSTRUMENT_SCOPE_END(scope_name) instrumentor_write_profile(instrumentor_sample_since(QUOTE(scope_name), instrumentor_sample_##scope_name))
