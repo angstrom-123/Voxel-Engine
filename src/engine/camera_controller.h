@@ -18,12 +18,12 @@ typedef struct ctl {
     float air_accel;
     float turn_speed;
     float gravity;
-    bool on_ground;
+    size_t time_grounded;
+    size_t jump_cooldown;
     vec3 velocity;
     vec3 max_velocity;
     vec3 collider_size;
     aabb_t collider;
-    aabb_t ground_check;
     chunk_data_t *surrounding[3][3];
     bool surrounding_loaded;
     ivec2 surrounding_pos;

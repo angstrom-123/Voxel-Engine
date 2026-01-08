@@ -1,15 +1,24 @@
 #include "app.h"
+#include "engine.h"
 
 static void _on_mousedown(const event_t *ev, void *args) 
 {
-    engine_t *engine = args;
+    // engine_t *engine = args;
+    struct md_args *mdargs = args;
+    engine_t *engine = mdargs->engine;
+    app_t *app = mdargs->app;
+
+    const player_collider_desc_t desc = {
+        .pos = engine->_render_sys.cam.pos,
+        .collider = app->camera_ctl.collider
+    };
 
     switch (ev->mouse_button) {
     case MOUSE_BUTTON_LEFT:
-        engine->api.edit_active_block(engine, BLOCK_ACTION_BREAK);
+        engine->api.edit_active_block(engine, BLOCK_ACTION_BREAK, &desc);
         break;
     case MOUSE_BUTTON_RIGHT:
-        engine->api.edit_active_block(engine, BLOCK_ACTION_PLACE);
+        engine->api.edit_active_block(engine, BLOCK_ACTION_PLACE, &desc);
         break;
     case MOUSE_BUTTON_MIDDLE:
         break;
@@ -21,6 +30,10 @@ static void _on_mousedown(const event_t *ev, void *args)
 void app_init(engine_t *engine, app_t *app, const app_desc_t *desc)
 {
     (void) desc;
+    app->mousedown_args = (struct md_args) {
+        .app = app,
+        .engine = engine
+    };
 
     app->needs_physics_update = false;
     ctl_init(&app->camera_ctl, &engine->_render_sys.cam, &(ctl_desc_t) {
@@ -39,7 +52,7 @@ void app_init(engine_t *engine, app_t *app, const app_desc_t *desc)
     engine->api.subscribe_to_event(engine, EVENT_MOUSEDOWN, &(event_subscriber_desc_t) {
         .event_cb = _on_mousedown,
         .block_cb = event_block_never,
-        .args = engine
+        .args = &app->mousedown_args
     });
 
     engine->meta.cursor.range = 10.0;

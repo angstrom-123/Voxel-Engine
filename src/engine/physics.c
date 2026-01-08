@@ -106,3 +106,8 @@ interval_t interval_around(float val, float size)
 {
     return (interval_t) { val - size / 2.0, val + size / 2.0 };
 }
+
+bool interval_contains(interval_t interval, float val)
+{
+    return (interval.min <= val && interval.max >= val);
+}

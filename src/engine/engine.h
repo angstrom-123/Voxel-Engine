@@ -12,6 +12,7 @@
 #include "instrumentor.h"
 #include "console.h"
 #include "raycast.h"
+#include "camera_controller.h"
 
 #include "include_sokol.h"
 #include "include_nuklear.h"
@@ -50,6 +51,11 @@ typedef enum block_action {
     BLOCK_ACTION_BREAK
 } block_action_e;
 
+typedef struct player_collider_desc {
+    vec3 pos;
+    aabb_t collider;
+} player_collider_desc_t;
+
 typedef struct engine {
     load_system_t _load_sys;
     chunk_system_t _chunk_sys;
@@ -62,7 +68,8 @@ typedef struct engine {
     struct {
         void (*subscribe_to_event)(struct engine *engine, event_type_e type,
                                    const event_subscriber_desc_t *desc);
-        void (*edit_active_block)(struct engine *engine, block_action_e action);
+        void (*edit_active_block)(struct engine *engine, block_action_e action, 
+                                  const player_collider_desc_t *desc);
     } api;
     engine_meta_t meta;
 } engine_t;

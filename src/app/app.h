@@ -10,6 +10,11 @@
 typedef struct app {
     ctl_t camera_ctl;
     atomic_bool needs_physics_update;
+
+    struct md_args {
+        engine_t *engine;
+        struct app *app;
+    } mousedown_args;
 } app_t;
 
 typedef struct app_desc {

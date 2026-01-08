@@ -320,11 +320,11 @@ void main() {
     // occlusion = 1.0 - (occlusion / kernel_size);
 
     // frag_col = vec4(vec3(occlusion), 1.0);
-    frag_col = vec4(vec3(occlusion), 1.0) * 0.0000001;
     // frag_col += vec4(frag_position, 1.0);
     // frag_col += vec4(frag_normal, 1.0);
 
-    frag_col += colour;
+    frag_col = colour;
+    frag_col += vec4(vec3(occlusion), 1.0) * 0.0000001;
 }
 @end 
 

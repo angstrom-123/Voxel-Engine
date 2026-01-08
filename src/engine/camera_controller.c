@@ -1,4 +1,5 @@
 #include "camera_controller.h"
+#include "physics.h"
 
 struct coord_set {
     ivec3 voxel_coord;
@@ -60,34 +61,35 @@ static void _get_surrounding_voxels(vec3 pos, ivec2 surr_pos, chunk_data_t *surr
 static void _ground_check(ctl_t *cc, camera_t *cam, float epsilon)
 {
     const vec3 DOWN = VEC3(0.0, -1.0, 0.0);
+    const float INSET = 0.005;
     ray_t rs[4] = {
         (ray_t) {
             .direction = DOWN,
             .length = epsilon,
-            .origin = VEC3(cc->collider.x.min + cam->pos.x,
+            .origin = VEC3(cc->collider.x.min + cam->pos.x + INSET,
                            cc->collider.y.min + cam->pos.y,
-                           cc->collider.z.min + cam->pos.z)
+                           cc->collider.z.min + cam->pos.z + INSET)
         },
         (ray_t) {
             .direction = DOWN,
             .length = epsilon,
-            .origin = VEC3(cc->collider.x.max + cam->pos.x,
+            .origin = VEC3(cc->collider.x.max + cam->pos.x - INSET,
                            cc->collider.y.min + cam->pos.y,
-                           cc->collider.z.min + cam->pos.z)
+                           cc->collider.z.min + cam->pos.z + INSET)
         },
         (ray_t) {
             .direction = DOWN,
             .length = epsilon,
-            .origin = VEC3(cc->collider.x.min + cam->pos.x,
+            .origin = VEC3(cc->collider.x.min + cam->pos.x + INSET,
                            cc->collider.y.min + cam->pos.y,
-                           cc->collider.z.max + cam->pos.z)
+                           cc->collider.z.max + cam->pos.z - INSET)
         },
         (ray_t) {
             .direction = DOWN,
             .length = epsilon,
-            .origin = VEC3(cc->collider.x.max + cam->pos.x,
+            .origin = VEC3(cc->collider.x.max + cam->pos.x - INSET,
                            cc->collider.y.min + cam->pos.y,
-                           cc->collider.z.max + cam->pos.z)
+                           cc->collider.z.max + cam->pos.z - INSET)
         }
     };
 
@@ -95,29 +97,31 @@ static void _ground_check(ctl_t *cc, camera_t *cam, float epsilon)
     ivec3 voxel;
     _get_surrounding_voxels(cam->pos, cc->surrounding_pos, cc->surrounding, surr, 2, &voxel);
 
-    ENGINE_LOG_OK("\nPosition: (%.4f, %.4f, %.4f)\n",
-                  cam->pos.x, cam->pos.y, cam->pos.z);
+    if (cc->velocity.y > 0.0)
+    {
+        cc->time_grounded = 0;
+        return;
+    }
 
-
-    cc->on_ground = false;
-    if (cc->velocity.y > 0.0) return;
     for (size_t i = 0; i < 4; i++)
     {
         // Only checking the blocks just below the player for colission with the ground.
-        for (size_t x = 0; x < 3; x++) for (size_t y = 0; y < 1; y++) for (size_t z = 0; z < 3; z++)
+        for (size_t x = 0; x < 3; x++) for (size_t z = 0; z < 3; z++)
         {
-            if (surr[x][y][z] != CUBETYPE_AIR)
+            if (surr[x][0][z] != CUBETYPE_AIR)
             {
-                ivec3 coord = em_add_ivec3(voxel, IVEC3(x - 1, y - 2, z - 1));
+                ivec3 coord = em_add_ivec3(voxel, IVEC3(x - 1, -2, z - 1));
                 aabb_t box = aabb_from_voxel_coord(coord);
                 if (aabb_ray_intersecting(box, rs[i]))
                 {
-                    cc->on_ground = true;
+                    cc->time_grounded++;
                     return;
                 }
             }
         }
     }
+
+    cc->time_grounded = 0;
 }
 
 static vec3 _resolve_collision(ctl_t *cc, vec3 next_pos)
@@ -168,6 +172,9 @@ static vec3 _resolve_collision(ctl_t *cc, vec3 next_pos)
 
 void ctl_init(ctl_t *cc, camera_t *cam, const ctl_desc_t *desc)
 {
+    // Shift cam down from top of collider so it doesn't clip inside ceilings when jumping.
+    const float EPSILON = 0.10;
+
     cam->pos           = desc->start_pos;
     cc->floor_friction = desc->floor_friction;
     cc->air_friction   = desc->air_friction;
@@ -180,7 +187,7 @@ void ctl_init(ctl_t *cc, camera_t *cam, const ctl_desc_t *desc)
     cc->velocity       = VEC3(0.0, 0.0, 0.0);
     cc->collider_size  = desc->collider_size;
     cc->collider.x     = interval_around(0.0, desc->collider_size.x);
-    cc->collider.y     = (interval_t) { .min = -desc->collider_size.y, .max = 0.0 };
+    cc->collider.y     = (interval_t) { -desc->collider_size.y + EPSILON, EPSILON };
     cc->collider.z     = interval_around(0.0, desc->collider_size.z);
 }
 
@@ -228,7 +235,7 @@ void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
     right = em_normalize_vec3(right);
 
     // Ground check
-    _ground_check(cc, cam, 0.01);
+    _ground_check(cc, cam, 0.001);
 
     // Collect player inputs
     vec3 move = {};
@@ -240,21 +247,25 @@ void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
     bool walk = es->keys_down[KEYCODE_LEFT_SHIFT];
 
     move = em_normalize_vec3(move);
-    vec3 accel;
     vec3 friction;
-    if (cc->on_ground)
+    vec3 accel;
+    if (cc->time_grounded >= 1)
     {
         cc->velocity.y = 0.0;
 
-        accel = em_mul_vec3_f(move, (walk) ? cc->walk_accel : cc->run_accel);
-        accel.y = (jump) ? cc->jump_accel : 0.0;
         friction = VEC3(cc->floor_friction, cc->air_friction, cc->floor_friction);
+        accel = em_mul_vec3_f(move, (walk) ? cc->walk_accel : cc->run_accel);
+        if (jump && cc->jump_cooldown == 0)
+        {
+            cc->jump_cooldown = 30;
+            accel.y = cc->jump_accel;
+        }
     }
     else 
     {
+        friction = VEC3F(cc->air_friction);
         accel = em_mul_vec3_f(move, cc->air_accel);
         accel.y = cc->gravity;
-        friction = VEC3F(cc->air_friction);
     }
 
     cc->velocity = em_add_vec3(cc->velocity, em_mul_vec3_f(accel, dt));
@@ -266,6 +277,7 @@ void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
 
     // Update position
     cam->pos = next_pos;
+    if (cc->jump_cooldown > 0) cc->jump_cooldown--;
 }
 
 void ctl_update_surrounding(ctl_t *cc, camera_t *cam, chunk_system_t *cs)

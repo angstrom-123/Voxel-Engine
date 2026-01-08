@@ -1,12 +1,13 @@
 #include "engine.h"
 
 static void _api_subscribe_to_event(engine_t *engine, event_type_e type,
-                             const event_subscriber_desc_t *desc)
+                                    const event_subscriber_desc_t *desc)
 {
     event_sys_subscribe_to_event(&engine->_event_sys, type, desc);
 }
 
-static void _api_edit_active_block(engine_t *engine, block_action_e action)
+static void _api_edit_active_block(engine_t *engine, block_action_e action,
+                                   const player_collider_desc_t *desc)
 {
     if (!engine->meta.cursor.active)
         return;
@@ -82,6 +83,13 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action)
             }
             break;
         };
+
+        aabb_t block = aabb_from_voxel_coord(em_add_ivec3(IVEC3(chunk.x, 0, chunk.y), cell));
+        if (aabb_intersecting(block, aabb_with_offset(desc->collider, desc->pos)))
+        {
+            chunk_sys_return_surrounding_data(&engine->_chunk_sys, cd);
+            return;
+        }
         
         ENGINE_TODO("add a selection for different blocks to place");
         cd[data_idx.x][data_idx.y]->types[cell.x][cell.y][cell.z] = CUBETYPE_SAND;

@@ -35,5 +35,6 @@ extern aabb_t aabb_from_voxel_coord(ivec3 coord);
 extern aabb_t aabb_with_offset(aabb_t box, vec3 offset);
 extern float interval_size(interval_t interval);
 extern interval_t interval_around(float value, float size);
+extern bool interval_contains(interval_t interval, float value);
 
 #endif
