@@ -117,8 +117,45 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action,
         CS_REQUEST(&engine->_chunk_sys, CSREQ_REMESH, REL_S(chunk));
 }
 
+void _api_start_running(engine_t *engine, const engine_run_desc_t *desc)
+{
+    engine->meta.world.seed = desc->seed;
+    engine->meta.world.name = desc->world_name;
+    engine->meta.world.time = desc->time;
+
+    engine->_chunk_sys.seed = desc->seed;
+    engine->_render_sys.cam.pos = desc->cam_pos;
+    engine->_render_sys.cam.rot = desc->cam_rot;
+    engine->_load_sys.curr_pos = IVEC2(
+        floorf(engine->_render_sys.cam.pos.x / (float) CHUNK_SIZE) * CHUNK_SIZE, 
+        floorf(engine->_render_sys.cam.pos.z / (float) CHUNK_SIZE) * CHUNK_SIZE
+    );
+    ENGINE_LOG_OK("Initialize world parameters.\n", NULL);
+
+    update_sys_init_thread(&engine->_update_sys, &(update_system_thread_args_t) {
+        .us = &engine->_update_sys
+    });
+    chunk_sys_init_thread(&engine->_chunk_sys, &(chunk_system_thread_args_t) {
+        .cs = &engine->_chunk_sys,
+        .us = &engine->_update_sys
+    });
+    ENGINE_LOG_OK("Start generation threads.\n", NULL);
+
+    load_sys_load_initial(&engine->_load_sys, &engine->_chunk_sys);
+    ENGINE_LOG_OK("Request initial chunks.\n", NULL);
+
+    chunk_sys_await_initial_load_complete(&engine->_chunk_sys);
+    ENGINE_LOG_OK("Initial chunks loaded.\n", NULL);
+
+    tick_sys_init_thread(&engine->_tick_sys, &(tick_system_thread_args_t) {
+        .ts = &engine->_tick_sys,
+    });
+    ENGINE_LOG_OK("Start tick thread.\n", NULL);
+}
+
 void engine_init(engine_t *engine, const engine_desc_t *desc)
 {
+    ENGINE_ASSERT(desc->render_distance >= 3, "Render distance too low");
     const size_t MAX_ACTIVE = (2 * em_sqr(desc->render_distance)) + 
                               (2 * desc->render_distance) + 1;
     const size_t QUEUE_SIZE = MAX_ACTIVE * 2;
@@ -193,6 +230,7 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
 
     engine->api.subscribe_to_event = _api_subscribe_to_event;
     engine->api.edit_active_block = _api_edit_active_block;
+    engine->api.start_running = _api_start_running;
     ENGINE_LOG_OK("Setup engine api.\n", NULL);
 
     engine->meta = (engine_meta_t) {
@@ -215,6 +253,7 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
     tmp = sprite_renderer_push_str(&engine->_render_sys.sprite_renderer, 
                                               "00000 00000 00000", 
                                               &(sprite_desc_t) {
+        .bg_col = VEC4(0.0, 0.0, 0.0, 0.5),
         .pos = em_mul_vec2_f(engine->_render_sys.sprite_renderer.base.dimensions, -0.5),
         .size = DEBUG_TEXT_SIZE,
         .z_index = 1.0,
@@ -224,26 +263,6 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
     free(tmp);
  
     ENGINE_LOG_OK("Setup engine metadata.\n", NULL);
-
-    update_sys_init_thread(&engine->_update_sys, &(update_system_thread_args_t) {
-        .us = &engine->_update_sys
-    });
-    chunk_sys_init_thread(&engine->_chunk_sys, &(chunk_system_thread_args_t) {
-        .cs = &engine->_chunk_sys,
-        .us = &engine->_update_sys
-    });
-    ENGINE_LOG_OK("Start generation threads.\n", NULL);
-
-    load_sys_load_initial(&engine->_load_sys, &engine->_chunk_sys);
-    ENGINE_LOG_OK("Request initial chunks.\n", NULL);
-
-    chunk_sys_await_initial_load_complete(&engine->_chunk_sys);
-    ENGINE_LOG_OK("Initial chunks loaded.\n", NULL);
-
-    tick_sys_init_thread(&engine->_tick_sys, &(tick_system_thread_args_t) {
-        .ts = &engine->_tick_sys,
-    });
-    ENGINE_LOG_OK("Start tick thread.\n", NULL);
 }
 
 void engine_cleanup(engine_t *engine)

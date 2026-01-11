@@ -26,6 +26,7 @@ typedef struct sprite_vertex {
 
 typedef struct sprite {
     offset_t *offset;
+    vec4 bg_col;
     bool removed;
     bool is_char;
 } sprite_t;
@@ -50,6 +51,7 @@ typedef struct sprite_renderer_desc {
 } sprite_renderer_desc_t;
 
 typedef struct sprite_desc {
+    vec4 bg_col;
     vec2 pos;
     vec2 size;
     float z_index;

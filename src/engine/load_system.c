@@ -232,7 +232,7 @@ static void _dispatch_loads(load_system_t *ls, chunk_system_t *cs, update_system
 bool load_sys_update(load_system_t *ls, chunk_system_t *cs, update_system_t *us, ivec2 new_pos)
 {
     ivec2 delta = em_sub_ivec2(new_pos, ls->curr_pos);
-    if (em_equals_ivec2(delta, (ivec2) {0, 0}))
+    if (em_equals_ivec2(delta, IVEC2(0, 0)))
         return false;
 
     if (delta.x == 0 || delta.y == 0)

@@ -39,6 +39,8 @@ typedef struct engine_meta {
         vec3 base_sun_dir;
         atomic_uint_least64_t time;
         uint64_t max_time;
+        uint32_t seed;
+        const char *name;
     } world;
     struct {
         sprite_t *cur_sprites[17];
@@ -56,6 +58,14 @@ typedef struct player_collider_desc {
     aabb_t collider;
 } player_collider_desc_t;
 
+typedef struct engine_run_desc {
+    uint32_t seed;
+    const char *world_name;
+    uint64_t time;
+    vec3 cam_pos;
+    quat cam_rot;
+} engine_run_desc_t;
+
 typedef struct engine {
     load_system_t _load_sys;
     chunk_system_t _chunk_sys;
@@ -70,6 +80,7 @@ typedef struct engine {
                                    const event_subscriber_desc_t *desc);
         void (*edit_active_block)(struct engine *engine, block_action_e action, 
                                   const player_collider_desc_t *desc);
+        void (*start_running)(struct engine *engine, const engine_run_desc_t *desc);
     } api;
     engine_meta_t meta;
 } engine_t;

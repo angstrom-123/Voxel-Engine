@@ -34,8 +34,8 @@ DECLARE_CIRCULAR_QUEUE_CLN(us_request_t, us_request)
 DECLARE_CIRCULAR_QUEUE(offset_t, offset)
 DECLARE_CIRCULAR_QUEUE_CLN(offset_t, offset)
 
-DECLARE_CIRCULAR_QUEUE(us_buffer_pair_t, sokol_buffers);
-DECLARE_CIRCULAR_QUEUE_CLN(us_buffer_pair_t, sokol_buffers);
+DECLARE_CIRCULAR_QUEUE(buffer_pair_t, sokol_buffers);
+DECLARE_CIRCULAR_QUEUE_CLN(buffer_pair_t, sokol_buffers);
 
 /* Hashmap. */
 DECLARE_HASHMAP(ivec2, chunk_render_info_t, ivec2_cri);
@@ -78,8 +78,8 @@ DEFINE_CIRCULAR_QUEUE_CLN(offset_t, offset)
     free(val);
 }
 
-DEFINE_CIRCULAR_QUEUE(us_buffer_pair_t, sokol_buffers)
-DEFINE_CIRCULAR_QUEUE_CLN(us_buffer_pair_t, sokol_buffers)
+DEFINE_CIRCULAR_QUEUE(buffer_pair_t, sokol_buffers)
+DEFINE_CIRCULAR_QUEUE_CLN(buffer_pair_t, sokol_buffers)
 {
     sg_destroy_buffer(val->vertex);
     sg_destroy_buffer(val->index);

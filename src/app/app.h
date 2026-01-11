@@ -4,6 +4,7 @@
 #include "camera_controller.h"
 #include "instrumentor.h"
 #include "engine.h"
+#include "world_creation.h"
 
 #include <stdatomic.h>
 
@@ -18,6 +19,8 @@ typedef struct app {
 } app_t;
 
 typedef struct app_desc {
+    int argc;
+    char **argv;
 } app_desc_t;
 
 extern void app_init(engine_t *engine, app_t *app, const app_desc_t *desc);

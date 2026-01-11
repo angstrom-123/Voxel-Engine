@@ -8,7 +8,7 @@
 
 typedef struct chunk_render_info {
     ivec2 pos;
-    us_buffer_pair_t bufs;
+    buffer_pair_t bufs;
     mesh_t *mesh;
     bool needs_update;
 } chunk_render_info_t;

@@ -8,7 +8,7 @@ release: $(STATIC_LIBS)
 	@echo ""
 	@echo "Compiling final (release)."
 	@echo ""
-	@$(CC) $(C_FLAGS) $(RELEASE_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT)-release
+	@$(CC) $(C_FLAGS) $(RELEASE_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT)-$(PLATFORM)
 
 .PHONY: compiledb
 compiledb: $(STATIC_LIBS)
@@ -16,21 +16,21 @@ compiledb: $(STATIC_LIBS)
 	@echo "Compiling final (database, debug)."
 	@echo ""
 	@rm -f $(BEAR_OUTPUT) # Only refresh on call, do not delete during normal clean.
-	@$(BEAR) --output $(BEAR_OUTPUT) -- $(CC) $(C_FLAGS) $(DEBUG_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT)-debug
+	@$(BEAR) --output $(BEAR_OUTPUT) -- $(CC) $(C_FLAGS) $(DEBUG_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT)-$(PLATFORM)
 
 .PHONY: debug
 debug: $(STATIC_LIBS)
 	@echo ""
 	@echo "Compiling final (debug)."
 	@echo ""
-	@$(CC) $(C_FLAGS) $(DEBUG_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT)-debug
+	@$(CC) $(C_FLAGS) $(DEBUG_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT)-$(PLATFORM)
 
 .PHONY: profiling
 profiling: $(STATIC_LIBS)
 	@echo ""
 	@echo "Compiling final (profiling)."
 	@echo ""
-	@$(CC) $(C_FLAGS) $(PROFILING_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT)-profiling
+	@$(CC) $(C_FLAGS) $(PROFILING_FLAGS) $(LINK_FLAGS) $(MAIN_FILE) $^ -o $(OUTPUT)-$(PLATFORM)
 
 .PHONY: clean
 clean:

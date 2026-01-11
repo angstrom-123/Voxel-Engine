@@ -1,6 +1,7 @@
 # To-Do List
 ## Consider Refactoring
 - Change raycast (raycast.c) to use AABB/ray collision instead of ray trace
+- Apply DT to jump cooldown (camera_controller.c) for better consistency
 
 ## General
 - World collision sliding against blocks

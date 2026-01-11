@@ -116,7 +116,7 @@ void update_sys_init(update_system_t *us, const update_system_desc_t *desc)
                 .dynamic_update = true
             },
         });
-        us->buffer_pool->enqueue(us->buffer_pool, (us_buffer_pair_t) {vbuf, ibuf});
+        us->buffer_pool->enqueue(us->buffer_pool, (buffer_pair_t) { vbuf, ibuf });
     }
 
     mtx_init(&us->request_lock, mtx_plain);

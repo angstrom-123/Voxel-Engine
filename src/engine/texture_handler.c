@@ -1,5 +1,8 @@
 #include "texture_handler.h"
 
+static const size_t BUF_LEN = 128;
+static const size_t EXT_LEN = 4;
+
 bool texture_load(texture_t *res, const texture_desc_t *desc)
 {
     ENGINE_ASSERT(strlen(desc->path) + EXT_LEN <= BUF_LEN,

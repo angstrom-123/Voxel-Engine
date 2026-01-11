@@ -12,9 +12,6 @@
 #include "em_bmp.h"
 #include "logger.h"
 
-#define BUF_LEN 128
-#define EXT_LEN 4
-
 /* Pretty much just wraps an em_bmp_image but with only required fields + extras. */
 typedef struct texture {
     uint32_t width;

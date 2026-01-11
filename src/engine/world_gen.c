@@ -138,8 +138,6 @@ chunk_data_t *gen_generate_chunk_data(ivec2 pos, uint32_t seed)
             float n = (p + 1.0) / 2.0;
             uint8_t h = floorf(n * (CHUNK_HEIGHT - 1));
 
-            // h = 80.0;
-
             data->types[xx][h][zz] = CUBETYPE_GRASS;
 
             for (uint8_t y = 0; y < h - 4; y++) 

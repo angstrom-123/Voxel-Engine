@@ -257,7 +257,7 @@ void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
         accel = em_mul_vec3_f(move, (walk) ? cc->walk_accel : cc->run_accel);
         if (jump && cc->jump_cooldown == 0)
         {
-            cc->jump_cooldown = 30;
+            cc->jump_cooldown = 20;
             accel.y = cc->jump_accel;
         }
     }

@@ -137,7 +137,7 @@ typedef em_vec4 em_quaternion;
 #define VEC2(a, b) (em_vec2) { (FLOAT) (a), (FLOAT) (b) }
 #define VEC3(a, b, c) (em_vec3) { (FLOAT) (a), (FLOAT) (b), (FLOAT) (c) }
 #define VEC4(a, b, c, d) (em_vec4) { (FLOAT) (a), (FLOAT) (b), (FLOAT) (c), (FLOAT) (d) }
-#define QUAT(a, b, c, d) vec4(a, b, c, d)
+#define QUAT(a, b, c, d) (em_quaternion) { (FLOAT) (a), (FLOAT) (b), (FLOAT) (c), (FLOAT) (d) }
 #define IVEC2(a, b) (em_ivec2) { (INT) (a), (INT) (b) }
 #define IVEC3(a, b, c) (em_ivec3) { (INT) (a), (INT) (b), (INT) (c) }
 #define IVEC4(a, b, c, d) (em_ivec4) { (INT) (a), (INT) (b), (INT) (c), (INT) (d) }

@@ -18,7 +18,6 @@ typedef struct ui_system {
 } ui_system_t;
 
 typedef struct ui_system_desc {
-    char __placeholder;
 } ui_system_desc_t;
 
 extern void ui_sys_init(ui_system_t *uis, const ui_system_desc_t *desc);

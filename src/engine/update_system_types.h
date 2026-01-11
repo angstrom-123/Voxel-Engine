@@ -6,10 +6,10 @@
 #include "geometry_types.h"
 #include "include_sokol.h"
 
-typedef struct us_buffer_pair {
+typedef struct buffer_pair {
     sg_buffer vertex;
     sg_buffer index;
-} us_buffer_pair_t;
+} buffer_pair_t;
 
 typedef struct us_request {
     ivec2 pos;

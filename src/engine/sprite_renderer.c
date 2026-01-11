@@ -190,7 +190,8 @@ void sprite_renderer_render_all(sprite_renderer_t *sr)
         };
 
         fs_params_sprite_t fs_params = {
-            .u_is_char = s->is_char
+            .u_is_char = s->is_char,
+            .u_bg = s->bg_col
         };
 
         sg_apply_uniforms(UB_vs_params_sprite, &SG_RANGE(vs_params));
@@ -293,6 +294,7 @@ sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
     ENGINE_ASSERT(sr->sprite_count < sr->max_sprites, "Maximum sprites reached in sprite renderer");
 
     sprite_t *s = malloc(sizeof(sprite_t));
+    s->bg_col = desc->bg_col;
     s->offset = sr->offset_pool->dequeue_ptr(sr->offset_pool);
     s->removed = false;
     s->is_char = desc->is_char;

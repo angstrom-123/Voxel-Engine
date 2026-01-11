@@ -44,7 +44,7 @@ static void tick(void)
 // This is a bit gross but it lets me call it from the tick thread.
 void (*tick_func)(void) = tick;
 
-static void cleanup(void)
+static void cleanup(void *user_data)
 {
     INSTRUMENTOR_SESSION_END();
 
@@ -59,6 +59,9 @@ static void cleanup(void)
     ENGINE_LOG_WARN("Cleaning up sokol.\n", NULL);
     sg_shutdown();
 
+    struct user_data *ud = user_data;
+    free(ud);
+
     ENGINE_LOG_OK("Cleanup done.\n", NULL);
 }
 
@@ -69,57 +72,48 @@ static void event(const sapp_event *event)
     snk_handle_event(event);
 }
 
-static void init(void)
+struct user_data {
+    int argc;
+    char **argv;
+};
+
+static void init(void *user_data)
 {
     INSTRUMENTOR_SESSION_BEGIN(Minecraft_Session);
 
     em_romu_mono32_init(time(NULL));
     em_romu_duo_init(time(NULL));
 
-    ENGINE_TODO("Make the render distance editable at run time");
-    #if defined(RELEASE) || defined(PROFILING)
-        const size_t RENDER_DISTANCE = 32;
-    #elif defined(DEBUG)
-        const size_t RENDER_DISTANCE = 12;
-    #endif
-
-    ENGINE_ASSERT(RENDER_DISTANCE >= 3, "Render distance too low");
-
     engine = malloc(sizeof(engine_t));
     app = malloc(sizeof(app_t));
     memset(engine, 0, sizeof(engine_t));
     memset(app, 0, sizeof(app_t));
 
-    engine_init(engine, &(engine_desc_t) {
-        .render_distance = RENDER_DISTANCE,
-        .ticks_per_second = 20.0,
-        .seed = 0,
-        .max_time = 24000, // 20 minute cycle @ 20tps
-        .base_sun_dir = em_normalize_vec3(VEC3(0.0, 1.0, 0.1))
-    });
-
+    struct user_data *ud = user_data;
     app_init(engine, app, &(app_desc_t) {
-        /* No init params yet. */
+        .argc = ud->argc,
+        .argv = ud->argv
     });
 }
 
 sapp_desc sokol_main(int argc, char* argv[])
 {
-    /* Not accepting cmdline args, this avoid the compiler warning. */
-    (void) argc;
-    (void) argv;
+    struct user_data *ud = malloc(sizeof(*ud));
+    ud->argc = argc;
+    ud->argv = argv;
 
     return (sapp_desc) {
-        .init_cb            = init,
-        .frame_cb           = frame,
-        .cleanup_cb         = cleanup,
-        .event_cb           = event,
-        .logger.func        = slog_func,
-        .width              = SCREEN_WIDTH,
-        .height             = SCREEN_HEIGHT,
-        .sample_count       = 1,
-        .window_title       = "Minecraft Remake",
-        .icon.sokol_default = true
+        .user_data           = ud,
+        .init_userdata_cb    = init,
+        .frame_cb            = frame,
+        .cleanup_userdata_cb = cleanup,
+        .event_cb            = event,
+        .logger.func         = slog_func,
+        .width               = SCREEN_WIDTH,
+        .height              = SCREEN_HEIGHT,
+        .sample_count        = 1,
+        .window_title        = "Minecraft Remake",
+        .icon.sokol_default  = true
     };
 }
 

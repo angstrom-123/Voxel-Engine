@@ -4,6 +4,7 @@ precision highp uint
 
 @ctype mat4 em_mat4
 @ctype vec2 em_vec2
+@ctype vec4 em_vec4
 
 @vs vs_sprite
 @glsl_options flip_vert_y
@@ -28,6 +29,7 @@ void main() {
 @fs fs_sprite
 layout(binding=1) uniform fs_params_sprite {
     int u_is_char;
+    vec4 u_bg;
 };
 
 layout(binding=0) uniform sampler u_smp;
@@ -39,11 +41,14 @@ in vec2 v_uv;
 out vec4 frag_color;
 
 void main() {
-    if (frag_color.a < 0.01) discard;
+    if (bool(u_is_char)) {
+        frag_color = texture(sampler2D(u_tex_font_atlas, u_smp), v_uv);
+    } else {
+        frag_color = texture(sampler2D(u_tex_sprite_atlas, u_smp), v_uv);
+    }
 
-    frag_color = bool(u_is_char)
-               ? texture(sampler2D(u_tex_font_atlas, u_smp), v_uv)
-               : texture(sampler2D(u_tex_sprite_atlas, u_smp), v_uv);
+    if (frag_color.a < 0.01) frag_color = u_bg;
+
 }
 
 @end 
