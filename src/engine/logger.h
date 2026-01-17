@@ -20,6 +20,9 @@ extern char *_get_time(void);
 #define _ASSERT(prefix, expr, msg) if (!(expr)) { _LOG(prefix, COL_ERR, "Assertion failed: " QUOTE(expr) ".\n        " msg, NULL); raise(SIGABRT); }
 #define _UNIMPLEMENTED(prefix, msg) _LOG(prefix, COL_ERR, "Unimplemented: " msg, NULL); raise(SIGABRT);
 #define _TODO(prefix, msg) _LOG(prefix, COL_WRN, "To-do: " msg, NULL)
+#define _FOR(body) for(body)
+
+#define RUNTIME_ASSERT(expr, msg) _ASSERT("RUNTIME", expr, msg)
 
 #if DO_DEBUG
 #define ENGINE_LOG_ERROR(fmt, ...) _LOG("ENGINE", COL_ERR, fmt, __VA_ARGS__)

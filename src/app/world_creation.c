@@ -1,69 +1,71 @@
 #include "world_creation.h"
 
-static const size_t BUF_LEN = 128;
-
-world_create_err_e world_new(engine_t *e, const char *name, const uint32_t seed)
+void world_new(engine_t *e, const char *name, const uint32_t seed)
 {
-    char world_dir_path[BUF_LEN];
-    char meta_file_path[BUF_LEN];
-
-    snprintf(world_dir_path, BUF_LEN, WORLD_DATA_DIR "%s", name);
-    snprintf(meta_file_path, BUF_LEN, WORLD_DATA_DIR "%s" SEP WORLD_META_FILE, name);
-
-    file_t world_dir = {
+    char wd_path[STD_BUFLEN]; multicat(wd_path, 2, WORLD_DATA_DIR, name);
+    file_t wd = {
         .flags = FILEFLAG_DIR,
-        .path = world_dir_path,
+        .base = WORLD_DATA_DIR,
+        .path = wd_path,
         .name = name
     };
 
-    file_t meta_file = {
-        .path = meta_file_path,
+    char mf_path[STD_BUFLEN]; multicat(mf_path, 4, WORLD_DATA_DIR, name, SEP, WORLD_META_FILE);
+    file_t mf = {
+        .base = WORLD_DATA_DIR,
+        .path = mf_path,
         .name = WORLD_META_FILE
     };
 
-    if (file_exists(&world_dir)) return ERR_DUPLICATE_NAME;
-    if (!file_create(&world_dir)) return ERR_GENERIC;
+    RUNTIME_ASSERT(!file_exists(&wd), "World already exists with this name");
+    RUNTIME_ASSERT(file_create(&wd), "Failed to create world dir");
 
-    if (!file_create(&meta_file)) return ERR_GENERIC;
-    if (!file_open(&meta_file, USAGE_WRITE)) return ERR_GENERIC;
+    RUNTIME_ASSERT(file_create(&mf), "Failed to create meta file");
 
-    char meta_lines[4][BUF_LEN];
-    snprintf(meta_lines[0], BUF_LEN, "%.5f,%.5f,%.5f", 0.0, 0.0, 0.0);
-    snprintf(meta_lines[1], BUF_LEN, "%.5f,%.5f,%.5f,%.5f", 0.0, 0.0, 0.0, 0.0);
-    snprintf(meta_lines[2], BUF_LEN, "%u", seed);
-    snprintf(meta_lines[3], BUF_LEN, "%lu", 0l);
+    char meta[4][STD_BUFLEN];
+    snprintf(meta[0], STD_BUFLEN, "%.5f,%.5f,%.5f", 0.0, 100.0, 0.0);
+    snprintf(meta[1], STD_BUFLEN, "%.5f,%.5f,%.5f,%.5f", 0.0, 0.0, 0.0, 0.0);
+    snprintf(meta[2], STD_BUFLEN, "%u", seed);
+    snprintf(meta[3], STD_BUFLEN, "%lu", 0l);
 
-    if (!file_write_lines(&meta_file, 4, BUF_LEN, meta_lines)) return ERR_GENERIC;
+    RUNTIME_ASSERT(file_write_lines(&mf, 4, STD_BUFLEN, meta), "Failed to write to meta file");
+    RUNTIME_ASSERT(file_close(&mf), "Failed to close meta file");
 
     e->api.start_running(e, &(engine_run_desc_t) {
         .world_name = name,
         .seed = seed,
         .time = 0,
-        .cam_pos = VEC3(0.0, 100.0, 0.0),
+        .cam_pos = VEC3(8.5, 100.0, 8.5),
         .cam_rot = QUAT(0.0, 0.0, 0.0, 1.0)
     });
-
-    return ERR_NONE;
 }
 
-world_create_err_e world_load(engine_t *e, const char *name)
+void world_load(engine_t *e, const char *name)
 {
-    char path_buf[BUF_LEN];
-    snprintf(path_buf, BUF_LEN, WORLD_DATA_DIR "%s", name);
-
-    file_t f = {
+    char wd_path[STD_BUFLEN] = {0}; multicat(wd_path, 2, WORLD_DATA_DIR, name);
+    file_t wd = {
         .flags = FILEFLAG_DIR,
-        .path = path_buf,
+        .base = WORLD_DATA_DIR,
+        .path = wd_path,
         .name = name
     };
 
-    if (!file_exists(&f)) return ERR_NOT_EXISTS;
-    if (!file_open(&f, USAGE_READ)) return ERR_GENERIC;
+    char mf_path[STD_BUFLEN] = {0}; multicat(mf_path, 4, WORLD_DATA_DIR, name, SEP, WORLD_META_FILE);
+    file_t mf = {
+        .base = WORLD_DATA_DIR,
+        .path = mf_path,
+        .name = WORLD_META_FILE
+    };
 
-    size_t num_lines = 4;
-    char lines[num_lines][BUF_LEN];
-    if (!file_read_lines(&f, &num_lines, BUF_LEN, lines)) return ERR_GENERIC;
-    _ASSERT("RUNTIME", num_lines == 4, "World meta file must contain all fields");
+    RUNTIME_ASSERT(file_exists(&wd), "World dir not found");
+    RUNTIME_ASSERT(file_exists(&mf), "Meta file not found");
+    RUNTIME_ASSERT(file_open(&mf, USAGE_READ), "Failed to open meta file");
+
+    size_t cnt = 4;
+    char lines[cnt][STD_BUFLEN];
+    RUNTIME_ASSERT(file_read_lines(&mf, &cnt, STD_BUFLEN, lines), "Failed to read from meta file");
+    RUNTIME_ASSERT(file_close(&mf), "Failed to close meta file");
+    RUNTIME_ASSERT(cnt == 4, "World meta file must contain all fields");
 
     vec3 player_pos;
     quat player_rot;
@@ -71,96 +73,86 @@ world_create_err_e world_load(engine_t *e, const char *name)
     uint64_t time;
 
     // Read in values from the strings extracted from the meta file.
+    char *tok;
+    tok = strtok(lines[0], ",");
     for (size_t i = 0; i < 3; i++)
     {
-        char *tok = strtok(lines[0], ",");
-        _ASSERT("RUNTIME", tok != NULL, "Player position must contain all components");
+        RUNTIME_ASSERT(tok != NULL, "Player position must contain all components");
         player_pos.elements[i] = strtof(tok, NULL);
+        tok = strtok(NULL, ",");
     }
+
+    tok = strtok(lines[1], ",");
     for (size_t i = 0; i < 4; i++)
     {
-        char *tok = strtok(lines[1], ",");
-        _ASSERT("RUNTIME", tok != NULL, "Player direction must contain all components");
+        RUNTIME_ASSERT(tok != NULL, "Player rotation must contain all components");
         player_rot.elements[i] = strtof(tok, NULL);
+        tok = strtok(NULL, ",");
     }
+
     seed = (uint32_t) strtoul(lines[2], NULL, 10);
     time = strtoul(lines[3], NULL, 10);
 
     e->api.start_running(e, &(engine_run_desc_t) {
-        .seed = seed,
         .world_name = name,
+        .seed = seed,
         .time = time,
         .cam_pos = player_pos,
         .cam_rot = player_rot
     });
-
-    return ERR_NONE;
 }
 
-world_create_err_e world_rename(engine_t *e, const char *name, const char *new_name)
+void world_rename(engine_t *e, const char *name, const char *new_name)
 {
-    char path_buf[BUF_LEN];
-    snprintf(path_buf, BUF_LEN, WORLD_DATA_DIR "%s", name);
-
-    file_t f = {
+    (void) e;
+    char wd_path[STD_BUFLEN]; multicat(wd_path, 2, WORLD_DATA_DIR, name);
+    file_t wd = {
         .flags = FILEFLAG_DIR,
-        .path = path_buf,
+        .base = WORLD_DATA_DIR,
+        .path = wd_path,
         .name = name
     };
 
-    if (!file_exists(&f)) return ERR_NOT_EXISTS;
-    if (!file_rename(&f, new_name)) return ERR_GENERIC;
-
-    e->meta.world.name = new_name;
-
-    return ERR_NONE;
+    RUNTIME_ASSERT(file_exists(&wd), "World dir not found");
+    RUNTIME_ASSERT(file_rename(&wd, new_name), "Failed to rename world dir");
 }
 
-world_create_err_e world_delete(engine_t *e, const char *name)
+void world_delete(engine_t *e, const char *name)
 {
-    if (strcmp(e->meta.world.name, name))
-    {
-        e->meta.world.name = NULL;
-        e->meta.world.seed = 0;
-        e->_chunk_sys.seed = 0;
-    }
-
-    char path_buf[BUF_LEN];
-    snprintf(path_buf, BUF_LEN, WORLD_DATA_DIR "%s", name);
-
-    file_t f = {
+    (void) e;
+    char wd_path[STD_BUFLEN]; multicat(wd_path, 2, WORLD_DATA_DIR, name);
+    file_t wd = {
         .flags = FILEFLAG_DIR,
-        .path = path_buf,
+        .base = WORLD_DATA_DIR,
+        .path = wd_path,
         .name = name
     };
 
-    if (!file_exists(&f)) return ERR_NOT_EXISTS;
-    if (file_dir_delete(&f)) return ERR_GENERIC;
-
-    return ERR_NONE;
+    RUNTIME_ASSERT(file_dir_exists(&wd), "World dir not found");
+    RUNTIME_ASSERT(file_dir_delete(&wd), "Failed to delete world dir");
 }
 
 void world_print_help(void)
 {
-    _LOG("HELP", COL_OKK, 
-         "                    \n"
-         "                    %s\n"
-         "                    %s:\n"
-         "                        %s\n"
-         "                            %s\n\n"
-         "                        %s\n"
-         "                            %s\n\n"
-         "                    %s:\n"
-         "                        %s\n"
-         "                            %s\n\n"
-         "                    %s:\n"
-         "                        %s\n"
-         "                            %s\n\n"
-         "                        %s\n"
-         "                            %s\n\n"
-         "                    %s:\n"
-         "                        %s\n"
-         "                            %s\n\n",
+    _LOG("HELP", COL_NRM, 
+         "\n"
+         "%s\n"
+         "%s:\n"
+         "    %s\n"
+         "        %s\n\n"
+         "    %s\n"
+         "        %s\n\n"
+         "%s:\n"
+         "    %s\n"
+         "        %s\n\n"
+         "%s:\n"
+         "    %s\n"
+         "        %s\n\n"
+         "    %s\n"
+         "        %s\n\n"
+         "%s:\n"
+         "    %s\n"
+         "        %s\n\n",
          "To create a temporary world for testing, simply run the binary as-is",
          "new", 
          "-n, --name", "Name of the world to create",

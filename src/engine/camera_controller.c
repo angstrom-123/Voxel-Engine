@@ -1,5 +1,4 @@
 #include "camera_controller.h"
-#include "physics.h"
 
 struct coord_set {
     ivec3 voxel_coord;
@@ -224,6 +223,9 @@ void ctl_update_view(ctl_t *cc, camera_t *cam, event_system_t *es)
 
 void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
 {
+    const size_t coyote_time = 4;
+    const size_t cooldown_time = 20;
+
     if (!cc->surrounding_loaded) return;
 
     // Normalization
@@ -236,6 +238,10 @@ void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
 
     // Ground check
     _ground_check(cc, cam, 0.001);
+    if (cc->time_grounded == 0)
+        cc->time_since_grounded++;
+    else 
+        cc->time_since_grounded = 0;
 
     // Collect player inputs
     vec3 move = {};
@@ -255,17 +261,19 @@ void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
 
         friction = VEC3(cc->floor_friction, cc->air_friction, cc->floor_friction);
         accel = em_mul_vec3_f(move, (walk) ? cc->walk_accel : cc->run_accel);
-        if (jump && cc->jump_cooldown == 0)
-        {
-            cc->jump_cooldown = 20;
-            accel.y = cc->jump_accel;
-        }
     }
     else 
     {
         friction = VEC3F(cc->air_friction);
         accel = em_mul_vec3_f(move, cc->air_accel);
         accel.y = cc->gravity;
+    }
+
+    if ((cc->time_grounded >= 1 || cc->time_since_grounded <= coyote_time) 
+        && jump && cc->jump_cooldown == 0)
+    {
+        cc->jump_cooldown = cooldown_time;
+        accel.y = cc->jump_accel;
     }
 
     cc->velocity = em_add_vec3(cc->velocity, em_mul_vec3_f(accel, dt));

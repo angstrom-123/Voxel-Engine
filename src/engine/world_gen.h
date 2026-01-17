@@ -8,6 +8,8 @@
 #include <libem/em_perlin.h>
 #include <libem/em_math.h>
 
+#include "logger.h"
+
 #include "geometry_types.h"
 
 typedef struct shell {

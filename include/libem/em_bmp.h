@@ -69,34 +69,15 @@ extern bool em_bmp_load(em_bmp_image_t *img, const char *path);
 
 #include <netinet/in.h> // htons
 #include <stdio.h> // FILE
-
-/* macros assume LITTLE ENDIAN (least significant byte at lowest memory address). */
-#define TO_U16(b1, b2) ((USHORT) ((b1) | ((b2) << 8)))
-#define TO_U32(b1, b2, b3, b4) ((UINT) ((b1) | ((b2) << 8) | ((b3) << 16) | ((b4) << 24)))
-
-#define READ_U16_MOVE(mem, i) (TO_U16(mem[i], mem[(i) + 1])); ((i) += 2)
-#define READ_U32_MOVE(mem, i) (TO_U32(mem[i], mem[(i) + 1], mem[(i) + 2], mem[(i) + 3])); ((i) += 4)
-
-static bool _read_bytes_to_buf(FILE *f_ptr, SIZE offset, SIZE len, UBYTE *buf)
-{
-    fseek(f_ptr, offset, SEEK_SET);
-
-    for (SIZE i = 0; i < len; i++)
-    {
-        INT read = fgetc(f_ptr);
-        if (read == EOF) 
-            return false; // Should not overrun file end.
-
-        buf[i] = (UBYTE) read;
-    }
-
-    return true;
-}
+#ifndef EM_BINARY_INCLUDED
+#error "Please include em_binary.h before em_bmp.h"
+#endif
 
 static bool _load_file_header(FILE *f_ptr, em_bmp_file_header_t *fh)
 {
-    UBYTE buf[14];
-    if (!_read_bytes_to_buf(f_ptr, 0, 14, buf)) 
+    SIZE buf_len = 14;
+    UBYTE buf[buf_len];
+    if (!binary_read(f_ptr, 0, &buf_len, buf)) 
         return false;
 
     SIZE head = 0;
@@ -111,8 +92,9 @@ static bool _load_file_header(FILE *f_ptr, em_bmp_file_header_t *fh)
 
 static bool _load_info_header(FILE *f_ptr, em_bmp_info_header_t *ih)
 {
+    SIZE buf_len = 40;
     UBYTE buf[40];
-    if (!_read_bytes_to_buf(f_ptr, 14, 40, buf)) 
+    if (!binary_read(f_ptr, 14, &buf_len, buf)) 
         return false;
 
     SIZE head = 0;
@@ -142,7 +124,7 @@ static UBYTE *_load_pixel_data(FILE *f_ptr, em_bmp_file_header_t *fh, em_bmp_inf
 
     SIZE offset = fh->data_ofst;
     SIZE len = ih->img_size;
-    if (!_read_bytes_to_buf(f_ptr, offset, len, pixels)) 
+    if (!binary_read(f_ptr, offset, &len, pixels)) 
         return NULL;
 
     /* Rearrange from BGRA to RGBA */

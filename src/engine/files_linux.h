@@ -4,17 +4,29 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <errno.h>
 #include <dirent.h>
+#include <sys/stat.h>
+
+#include <libem/em_binary.h>
 
 #include "logger.h"
 #include "file_meta.h"
 
 typedef struct linux_file {
     FILE *fptr;
+    DIR *dptr;
     uint8_t flags;
+    size_t offset;
     const char *path;
+    const char *base;
     const char *name;
 } linux_file_t;
+
+extern int scandir(const char *dirp, 
+                   struct dirent ***namelist, 
+                   int (*filter)(const struct dirent *), 
+                   int (*compar)(const struct dirent **, const struct dirent **));
 
 extern bool _file_exists_linux(linux_file_t *file);
 extern bool _file_dir_exists_linux(linux_file_t *file);

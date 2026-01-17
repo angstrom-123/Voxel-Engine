@@ -15,20 +15,16 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action,
     ivec3 cell = engine->meta.cursor.cell;
     ivec2 chunk = engine->meta.cursor.chunk;
 
-    ivec2 data_idx = { 1, 1 };
-    chunk_data_t *cd[3][3];
-    chunk_sys_borrow_surrounding_data(&engine->_chunk_sys, chunk, cd);
-
     switch (action) {
     case BLOCK_ACTION_BREAK:
     {
-        cd[data_idx.x][data_idx.y]->types[cell.x][cell.y][cell.z] = CUBETYPE_AIR;
+        CS_REQUEST_BREAK(&engine->_chunk_sys, chunk, cell);
         engine->meta.cursor.active = false;
         break;
     }
     case BLOCK_ACTION_PLACE:
     {
-        /* Finding adjacent cell and chunk to place the block in. */
+        // Find the position to place the block based on cube face under cursor.
         switch (engine->meta.cursor.face) {
         case FACEIDX_LEFT:
             cell.x -= 1;
@@ -36,7 +32,6 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action,
             {
                 cell.x = CHUNK_SIZE - 1;
                 chunk = REL_W(chunk);
-                data_idx.x -= 1;
             }
             break;
         case FACEIDX_RIGHT:
@@ -45,24 +40,15 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action,
             {
                 cell.x = 0;
                 chunk = REL_E(chunk);
-                data_idx.x += 1;
             }
             break;
         case FACEIDX_TOP:
             cell.y += 1;
-            if (cell.y == CHUNK_HEIGHT)
-            {
-                chunk_sys_return_surrounding_data(&engine->_chunk_sys, cd);
-                return;
-            }
+            if (cell.y == CHUNK_HEIGHT) return;
             break;
         case FACEIDX_BOTTOM:
             cell.y -= 1;
-            if (cell.y == -1)
-            {
-                chunk_sys_return_surrounding_data(&engine->_chunk_sys, cd);
-                return;
-            }
+            if (cell.y == -1) return;
             break;
         case FACEIDX_FRONT:
             cell.z += 1;
@@ -70,7 +56,6 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action,
             {
                 cell.z = 0;
                 chunk = REL_N(chunk);
-                data_idx.y -= 1;
             }
             break;
         case FACEIDX_BACK:
@@ -79,83 +64,23 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action,
             {
                 cell.z = CHUNK_SIZE - 1;
                 chunk = REL_S(chunk);
-                data_idx.y += 1;
             }
             break;
         };
 
         aabb_t block = aabb_from_voxel_coord(em_add_ivec3(IVEC3(chunk.x, 0, chunk.y), cell));
-        if (aabb_intersecting(block, aabb_with_offset(desc->collider, desc->pos)))
-        {
-            chunk_sys_return_surrounding_data(&engine->_chunk_sys, cd);
-            return;
-        }
-        
-        ENGINE_TODO("add a selection for different blocks to place");
-        cd[data_idx.x][data_idx.y]->types[cell.x][cell.y][cell.z] = CUBETYPE_SAND;
-
+        if (!aabb_intersecting(block, aabb_with_offset(desc->collider, desc->pos)))
+            CS_REQUEST_PLACE(&engine->_chunk_sys, chunk, cell, CUBETYPE_AIR);
         break;
     }
     default:
         break;
     };
-
-    chunk_sys_return_surrounding_data(&engine->_chunk_sys, cd);
-
-    CS_REQUEST(&engine->_chunk_sys, CSREQ_REMESH, chunk);
-    if (!em_equals_ivec2(chunk, engine->meta.cursor.chunk))
-        CS_REQUEST(&engine->_chunk_sys, CSREQ_REMESH, engine->meta.cursor.chunk);
-
-    if (cell.x == CHUNK_SIZE - 1) 
-        CS_REQUEST(&engine->_chunk_sys, CSREQ_REMESH, REL_E(chunk));
-    else if (cell.x == 0) 
-        CS_REQUEST(&engine->_chunk_sys, CSREQ_REMESH, REL_W(chunk));
-
-    if (cell.z == CHUNK_SIZE - 1) 
-        CS_REQUEST(&engine->_chunk_sys, CSREQ_REMESH, REL_N(chunk));
-    else if (cell.z == 0) 
-        CS_REQUEST(&engine->_chunk_sys, CSREQ_REMESH, REL_S(chunk));
 }
 
-void _api_start_running(engine_t *engine, const engine_run_desc_t *desc)
+void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
 {
-    engine->meta.world.seed = desc->seed;
-    engine->meta.world.name = desc->world_name;
-    engine->meta.world.time = desc->time;
-
-    engine->_chunk_sys.seed = desc->seed;
-    engine->_render_sys.cam.pos = desc->cam_pos;
-    engine->_render_sys.cam.rot = desc->cam_rot;
-    engine->_load_sys.curr_pos = IVEC2(
-        floorf(engine->_render_sys.cam.pos.x / (float) CHUNK_SIZE) * CHUNK_SIZE, 
-        floorf(engine->_render_sys.cam.pos.z / (float) CHUNK_SIZE) * CHUNK_SIZE
-    );
-    ENGINE_LOG_OK("Initialize world parameters.\n", NULL);
-
-    update_sys_init_thread(&engine->_update_sys, &(update_system_thread_args_t) {
-        .us = &engine->_update_sys
-    });
-    chunk_sys_init_thread(&engine->_chunk_sys, &(chunk_system_thread_args_t) {
-        .cs = &engine->_chunk_sys,
-        .us = &engine->_update_sys
-    });
-    ENGINE_LOG_OK("Start generation threads.\n", NULL);
-
-    load_sys_load_initial(&engine->_load_sys, &engine->_chunk_sys);
-    ENGINE_LOG_OK("Request initial chunks.\n", NULL);
-
-    chunk_sys_await_initial_load_complete(&engine->_chunk_sys);
-    ENGINE_LOG_OK("Initial chunks loaded.\n", NULL);
-
-    tick_sys_init_thread(&engine->_tick_sys, &(tick_system_thread_args_t) {
-        .ts = &engine->_tick_sys,
-    });
-    ENGINE_LOG_OK("Start tick thread.\n", NULL);
-}
-
-void engine_init(engine_t *engine, const engine_desc_t *desc)
-{
-    ENGINE_ASSERT(desc->render_distance >= 3, "Render distance too low");
+    RUNTIME_ASSERT(desc->render_distance >= 3, "Render distance too low");
     const size_t MAX_ACTIVE = (2 * em_sqr(desc->render_distance)) + 
                               (2 * desc->render_distance) + 1;
     const size_t QUEUE_SIZE = MAX_ACTIVE * 2;
@@ -228,11 +153,6 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
     });
     ENGINE_LOG_OK("Setup tick system.\n", NULL);
 
-    engine->api.subscribe_to_event = _api_subscribe_to_event;
-    engine->api.edit_active_block = _api_edit_active_block;
-    engine->api.start_running = _api_start_running;
-    ENGINE_LOG_OK("Setup engine api.\n", NULL);
-
     engine->meta = (engine_meta_t) {
         .cursor = {
             .active = false,
@@ -265,15 +185,65 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
     ENGINE_LOG_OK("Setup engine metadata.\n", NULL);
 }
 
+void _api_start_running(engine_t *engine, const engine_run_desc_t *desc)
+{
+    engine->meta.world.seed = desc->seed;
+    engine->meta.world.name = desc->world_name;
+    engine->meta.world.time = desc->time;
+
+    if (desc->world_name)
+        multicat(engine->_chunk_sys.world_dir_path, 2, WORLD_DATA_DIR, desc->world_name);
+
+    engine->_chunk_sys.seed = desc->seed;
+    engine->_render_sys.cam.pos = desc->cam_pos;
+    engine->_render_sys.cam.rot = desc->cam_rot;
+    engine->_load_sys.curr_pos = IVEC2(
+        floorf(engine->_render_sys.cam.pos.x / (float) CHUNK_SIZE) * CHUNK_SIZE, 
+        floorf(engine->_render_sys.cam.pos.z / (float) CHUNK_SIZE) * CHUNK_SIZE
+    );
+    ENGINE_LOG_OK("Initialize world parameters.\n", NULL);
+
+    update_sys_init_thread(&engine->_update_sys, &(update_system_thread_args_t) {
+        .us = &engine->_update_sys
+    });
+    chunk_sys_init_thread(&engine->_chunk_sys, &(chunk_system_thread_args_t) {
+        .cs = &engine->_chunk_sys,
+        .us = &engine->_update_sys
+    });
+    ENGINE_LOG_OK("Start generation threads.\n", NULL);
+
+    load_sys_load_initial(&engine->_load_sys, &engine->_chunk_sys);
+    ENGINE_LOG_OK("Request initial chunks.\n", NULL);
+
+    chunk_sys_await_initial_load_complete(&engine->_chunk_sys);
+    ENGINE_LOG_OK("Initial chunks loaded.\n", NULL);
+
+    tick_sys_init_thread(&engine->_tick_sys, &(tick_system_thread_args_t) {
+        .ts = &engine->_tick_sys,
+    });
+    ENGINE_LOG_OK("Start tick thread.\n", NULL);
+
+    atomic_store(&engine->_running, true);
+}
+
+void engine_init(engine_t *engine)
+{
+    engine->api.subscribe_to_event = _api_subscribe_to_event;
+    engine->api.edit_active_block = _api_edit_active_block;
+    engine->api.init_systems = _api_init_systems;
+    engine->api.start_running = _api_start_running;
+    ENGINE_LOG_OK("Setup engine api.\n", NULL);
+}
+
 void engine_cleanup(engine_t *engine)
 {
     render_sys_cleanup(&engine->_render_sys);
+    tick_sys_cleanup(&engine->_tick_sys);
+    ui_sys_cleanup(&engine->_ui_sys);
+    event_sys_cleanup(&engine->_event_sys);
     load_sys_cleanup(&engine->_load_sys);
     chunk_sys_cleanup(&engine->_chunk_sys);
     update_sys_cleanup(&engine->_update_sys);
-    tick_sys_cleanup(&engine->_tick_sys);
-    event_sys_cleanup(&engine->_event_sys);
-    ui_sys_cleanup(&engine->_ui_sys);
 }
 
 void engine_event(engine_t *engine, const event_t *event)

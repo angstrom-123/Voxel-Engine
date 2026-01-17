@@ -1,6 +1,12 @@
 #ifndef BASE_H
 #define BASE_H 
 
+#include <stdio.h>
+#include <stddef.h>
+#include <stdarg.h>
+#include <string.h>
+#include <signal.h>
+
 #ifdef PLAT_LINUX
 #define SEP "/"
 #define COL_NRM "\x1B[0m"
@@ -17,6 +23,8 @@
 #define COL_RST
 #endif
 
+#define STD_BUFLEN 128
+
 #define WORLD_DATA_DIR "app_data" SEP
 #define WORLD_META_FILE "meta"
 #define TEXTURE_DATA_DIR "res" SEP "tex" SEP
@@ -24,7 +32,7 @@
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
 
-#define THREAD_AWAIT_NS 50000000
+#define THREAD_AWAIT_NS 100000000
 
     typedef enum directions {
       DIR_NORTH = 1,
@@ -34,5 +42,7 @@
     } directions_e;
 
 #define QUOTE(...) #__VA_ARGS__
+
+extern void multicat(char *res, size_t n, ...);
 
 #endif

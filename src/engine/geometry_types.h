@@ -35,6 +35,7 @@ typedef struct packed_vertex {
 typedef struct chunk_data {
 	uint8_t types[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE];
     uint8_t edited_subchunk;
+    bool edited;
 } chunk_data_t;
 
 typedef struct mesh {

@@ -24,6 +24,13 @@ static app_t *app;
 static void frame(void)
 {
     INSTRUMENT_FUNC_BEGIN();
+    if (!atomic_load(&engine->_running)) 
+    {
+        thrd_sleep(&(struct timespec) {
+            .tv_nsec = THREAD_AWAIT_NS
+        }, NULL);
+        return;
+    }
 
     app_frame(engine, app, sapp_frame_duration());
     engine_frame(engine, sapp_frame_duration());
@@ -34,6 +41,13 @@ static void frame(void)
 static void tick(void)
 {
     INSTRUMENT_FUNC_BEGIN();
+    if (!atomic_load(&engine->_running)) 
+    {
+        thrd_sleep(&(struct timespec) {
+            .tv_nsec = THREAD_AWAIT_NS
+        }, NULL);
+        return;
+    }
 
     app_tick(engine, app);
     engine_tick(engine);
@@ -90,9 +104,12 @@ static void init(void *user_data)
     memset(app, 0, sizeof(app_t));
 
     struct user_data *ud = user_data;
+    engine_init(engine);
     app_init(engine, app, &(app_desc_t) {
-        .argc = ud->argc,
-        .argv = ud->argv
+        .args = {
+            .argc = ud->argc,
+            .argv = ud->argv
+        },
     });
 }
 

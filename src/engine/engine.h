@@ -67,6 +67,7 @@ typedef struct engine_run_desc {
 } engine_run_desc_t;
 
 typedef struct engine {
+    atomic_bool _running;
     load_system_t _load_sys;
     chunk_system_t _chunk_sys;
     render_system_t _render_sys;
@@ -80,12 +81,13 @@ typedef struct engine {
                                    const event_subscriber_desc_t *desc);
         void (*edit_active_block)(struct engine *engine, block_action_e action, 
                                   const player_collider_desc_t *desc);
+        void (*init_systems)(struct engine *engine, const engine_desc_t *desc);
         void (*start_running)(struct engine *engine, const engine_run_desc_t *desc);
     } api;
     engine_meta_t meta;
 } engine_t;
 
-extern void engine_init(engine_t *engine, const engine_desc_t *desc);
+extern void engine_init(engine_t *engine);
 extern void engine_cleanup(engine_t *engine);
 extern void engine_event(engine_t *engine, const event_t *event);
 extern void engine_frame(engine_t *engine, double dt);

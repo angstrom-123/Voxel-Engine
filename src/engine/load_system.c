@@ -33,7 +33,7 @@ void load_sys_load_initial(load_system_t *ls, chunk_system_t *cs)
 
         /* Generate all chunks within render distance. */
         for (size_t j = 0; j < s.cnt; j++)
-            CS_REQUEST(cs, CSREQ_GEN, s.crds[j]);
+            CS_REQUEST(cs, CSREQ_LOAD, s.crds[j]);
 
         /* After a shell is generated, we can fully mesh all chunks in the previous shell. */
         if (i > 0) 
@@ -126,7 +126,7 @@ static void _dispatch_diagonal_loads(load_system_t *ls, chunk_system_t *cs, upda
 
         if (forward) // Load new.
         {
-            CS_REQUEST(cs, CSREQ_GEN, new_out[i]);
+            CS_REQUEST(cs, CSREQ_LOAD, new_out[i]);
             if (old_crd.x != ls->curr_pos.x && old_crd.y != ls->curr_pos.y)
                 mesh_after_rim[mesh_after_rim_idx++] = old_crd;
         }
@@ -150,7 +150,7 @@ static void _dispatch_diagonal_loads(load_system_t *ls, chunk_system_t *cs, upda
 
         if (forward) // Mesh new.
         {
-            CS_REQUEST(cs, CSREQ_GEN, new_rim[i]);
+            CS_REQUEST(cs, CSREQ_LOAD, new_rim[i]);
             CS_REQUEST(cs, CSREQ_MESH, new_rim[i]);
         }
 
@@ -199,7 +199,7 @@ static void _dispatch_loads(load_system_t *ls, chunk_system_t *cs, update_system
         _get_direction(direction, ls->curr_pos, old_crd, &forward, &backward);
 
         if (forward) // Load new.
-            CS_REQUEST(cs, CSREQ_GEN, new_out[i]);
+            CS_REQUEST(cs, CSREQ_LOAD, new_out[i]);
 
         if (backward) // Unload old.
             CS_REQUEST(cs, CSREQ_UNLOAD, old_crd);

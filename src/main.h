@@ -28,6 +28,9 @@
 #define EM_PERLIN_IMPL
 #include <libem/em_perlin.h>
 
+#define EM_BINARY_IMPL
+#include <libem/em_binary.h>
+
 #define EM_BMP_IMPL
 #include <libem/em_bmp.h>
 

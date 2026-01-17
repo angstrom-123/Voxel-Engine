@@ -19,6 +19,7 @@ typedef struct ctl {
     float turn_speed;
     float gravity;
     size_t time_grounded;
+    size_t time_since_grounded;
     size_t jump_cooldown;
     vec3 velocity;
     vec3 max_velocity;

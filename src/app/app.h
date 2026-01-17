@@ -5,12 +5,12 @@
 #include "instrumentor.h"
 #include "engine.h"
 #include "world_creation.h"
+#include "arg_parser.h"
 
 #include <stdatomic.h>
 
 typedef struct app {
     ctl_t camera_ctl;
-    atomic_bool needs_physics_update;
 
     struct md_args {
         engine_t *engine;
@@ -19,8 +19,7 @@ typedef struct app {
 } app_t;
 
 typedef struct app_desc {
-    int argc;
-    char **argv;
+    args_t args;
 } app_desc_t;
 
 extern void app_init(engine_t *engine, app_t *app, const app_desc_t *desc);

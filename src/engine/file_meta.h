@@ -2,6 +2,7 @@
 #define FILE_META_H
 
 typedef enum file_usage {
+    USAGE_NONE,
     USAGE_READ,
     USAGE_READ_BIN,
     USAGE_WRITE,

@@ -2,7 +2,6 @@
 
 static void _on_mousedown(const event_t *ev, void *args) 
 {
-    // engine_t *engine = args;
     struct md_args *mdargs = args;
     engine_t *engine = mdargs->engine;
     app_t *app = mdargs->app;
@@ -26,133 +25,17 @@ static void _on_mousedown(const event_t *ev, void *args)
     };
 }
 
-static bool streq(const char *s1, const char *s2)
+static void do_init(engine_t *e, app_t *a)
 {
-    return strcmp(s1, s2) == 0;
-}
-
-static void _show_cli(engine_t *engine, app_t *app, int argc, char **argv)
-{
-    const char *ERROR_MESSAGE = "Invalid arguments. Use the help command for information";
-
-    if (argc == 1) // Default run in temporary world.
-    {
-        engine->api.start_running(engine, &(engine_run_desc_t) {
-            .world_name = "default",
-            .seed = 0,
-            .time = 0,
-            .cam_pos = VEC3(0.0, 100.0, 0.0),
-            .cam_rot = QUAT(0.0, 0.0, 0.0, 1.0)
-        });
-        return;
-    }
-
-    if (argc == 2 && streq("help", argv[1])) // Show help.
-    {
-        world_print_help();
-        sapp_request_quit();
-        return;
-    }
-
-    if (argc == 4) // Either "load" or "delete"
-    {
-        if (streq("load", argv[1]))
-        {
-            if (streq("-n", argv[2]) || streq("--name", argv[2]))
-            {
-                const char *world_name = argv[3];
-                world_load(engine, world_name);
-                return;
-            }
-        }
-        else if (streq("delete", argv[1]))
-        {
-            if (streq("-n", argv[2]) || streq("--name", argv[2]))
-            {
-                const char *world_name = argv[3];
-                world_delete(engine, world_name);
-                return;
-            }
-        }
-
-        sapp_request_quit();
-        _LOG("RUNTIME", COL_ERR, "%s", ERROR_MESSAGE);
-        return;
-    }
-
-    if (argc == 6) // Either "new" or "rename"
-    {
-        if (streq("new", argv[1]))
-        {
-            const char *world_name;
-            const char *world_seed;
-
-            if (streq("-n", argv[2]) || streq("--name", argv[2]))
-            {
-                world_name = argv[3];
-                if (streq("-s", argv[4]) || streq("--seed", argv[4]))
-                {
-                    world_seed = argv[5];
-                    world_new(engine, world_name, strtoul(world_seed, NULL, 10));
-                    return;
-                }
-            }
-            else if (streq("-s", argv[2]) || streq("--seed", argv[2]))
-            {
-                world_seed = argv[3];
-                if (streq("-n", argv[4]) || streq("--name", argv[4]))
-                {
-                    world_name = argv[5];
-                    world_new(engine, world_name, strtoul(world_seed, NULL, 10));
-                    return;
-                }
-            }
-        }
-        else if (streq("rename", argv[1]))
-        {
-            const char *world_name;
-            const char *new_name;
-
-            if (streq("-n", argv[2]) || streq("--name", argv[2]))
-            {
-                world_name = argv[3];
-                if (streq("-nn", argv[4]) || streq("--newname", argv[4]))
-                {
-                    new_name = argv[5];
-                    world_rename(engine, world_name, new_name);
-                    return;
-                }
-            }
-            else if (streq("-nn", argv[2]) || streq("--newname", argv[2]))
-            {
-                new_name = argv[3];
-                if (streq("-n", argv[4]) || streq("--name", argv[4]))
-                {
-                    world_name = argv[5];
-                    world_rename(engine, world_name, new_name);
-                    return;
-                }
-            }
-        }
-    }
-
-    _LOG("RUNTIME", COL_ERR, "%s", ERROR_MESSAGE);
-    return;
-}
-
-void app_init(engine_t *engine, app_t *app, const app_desc_t *desc)
-{
+    APP_LOG_WARN("Init called.\n", NULL);
     APP_TODO("Make the render distance editable at runtime");
     #if defined(RELEASE) || defined(PROFILING)
         const size_t RENDER_DISTANCE = 32;
     #elif defined(DEBUG)
-        const size_t RENDER_DISTANCE = 12;
+        const size_t RENDER_DISTANCE = 16;
     #endif
 
-    for (int i = 0; i < desc->argc; i++)
-        APP_LOG_OK("%s", desc->argv[i]);
-
-    engine_init(engine, &(engine_desc_t) {
+    e->api.init_systems(e, &(engine_desc_t) {
         .render_distance = RENDER_DISTANCE,
         .ticks_per_second = 20.0,
         .seed = 0,
@@ -160,41 +43,117 @@ void app_init(engine_t *engine, app_t *app, const app_desc_t *desc)
         .base_sun_dir = em_normalize_vec3(VEC3(0.0, 1.0, 0.1))
     });
 
-    app->mousedown_args = (struct md_args) {
-        .app = app,
-        .engine = engine
-    };
-    app->needs_physics_update = false;
-    ctl_init(&app->camera_ctl, &engine->_render_sys.cam, &(ctl_desc_t) {
-        // .start_pos      = VEC3(8.5, 100.0, 8.5),
+    ctl_init(&a->camera_ctl, &e->_render_sys.cam, &(ctl_desc_t) {
         .floor_friction = 0.55,
         .air_friction   = 0.02,
-        .jump_accel     = 650.0,
+        .jump_accel     = 640.0,
         .run_accel      = 600.0,
         .walk_accel     = 400.0,
         .air_accel      = 10.0,
         .turn_speed     = 0.04,
-        .gravity        = -35.0,
-        .collider_size  = VEC3(0.3, 1.8, 0.3)
+        .gravity        = -38.0,
+        .collider_size  = VEC3(0.3, 1.7, 0.3)
     });
 
-    engine->api.subscribe_to_event(engine, EVENT_MOUSEDOWN, &(event_subscriber_desc_t) {
+    e->meta.cursor.range = 10.0;
+
+    a->mousedown_args = (struct md_args) {
+        .app = a,
+        .engine = e
+    };
+    e->api.subscribe_to_event(e, EVENT_MOUSEDOWN, &(event_subscriber_desc_t) {
         .event_cb = _on_mousedown,
         .block_cb = event_block_never,
-        .args = &app->mousedown_args
+        .args = &a->mousedown_args
     });
+}
 
-    engine->meta.cursor.range = 10.0;
+void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
+{
+    // If showing help message, no need to init the engine or the app.
+    parsed_args_t pargs;
+    memset(&pargs, 0, sizeof(pargs));
+    if (process_args(&desc->args, "a", &pargs))
+    {
+        if (args_match(&pargs, ARGTYPE_ACTION, "help")) world_print_help();
+        else RUNTIME_ASSERT(false, "Invalid arguments. Run with help command for information");
+        return;
+    }
 
-    _show_cli(engine, app, desc->argc, desc->argv);
+    if (desc->args.argc == 1)
+    {
+        APP_LOG_OK("Running in default mode", NULL);
+        do_init(e, a);
+        e->api.start_running(e, &(engine_run_desc_t) {
+            .world_name = NULL,
+            .seed = 0,
+            .time = 0,
+            .cam_pos = VEC3(0.0, 100.0, 0.0),
+            .cam_rot = QUAT(0.0, 0.0, 0.0, 1.0)
+        });
 
-    // engine->api.start_running(engine, &(engine_run_desc_t) {
-    //     .world_name = "default",
-    //     .seed = 0,
-    //     .time = 0,
-    //     .cam_pos = VEC3(0.0, 100.0, 0.0),
-    //     .cam_rot = QUAT(0.0, 0.0, 0.0, 1.0)
-    // });
+        return;
+    }
+
+    if (process_args(&desc->args, "atp", &pargs))
+    {
+        APP_LOG_OK("Running in load/delete mode", NULL);
+        int32_t name_ix = args_index_of(&pargs, ARGTYPE_TACK, "-n");
+        if (name_ix == -1) name_ix = args_index_of(&pargs, ARGTYPE_TACK, "--name");
+        const char *name = arg_at(&pargs, ARGTYPE_PARAM, name_ix);
+
+        RUNTIME_ASSERT((name), "Name incorrectly specified for load");
+
+        if (args_match(&pargs, ARGTYPE_ACTION, "load"))
+        {
+            do_init(e, a);
+            world_load(e, name);
+        }
+        else if (args_match(&pargs, ARGTYPE_ACTION, "delete"))
+        {
+            world_delete(e, name);
+            sapp_quit();
+        }
+        else RUNTIME_ASSERT(false, "Invalid arguments. Run with help command for information");
+        return;
+    }
+
+    if (process_args(&desc->args, "atptp", &pargs))
+    {
+        APP_LOG_OK("Running in new/rename mode", NULL);
+        int32_t name_ix = args_index_of(&pargs, ARGTYPE_TACK, "-n");
+        if (name_ix == -1) name_ix = args_index_of(&pargs, ARGTYPE_TACK, "--name");
+        const char *name = arg_at(&pargs, ARGTYPE_PARAM, name_ix);
+
+        if (args_match(&pargs, ARGTYPE_ACTION, "new"))
+        {
+            APP_LOG_OK("Matched new\n", NULL);
+            int32_t seed_ix = args_index_of(&pargs, ARGTYPE_TACK, "-s");
+            if (seed_ix == -1) seed_ix = args_index_of(&pargs, ARGTYPE_TACK, "--seed");
+            const char *seed = arg_at(&pargs, ARGTYPE_PARAM, seed_ix);
+            uint32_t seed_ui = strtoul(seed, NULL, 10);
+            RUNTIME_ASSERT((name), "Name incorrectly specified for new");
+            RUNTIME_ASSERT((seed), "Seed incorrectly specified for new");
+
+            do_init(e, a);
+            world_new(e, name, seed_ui);
+        }
+        else if (args_match(&pargs, ARGTYPE_ACTION, "rename"))
+        {
+            APP_LOG_OK("Matched rename\n", NULL);
+            int32_t newname_ix = args_index_of(&pargs, ARGTYPE_TACK, "-nn");
+            if (newname_ix == -1) newname_ix = args_index_of(&pargs, ARGTYPE_TACK, "--newname");
+            const char *newname = arg_at(&pargs, ARGTYPE_PARAM, newname_ix);
+            RUNTIME_ASSERT((name), "Name incorrectly specified for rename");
+            RUNTIME_ASSERT((newname), "New name incorrectly specified for rename");
+            world_rename(e, name, newname);
+            sapp_quit();
+        }
+        else RUNTIME_ASSERT(false, "Invalid arguments. Run with help command for information");
+        return;
+    }
+
+    RUNTIME_ASSERT(false, "Invalid arguments. Run with help command for information");
 }
 
 void app_cleanup(app_t *app)

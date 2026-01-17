@@ -15,14 +15,18 @@ typedef struct chunk_render_info {
 
 typedef struct cs_request {
     enum {
-        CSREQ_GEN,
+        CSREQ_LOAD,
         CSREQ_MESH,
         CSREQ_UNLOAD,
+        CSREQ_PLACE,
+        CSREQ_BREAK,
         CSREQ_REMESH,
         CSREQ_INITIAL_LOAD_COMPLETE
     } type;
 
     ivec2 pos;
+    ivec3 cell;
+    cube_type_e block;
 } cs_request_t;
 
 #endif

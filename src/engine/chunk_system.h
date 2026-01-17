@@ -6,13 +6,18 @@
 #include "geometry.h"
 #include "world_gen.h"
 #include "update_system.h"
+#include "files.h"
 
 #include <stdio.h>
 
 #include <threads.h>
 
 #define CS_REQUEST(cs, typ, crd) \
-    chunk_sys_make_request(cs, (cs_request_t) {.type = typ, .pos = crd})
+    chunk_sys_make_request(cs, (cs_request_t) { .type = typ, .pos = crd })
+#define CS_REQUEST_BREAK(cs, crd, cel) \
+    chunk_sys_make_request(cs, (cs_request_t) { .type = CSREQ_BREAK, .pos = crd, .cell = cel });
+#define CS_REQUEST_PLACE(cs, crd, cel, blo) \
+    chunk_sys_make_request(cs, (cs_request_t) { .type = CSREQ_PLACE, .pos = crd, .cell = cel, .block = blo });
 
 typedef struct chunk_system {
     HASHMAP(ivec2_chunk_data) *genned;
@@ -25,9 +30,12 @@ typedef struct chunk_system {
     atomic_bool running;
     atomic_bool thread_ready;
     atomic_bool initial_load_complete;
+    atomic_bool processing;
 
     uint32_t seed;
+    char world_dir_path[STD_BUFLEN];
     bool synchronized;
+    bool receiving;
 } chunk_system_t;
 
 typedef struct chunk_system_desc {

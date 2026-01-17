@@ -43,12 +43,12 @@
     #define FLOAT float
 #endif
 
-#define EM_LOG(fmt, ...) do { if (LOG) (fprintf(stderr, "%s:%d:%s(): [LIBEM] " fmt, __FILE__, __LINE__, __func__, __VA_ARGS__)); } while (0)
+#define EM_LOG(fmt, ...) do { if (LOG) (fprintf(stderr, "%s:%d:%s():\n        [LIBEM] " fmt, __FILE__, __LINE__, __func__, __VA_ARGS__)); } while (0)
 
 typedef enum em_flags {
-    EM_FLAG_NONE = 0,
-    EM_FLAG_NO_RESIZE = 1,
-    EM_FLAG_AL_FAST_REMOVE = 2,
+    EM_FLAG_NONE               = 0,
+    EM_FLAG_NO_RESIZE          = 1,
+    EM_FLAG_AL_FAST_REMOVE     = 2,
     EM_FLAG_NO_DESTROY_ENTRIES = 4
 } em_flags_t;
 

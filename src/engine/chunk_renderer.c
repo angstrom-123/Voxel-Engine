@@ -432,7 +432,7 @@ static void _render_shadowmap_pass(chunk_renderer_t *cr)
             .u_chunk = pos,
         };
 
-        if (cri->needs_update)
+        if (cri->needs_update && cri->mesh->v_cnt > 0)
         {
             sg_update_buffer(cri->bufs.vertex, &(sg_range) {
                 .ptr = cri->mesh->v_buf,
@@ -486,7 +486,7 @@ static void _render_offscreen_pass(chunk_renderer_t *cr)
             .u_sun_dir = cr->info.sun_dir
         };
 
-        if (cri->needs_update)
+        if (cri->needs_update && cri->mesh->v_cnt > 0)
         {
             sg_update_buffer(cri->bufs.vertex, &(sg_range) {
                 .ptr = cri->mesh->v_buf,

@@ -1,11 +1,10 @@
 #include "texture_handler.h"
 
 static const size_t BUF_LEN = 128;
-static const size_t EXT_LEN = 4;
 
 bool texture_load(texture_t *res, const texture_desc_t *desc)
 {
-    ENGINE_ASSERT(strlen(desc->path) + EXT_LEN <= BUF_LEN,
+    ENGINE_ASSERT(strlen(desc->path) + 4 <= BUF_LEN,
                   "Texture path length exceeds buffer length");
 
     char buf[BUF_LEN];
@@ -42,7 +41,7 @@ bool texture_load(texture_t *res, const texture_desc_t *desc)
 
 bool texture_mip_load(texture_t *res, const texture_desc_t *desc)
 {
-    ENGINE_ASSERT(strlen(desc->path) + 3 + EXT_LEN <= BUF_LEN, 
+    ENGINE_ASSERT(strlen(desc->path) + 3 + 4 <= BUF_LEN, 
                   "Texture path length exceeds buffer length");
     ENGINE_ASSERT(desc->mip_levels <= SG_MAX_MIPMAPS,
                   "Mipmap amount exceeds maximum");

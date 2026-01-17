@@ -511,6 +511,7 @@ void *em_hashmap_get(em_hashmap_t *this, const void *key)
 
     /* Hashmap does not contain the key, no default provided so fail. */
     EM_LOG("Attempting to access invalid element in hashmap get.\n", NULL);
+    raise(SIGABRT);
 
     exit(1);
 }

@@ -2,23 +2,55 @@
 
 static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_t *r)
 {
-    mtx_lock(&cs->genned_lock);
     switch (r->type) {
-    case CSREQ_GEN:
+    case CSREQ_LOAD:
     {
-        chunk_data_t *data = gen_generate_chunk_data(r->pos, cs->seed);
-        cs->genned->put_ptr(cs->genned, r->pos, data);
+        if (cs->world_dir_path[0] == '\0') // Temporary world: Doesn't save / load chunks.
+        {
+            chunk_data_t *d = gen_generate_chunk_data(r->pos, cs->seed);
+            mtx_lock(&cs->genned_lock);
+            cs->genned->put_ptr(cs->genned, r->pos, d);
+            mtx_unlock(&cs->genned_lock);
+            break;
+        }
 
+        char file_name[STD_BUFLEN] = {0};
+        char file_path[STD_BUFLEN] = {0};
+        chunk_file_name(r->pos, file_name);
+        multicat(file_path, 3, cs->world_dir_path, SEP, file_name);
+        file_t f = {
+            .name = file_name,
+            .base = cs->world_dir_path,
+            .path = file_path,
+            .flags = FILEFLAG_BINARY,
+        };
+
+        chunk_data_t *d;
+        if (file_exists(&f))
+        {
+            ENGINE_LOG_OK("Decoding a chunk file.", NULL);
+            d = decode_chunk_file(&f, gen_generate_chunk_data, r->pos, cs->seed);
+        }
+        else 
+        {
+            d = gen_generate_chunk_data(r->pos, cs->seed);
+        }
+
+        mtx_lock(&cs->genned_lock);
+        cs->genned->put_ptr(cs->genned, r->pos, d);
+        mtx_unlock(&cs->genned_lock);
         break;
     }
     case CSREQ_MESH:
     case CSREQ_REMESH:
     {
+        mtx_lock(&cs->genned_lock);
         chunk_data_t *c = cs->genned->get_or_default(cs->genned, r->pos, NULL);
         chunk_data_t *n = cs->genned->get_or_default(cs->genned, REL_N(r->pos), NULL);
         chunk_data_t *e = cs->genned->get_or_default(cs->genned, REL_E(r->pos), NULL);
         chunk_data_t *s = cs->genned->get_or_default(cs->genned, REL_S(r->pos), NULL);
         chunk_data_t *w = cs->genned->get_or_default(cs->genned, REL_W(r->pos), NULL);
+        mtx_unlock(&cs->genned_lock);
 
         ENGINE_ASSERT(c != NULL, "Chunk to be meshed doesn't exist.\n");
         ENGINE_ASSERT(n != NULL, "North chunk of the chunk to be meshed doesn't exist.\n");
@@ -27,35 +59,107 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         ENGINE_ASSERT(w != NULL, "West chunk of the chunk to be meshed doesn't exist.\n");
 
         mesh_t *mesh = geom_generate_mesh(c, n, e, s, w);
-
-        if (r->type == CSREQ_MESH)
-        {
-            update_sys_make_request(us, (us_request_t) {
-                .type = USREQ_STAGE,
-                .pos = r->pos,
-                .mesh = mesh 
-            });
-        }
-        else 
-        {
-            update_sys_make_request(us, (us_request_t) {
-                .type = USREQ_RESTAGE,
-                .pos = r->pos,
-                .mesh = mesh 
-            });
-        }
+        US_REQUEST(us, (r->type == CSREQ_MESH) ? USREQ_STAGE : USREQ_RESTAGE, r->pos, mesh);
         break;
     }
-    case CSREQ_UNLOAD:
-        if (cs->genned->contains_key(cs->genned, r->pos))
-            cs->genned->remove(cs->genned, r->pos);
+    case CSREQ_UNLOAD: 
+    {
+        mtx_lock(&cs->genned_lock);
+        chunk_data_t *cd = cs->genned->get_or_default(cs->genned, r->pos, NULL);
+        mtx_unlock(&cs->genned_lock);
+
+        if (!cd)
+            break;
+
+        if (cd->edited && cs->world_dir_path[0] != '\0')
+        {
+            ENGINE_LOG_OK("Encoding a chunk at %i %i", r->pos.x, r->pos.y);
+            char file_name[STD_BUFLEN] = {0};
+            char file_path[STD_BUFLEN] = {0};
+            chunk_file_name(r->pos, file_name);
+            multicat(file_path, 3, cs->world_dir_path, SEP, file_name);
+            file_t f = {
+                .flags = FILEFLAG_BINARY,
+                .base = cs->world_dir_path,
+                .path = file_path,
+                .name = file_name,
+            };
+
+            if (file_exists(&f))
+                RUNTIME_ASSERT(file_delete(&f), "Failed to delete chunk file");
+
+            chunk_file_t cf = encode_chunk_file(cd);
+            RUNTIME_ASSERT(file_open(&f, USAGE_WRITE_BIN), "Failed to open chunk file");
+            RUNTIME_ASSERT(write_chunk_file(&f, cf), "Failed to write to chunk file");
+            RUNTIME_ASSERT(file_close(&f), "Failed to close chunk file");
+
+            free(cf.body.data);
+        }
+
+        mtx_lock(&cs->genned_lock);
+        cs->genned->remove(cs->genned, r->pos);
+        mtx_unlock(&cs->genned_lock);
         break;
+    }
+    case CSREQ_BREAK:
+    {
+        mtx_lock(&cs->genned_lock);
+        chunk_data_t *c = cs->genned->get_or_default(cs->genned, r->pos, NULL);
+        c->types[r->cell.x][r->cell.y][r->cell.z] = CUBETYPE_AIR;
+        uint8_t subchunk_ix = floorf((float) r->cell.y / (float) SUBCHUNK_HEIGHT);
+        c->edited_subchunk |= 1 << subchunk_ix;
+        c->edited = true;
+        mtx_unlock(&cs->genned_lock);
+
+        _handle_request(cs, us, &(cs_request_t) {
+            .type = CSREQ_REMESH,
+            .pos = r->pos
+        });
+
+        if (r->cell.x == CHUNK_SIZE - 1) 
+            _handle_request(cs, us, &(cs_request_t) {
+                .type = CSREQ_REMESH,
+                .pos = REL_E(r->pos)
+            });
+        else if (r->cell.x == 0) 
+            _handle_request(cs, us, &(cs_request_t) {
+                .type = CSREQ_REMESH,
+                .pos = REL_W(r->pos)
+            });
+
+        if (r->cell.z == CHUNK_SIZE - 1) 
+            _handle_request(cs, us, &(cs_request_t) {
+                .type = CSREQ_REMESH,
+                .pos = REL_N(r->pos)
+            });
+        else if (r->cell.z == 0) 
+            _handle_request(cs, us, &(cs_request_t) {
+                .type = CSREQ_REMESH,
+                .pos = REL_S(r->pos)
+            });
+        break;
+    }
+    case CSREQ_PLACE:
+    {
+        mtx_lock(&cs->genned_lock);
+        chunk_data_t *c = cs->genned->get_or_default(cs->genned, r->pos, NULL);
+        c->types[r->cell.x][r->cell.y][r->cell.z] = CUBETYPE_SAND;
+        uint8_t subchunk_ix = floorf((float) r->cell.y / (float) SUBCHUNK_HEIGHT);
+        c->edited_subchunk |= 1 << subchunk_ix;
+        c->edited = true;
+        mtx_unlock(&cs->genned_lock);
+
+        _handle_request(cs, us, &(cs_request_t) {
+            .type = CSREQ_REMESH,
+            .pos = r->pos
+        });
+
+        break;
+    }
     case CSREQ_INITIAL_LOAD_COMPLETE:
         atomic_store(&cs->initial_load_complete, true);
         break;
     }
-
-    mtx_unlock(&cs->genned_lock);
 }
 
 static int _thread_func(void *args)
@@ -74,9 +178,11 @@ static int _thread_func(void *args)
 
         while (cs->requests->count > 0)
         {
+            atomic_store(&cs->processing, true);
             cs_request_t *r = cs->requests->dequeue_ptr(cs->requests);
             _handle_request(cs, us, r);
             free(r);
+            atomic_store(&cs->processing, false);
         }
 
         mtx_unlock(&cs->requests_lock);
@@ -93,6 +199,7 @@ void chunk_sys_init(chunk_system_t *cs, const chunk_system_desc_t *desc)
     cs->running = false;
     cs->thread_ready = false;
     cs->initial_load_complete = false;
+    cs->receiving = false;
 
     cs->genned = HASHMAP_NEW(ivec2_chunk_data)(&(em_hashmap_desc_t) {
         .capacity = desc->chunk_data_capacity,
@@ -117,6 +224,7 @@ void chunk_sys_init(chunk_system_t *cs, const chunk_system_desc_t *desc)
 void chunk_sys_init_thread(chunk_system_t *cs, chunk_system_thread_args_t *targs)
 {
     cs->running = true;
+    cs->receiving = true;
     int res = thrd_create(&cs->worker, _thread_func, targs);
 
     ENGINE_ASSERT(res == thrd_success, "Failed to initialize worker thread.\n");
@@ -130,15 +238,64 @@ void chunk_sys_init_thread(chunk_system_t *cs, chunk_system_thread_args_t *targs
     }
 }
 
+static void _await_requests_complete(chunk_system_t *cs)
+{
+    bool finished = false;
+    while (!finished)
+    {
+        mtx_lock(&cs->requests_lock);
+        if (cs->requests->count == 0 && !atomic_load(&cs->processing))
+        {
+            finished = true;
+        }
+        mtx_unlock(&cs->requests_lock);
+
+        if (!finished)
+        {
+            thrd_sleep(&(struct timespec) {
+                .tv_nsec = THREAD_AWAIT_NS
+            }, NULL);
+        }
+    }
+}
+
 void chunk_sys_cleanup(chunk_system_t *cs)
 {
+    // Complete all requests in backlog but reveive no more.
+    cs->receiving = false;
+    _await_requests_complete(cs);
+
+    // Request every loaded chunk to be unloaded directly (bypassing request denial).
+    mtx_lock(&cs->genned_lock);
+    mtx_lock(&cs->requests_lock);
+    em_hashmap_iter_t *it = cs->genned->iterator(cs->genned);
+    while (it->has_next)
+    {
+        em_hashmap_entry_t *e = it->get(it);
+        ivec2 *pos = e->key;
+        ENGINE_LOG_WARN("Unloading at %i %i in cleanup.\n", pos->x, pos->y);
+        cs->requests->enqueue(cs->requests, (cs_request_t) {
+            .type = CSREQ_UNLOAD,
+            .pos = *pos
+        });
+        it->next(it);
+    }
+    free(it);
+    mtx_unlock(&cs->requests_lock);
+    mtx_unlock(&cs->genned_lock);
+
+    // Wait for all unload requests to be complete.
+    cnd_signal(&cs->needs_update);
+    _await_requests_complete(cs);
+
+    // Kill the worker.
     atomic_store(&cs->running, false);
     cnd_signal(&cs->needs_update);
     thrd_join(cs->worker, NULL);
 
+    // Cleanup chunk system.
     cs->genned->destroy(cs->genned);
     cs->requests->destroy(cs->requests);
-
     cnd_destroy(&cs->needs_update);
     mtx_destroy(&cs->requests_lock);
     mtx_destroy(&cs->genned_lock);
@@ -146,6 +303,11 @@ void chunk_sys_cleanup(chunk_system_t *cs)
 
 void chunk_sys_make_request(chunk_system_t *cs, cs_request_t r)
 {
+    if (!cs->receiving) 
+    {
+        ENGINE_LOG_WARN("Chunk sys blocked request because shutting down.\n", NULL);
+        return;
+    }
     mtx_lock(&cs->requests_lock);
 
     cs->requests->enqueue(cs->requests, r);

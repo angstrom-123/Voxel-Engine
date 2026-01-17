@@ -127,6 +127,7 @@ shell_t *gen_get_shells(ivec2 c, size_t num, shell_t *start_shell)
 
 chunk_data_t *gen_generate_chunk_data(ivec2 pos, uint32_t seed) 
 {
+    // ENGINE_LOG_OK("Generating chunk at %i %i\n", pos.x, pos.y);
     chunk_data_t *data = malloc(sizeof(chunk_data_t));
     memset(&data->types[0][0][0], 0, sizeof(data->types));
 
