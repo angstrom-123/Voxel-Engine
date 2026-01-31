@@ -1,6 +1,5 @@
 #include "geometry.h"
 
-
 static cube_type_e _get_adj_neighbour(uint8_t x, uint8_t y, uint8_t z,
                                       cube_face_idx_e face, chunk_data_t *blocks,
                                       chunk_data_t *n, chunk_data_t *e, 

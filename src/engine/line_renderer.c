@@ -8,7 +8,7 @@ void line_renderer_init(line_renderer_t *lr, const line_renderer_desc_t *desc)
         .action = {
             .colors[0] = {
                 .load_action = SG_LOADACTION_LOAD,
-                .clear_value = { 1.0, 0.0, 1.0, 1.0 }
+                .clear_value = { 0.0, 0.0, 0.0, 1.0 }
             }
         },
         .label = "lines-pass"

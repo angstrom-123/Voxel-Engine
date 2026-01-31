@@ -29,7 +29,7 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         if (file_exists(&f))
         {
             ENGINE_LOG_OK("Decoding a chunk file.", NULL);
-            d = decode_chunk_file(&f, gen_generate_chunk_data, r->pos, cs->seed);
+            d = decode_chunk_file(&f);
         }
         else 
         {
@@ -93,7 +93,7 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
             RUNTIME_ASSERT(write_chunk_file(&f, cf), "Failed to write to chunk file");
             RUNTIME_ASSERT(file_close(&f), "Failed to close chunk file");
 
-            free(cf.body.data);
+            free(cf.data);
         }
 
         mtx_lock(&cs->genned_lock);
@@ -106,8 +106,6 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         mtx_lock(&cs->genned_lock);
         chunk_data_t *c = cs->genned->get_or_default(cs->genned, r->pos, NULL);
         c->types[r->cell.x][r->cell.y][r->cell.z] = CUBETYPE_AIR;
-        uint8_t subchunk_ix = floorf((float) r->cell.y / (float) SUBCHUNK_HEIGHT);
-        c->edited_subchunk |= 1 << subchunk_ix;
         c->edited = true;
         mtx_unlock(&cs->genned_lock);
 
@@ -144,8 +142,6 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         mtx_lock(&cs->genned_lock);
         chunk_data_t *c = cs->genned->get_or_default(cs->genned, r->pos, NULL);
         c->types[r->cell.x][r->cell.y][r->cell.z] = CUBETYPE_SAND;
-        uint8_t subchunk_ix = floorf((float) r->cell.y / (float) SUBCHUNK_HEIGHT);
-        c->edited_subchunk |= 1 << subchunk_ix;
         c->edited = true;
         mtx_unlock(&cs->genned_lock);
 

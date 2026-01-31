@@ -175,6 +175,13 @@ bool _file_read_bytes_linux(linux_file_t *file, size_t *num_bytes, uint8_t bytes
             || !(file->flags & FILEFLAG_BINARY)) 
         return false;
 
+    if (!num_bytes)
+    {
+        fseek(file->fptr, 0, SEEK_END);
+        size_t len = ftell(file->fptr);
+        num_bytes = &len;
+    }
+
     bool res = binary_read(file->fptr, file->offset, num_bytes, bytes);
     file->offset += *num_bytes;
 

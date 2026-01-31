@@ -135,33 +135,16 @@ void world_delete(engine_t *e, const char *name)
 void world_print_help(void)
 {
     _LOG("HELP", COL_NRM, 
+         "\nDEFAULT BEHAVIOUR"
+         "\n    + Create a default world where changes are not saved."
+         "\nSUBCOMMANDS"
+         "\n    + new --name <name> --seed <seed>"
+         "\n    + load --name <name>"
+         "\n    + rename --name <name> --newname <new name>"
+         "\n    + delete --name <name>"
+         "\nNOTE"
+         "\n    + All subcommands can be abbreviated to their first letter"
+         "\n        + e.g. --name => -n, --newname => -nn"
          "\n"
-         "%s\n"
-         "%s:\n"
-         "    %s\n"
-         "        %s\n\n"
-         "    %s\n"
-         "        %s\n\n"
-         "%s:\n"
-         "    %s\n"
-         "        %s\n\n"
-         "%s:\n"
-         "    %s\n"
-         "        %s\n\n"
-         "    %s\n"
-         "        %s\n\n"
-         "%s:\n"
-         "    %s\n"
-         "        %s\n\n",
-         "To create a temporary world for testing, simply run the binary as-is",
-         "new", 
-         "-n, --name", "Name of the world to create",
-         "-s, --seed", "Seed of the world to create",
-         "load",
-         "-n, --name", "Name of the world to load",
-         "rename",
-         "-n, --name", "Name of the world to rename",
-         "-nn, --newname", "Name to rename the world to",
-         "delete",
-         "-n, --name", "Name of the world to delete");
+         , NULL);
 }

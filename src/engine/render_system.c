@@ -1,4 +1,5 @@
 #include "render_system.h"
+#include "ui_system.h"
 
 static void _on_resize(const event_t *ev, void *args)
 {
@@ -171,10 +172,8 @@ void render_sys_render(render_system_t *rs, update_system_t *us,
 {
     /* Chunks. */
     { rs->chunk_renderer.info.chunk_data = update_sys_borrow_render_data(us);
-
         rs->chunk_renderer.info.chunk_coords = load_sys_get_render_coords(ls);
         chunk_renderer_render_all(&rs->chunk_renderer);
-
     } update_sys_return_render_data(us, &rs->chunk_renderer.info.chunk_data);
 
     /* World Lines. */
@@ -188,8 +187,8 @@ void render_sys_render(render_system_t *rs, update_system_t *us,
 
     /* UI Components. */
     { rs->ui_renderer.ctx = snk_new_frame();
-        rs->ui_renderer.components = ui_sys_get_components(uis, &rs->ui_renderer.component_count);
-
+        ui_component_t **cs = ui_sys_get_components(uis, &rs->ui_renderer.component_count);
+        rs->ui_renderer.components = cs;
     } ui_renderer_render_all(&rs->ui_renderer);
 
     sg_commit();

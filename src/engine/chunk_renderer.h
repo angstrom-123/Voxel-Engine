@@ -25,6 +25,12 @@
 #define SSAO_SAMPLES 64
 #define SSAO_NOISE_SCALE 4
 
+typedef struct skybox_vertex {
+    vec3 pos;
+    vec3 nrm;
+    vec2 uv;
+} skybox_vertex_t;
+
 typedef struct chunk_renderer {
     struct targets {
         // offscreen
@@ -36,6 +42,9 @@ typedef struct chunk_renderer {
         // shadowmap
         sg_image shadowmap;
         sg_image zbuf_shadow;
+        // Skybox
+        sg_image skybox;
+        sg_image zbuf_skybox;
         // composite 
         sg_image colour;
         sg_image zbuf_composite;
@@ -43,6 +52,7 @@ typedef struct chunk_renderer {
     renderer_base_t offscreen_base;
     renderer_base_t shadowmap_base;
     renderer_base_t composite_base;
+    renderer_base_t skybox_base;
     renderer_base_t effects_base;
     struct {
         vec3 sun_dir;

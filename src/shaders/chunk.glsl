@@ -149,7 +149,6 @@ float visibility() {
 void main() {
     out_normal = vec4(v_nrm * 0.5 + 0.5, 1.0);
     out_depth = gl_FragCoord.z;
-    // out_depth = (1.0 - v_pos.xyz / v_pos.w).x;
     out_albedo = texture(sampler2D(u_atlas, u_atlas_smp), v_uv);
     out_shadow = visibility();
 }
@@ -187,7 +186,6 @@ layout(binding=1) uniform fs_params_composite {
 
 in vec2 v_uv;
 
-out vec4 frag_color;
 layout(location=0) out vec4 out_colour;
 
 vec3 remap(vec3 vec) {
@@ -227,20 +225,61 @@ vec3 light(vec3 nrm, float sha) {
 }
 
 void main() {
+    float depth = texture(sampler2D(u_gdepth_composite, u_composite_smp), v_uv).x;
+    vec3 position = world_pos_from_depth(depth);
     vec3 albedo = texture(sampler2D(u_galbedo, u_composite_smp), v_uv).xyz;
     vec3 normal = remap(texture(sampler2D(u_gnormal_composite, u_composite_smp), v_uv).xyz);
-    float depth = texture(sampler2D(u_gdepth_composite, u_composite_smp), v_uv).x;
     float shadow = texture(sampler2D(u_gshadow, u_composite_smp), v_uv).x;
-    vec3 position = world_pos_from_depth(depth);
 
     vec3 lighting = light(normal, shadow);
-
     out_colour = vec4(gamma(lighting * albedo), 1.0);
 }
 
 @end
 
 @program composite vs_composite fs_composite
+
+// Skybox
+@vs vs_skybox
+
+layout(binding=0) uniform vs_params_skybox {
+    mat4 u_vp;
+    vec3 u_pos;
+};
+
+in vec3 a_pos;
+in vec3 a_nrm;
+in vec2 a_uv;
+
+out vec4 v_pos;
+out vec3 v_nrm;
+out vec2 v_uv;
+
+void main() {
+    vec4 m = vec4(a_pos + u_pos, 1.0);
+
+    v_pos = m;
+    v_nrm = a_nrm;
+    v_uv = a_uv;
+
+    gl_Position = u_vp * m;
+}
+@end 
+
+@fs fs_skybox
+
+in vec4 v_pos;
+in vec3 v_nrm;
+in vec2 v_uv;
+
+layout(location=0) out vec4 out_skybox;
+
+void main() {
+    out_skybox = vec4(normalize(v_pos.xyz), 1.0);
+}
+@end 
+
+@program skybox vs_skybox fs_skybox
 
 // Effects
 @vs vs_effects
@@ -261,7 +300,8 @@ layout(binding=0) uniform sampler u_effects_smp;
 layout(binding=0) uniform texture2D u_colour;
 layout(binding=1) uniform texture2D u_gnormal_effects;
 layout(binding=2) uniform texture2D u_gdepth_effects;
-layout(binding=3) uniform texture2D u_ssao_noise;
+layout(binding=3) uniform texture2D u_skybox;
+layout(binding=4) uniform texture2D u_ssao_noise;
 
 layout(binding=0) uniform fs_params_effects {
     vec4 u_ssao_samples[64];
@@ -291,6 +331,7 @@ vec3 world_pos_from_depth(float d) {
 
 void main() {
     vec4 colour = texture(sampler2D(u_colour, u_effects_smp), v_uv);
+    vec4 skybox = texture(sampler2D(u_skybox, u_effects_smp), v_uv);
     vec3 normal = remap(texture(sampler2D(u_gnormal_effects, u_effects_smp), v_uv).xyz);
     float depth = texture(sampler2D(u_gdepth_effects, u_effects_smp), v_uv).x;
     vec3 random = vec3(texture(sampler2D(u_ssao_noise, u_effects_smp), v_uv * noise_scale).xy, 0.0);
@@ -323,8 +364,12 @@ void main() {
     // frag_col += vec4(frag_position, 1.0);
     // frag_col += vec4(frag_normal, 1.0);
 
-    frag_col = colour;
-    frag_col += vec4(vec3(occlusion), 1.0) * 0.0000001;
+    if (any(greaterThan(colour.xyz, vec3(0.0)))) {
+        frag_col = colour;
+        frag_col += vec4(vec3(occlusion), 1.0) * 0.0000001;
+    } else {
+        frag_col = vec4(skybox.xyz, 1.0);
+    }
 }
 @end 
 

@@ -12,8 +12,10 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     sg_destroy_image(cr->targets.shadow);
     sg_destroy_image(cr->targets.shadowmap);
     sg_destroy_image(cr->targets.colour);
+    sg_destroy_image(cr->targets.skybox);
     sg_destroy_image(cr->targets.zbuf);
     sg_destroy_image(cr->targets.zbuf_shadow);
+    sg_destroy_image(cr->targets.zbuf_skybox);
     sg_destroy_image(cr->targets.zbuf_composite);
 
     sg_destroy_view(cr->shadowmap_base.pass.attachments.colors[0]);
@@ -23,6 +25,8 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[2]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.colors[3]);
     sg_destroy_view(cr->offscreen_base.pass.attachments.depth_stencil);
+    sg_destroy_view(cr->skybox_base.pass.attachments.colors[0]);
+    sg_destroy_view(cr->skybox_base.pass.attachments.depth_stencil);
     sg_destroy_view(cr->composite_base.pass.attachments.colors[0]);
     sg_destroy_view(cr->composite_base.pass.attachments.depth_stencil);
 
@@ -71,6 +75,13 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
             .height = cr->shadowmap_base.dimensions.y,
             .sample_count = 1,
         }),
+        .skybox = sg_make_image(&(sg_image_desc) {
+            .usage.color_attachment = true,
+            .pixel_format = COLOUR_PIXELFORMAT,
+            .width = dim.x,
+            .height = dim.y,
+            .sample_count = 1
+        }),
         .colour = sg_make_image(&(sg_image_desc) {
             .usage.color_attachment = true,
             .pixel_format = COLOUR_PIXELFORMAT,
@@ -90,6 +101,13 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
             .pixel_format = SG_PIXELFORMAT_DEPTH,
             .width = cr->shadowmap_base.dimensions.x,  // Do not scale shadowmap.
             .height = cr->shadowmap_base.dimensions.y,
+            .sample_count = 1,
+        }),
+        .zbuf_skybox = sg_make_image(&(sg_image_desc) {
+            .usage.depth_stencil_attachment = true,
+            .pixel_format = SG_PIXELFORMAT_DEPTH,
+            .width = dim.x,
+            .height = dim.y,
             .sample_count = 1,
         }),
         .zbuf_composite = sg_make_image(&(sg_image_desc) {
@@ -117,6 +135,15 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
         }),
         .depth_stencil = sg_make_view(&(sg_view_desc) {
             .depth_stencil_attachment = { .image = cr->targets.zbuf_shadow }
+        })
+    };
+
+    cr->skybox_base.pass.attachments = (sg_attachments) {
+        .colors[0] = sg_make_view(&(sg_view_desc) {
+            .color_attachment = { .image = cr->targets.skybox }
+        }),
+        .depth_stencil = sg_make_view(&(sg_view_desc) {
+            .depth_stencil_attachment = { .image = cr->targets.zbuf_skybox }
         })
     };
 
@@ -177,6 +204,9 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     cr->effects_base.bind.views[VIEW_u_gdepth_effects] = sg_make_view(&(sg_view_desc) {
         .texture = { .image = cr->targets.depth }
     });
+    cr->effects_base.bind.views[VIEW_u_skybox] = sg_make_view(&(sg_view_desc) {
+        .texture = { .image = cr->targets.skybox }
+    });
     cr->effects_base.bind.views[VIEW_u_ssao_noise] = sg_make_view(&(sg_view_desc) {
         .texture = { .image = cr->info.ssao_noise_image }
     });
@@ -187,6 +217,7 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
     rbase_init(&cr->offscreen_base, desc->base_desc);
     rbase_init(&cr->composite_base, desc->base_desc);
     rbase_init(&cr->effects_base, desc->base_desc);
+    rbase_init(&cr->skybox_base, desc->base_desc);
     rbase_init(&cr->shadowmap_base, desc->shadowmap_base_desc);
 
     cr->info.sun_dir = desc->sun_dir;
@@ -222,7 +253,7 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         .colors = { 
             [0] = {
                 .load_action = SG_LOADACTION_CLEAR,
-                .clear_value = 1.0,
+                .clear_value = 1.0
             }
         },
         .depth = {
@@ -257,19 +288,19 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         .colors = {
             [0] = { 
                 .load_action = SG_LOADACTION_CLEAR,
-                .clear_value = { 0.0, 0.0, 0.0, 1.0 }
+                .clear_value = { 0.0, 0.0, 0.0, 0.0 },
             },
             [1] = { 
                 .load_action = SG_LOADACTION_CLEAR,
-                .clear_value = { 0.0, 0.0, 0.0, 1.0 }
+                .clear_value = { 0.0, 0.0, 0.0, 0.0 }
             },
             [2] = { 
                 .load_action = SG_LOADACTION_CLEAR,
-                .clear_value = { 0.0, 0.0, 0.0, 1.0 }
+                .clear_value = { 0.0, 0.0, 0.0, 0.0 }
             },
             [3] = { 
                 .load_action = SG_LOADACTION_CLEAR,
-                .clear_value = { 0.0, 0.0, 0.0, 1.0 }
+                .clear_value = { 0.0, 0.0, 0.0, 0.0 }
             },
         },
         .depth = {
@@ -299,6 +330,100 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         },
     });
 
+    // Skybox pass
+    cr->skybox_base.pass.action = (sg_pass_action) {
+        .colors = {
+            [0] = { 
+                .load_action = SG_LOADACTION_CLEAR,
+                .clear_value = { 1.0, 1.0, 0.0, 1.0 },
+            }
+        },
+        .depth = {
+            .load_action = SG_LOADACTION_CLEAR,
+            .clear_value = 1.0
+        }
+    };
+
+    // Skybox pipeline
+    cr->skybox_base.pip = sg_make_pipeline(&(sg_pipeline_desc) {
+        .shader = sg_make_shader(skybox_shader_desc(sg_query_backend())),
+        .layout = {
+            .attrs = {
+                [ATTR_skybox_a_pos] = { .format = SG_VERTEXFORMAT_FLOAT3 },
+                [ATTR_skybox_a_nrm] = { .format = SG_VERTEXFORMAT_FLOAT3 },
+                [ATTR_skybox_a_uv]  = { .format = SG_VERTEXFORMAT_FLOAT2 }
+            }
+        },
+        .index_type = SG_INDEXTYPE_UINT16,
+        .cull_mode = SG_CULLMODE_BACK,
+        .sample_count = 1,
+        .color_count = 1,
+        .colors = {
+            [0].pixel_format = COLOUR_PIXELFORMAT
+        },
+        .depth = {
+            .pixel_format = SG_PIXELFORMAT_DEPTH,
+            .compare = SG_COMPAREFUNC_LESS_EQUAL,
+            .write_enabled = true
+        },
+    });
+
+    const float DIM = 100.0;
+    skybox_vertex_t skybox_verts[] = { 
+        { .pos = VEC3(-DIM, -DIM, -DIM), .nrm = VEC3( 0.0,  0.0,  1.0), .uv = VEC2(0.0, 0.0) },
+        { .pos = VEC3( DIM, -DIM, -DIM), .nrm = VEC3( 0.0,  0.0,  1.0), .uv = VEC2(1.0, 0.0) },
+        { .pos = VEC3( DIM,  DIM, -DIM), .nrm = VEC3( 0.0,  0.0,  1.0), .uv = VEC2(1.0, 1.0) },
+        { .pos = VEC3(-DIM,  DIM, -DIM), .nrm = VEC3( 0.0,  0.0,  1.0), .uv = VEC2(0.0, 1.0) },
+        { .pos = VEC3( DIM, -DIM,  DIM), .nrm = VEC3( 0.0,  0.0, -1.0), .uv = VEC2(0.0, 0.0) },
+        { .pos = VEC3(-DIM, -DIM,  DIM), .nrm = VEC3( 0.0,  0.0, -1.0), .uv = VEC2(1.0, 0.0) },
+        { .pos = VEC3(-DIM,  DIM,  DIM), .nrm = VEC3( 0.0,  0.0, -1.0), .uv = VEC2(1.0, 1.0) },
+        { .pos = VEC3( DIM,  DIM,  DIM), .nrm = VEC3( 0.0,  0.0, -1.0), .uv = VEC2(0.0, 1.0) },
+        { .pos = VEC3(-DIM, -DIM,  DIM), .nrm = VEC3( 1.0,  0.0,  0.0), .uv = VEC2(0.0, 0.0) },
+        { .pos = VEC3(-DIM, -DIM, -DIM), .nrm = VEC3( 1.0,  0.0,  0.0), .uv = VEC2(1.0, 0.0) },
+        { .pos = VEC3(-DIM,  DIM, -DIM), .nrm = VEC3( 1.0,  0.0,  0.0), .uv = VEC2(1.0, 1.0) },
+        { .pos = VEC3(-DIM,  DIM,  DIM), .nrm = VEC3( 1.0,  0.0,  0.0), .uv = VEC2(0.0, 1.0) },
+        { .pos = VEC3( DIM, -DIM, -DIM), .nrm = VEC3(-1.0,  0.0,  0.0), .uv = VEC2(0.0, 0.0) },
+        { .pos = VEC3( DIM, -DIM,  DIM), .nrm = VEC3(-1.0,  0.0,  0.0), .uv = VEC2(1.0, 0.0) },
+        { .pos = VEC3( DIM,  DIM,  DIM), .nrm = VEC3(-1.0,  0.0,  0.0), .uv = VEC2(1.0, 1.0) },
+        { .pos = VEC3( DIM,  DIM, -DIM), .nrm = VEC3(-1.0,  0.0,  0.0), .uv = VEC2(0.0, 1.0) },
+        { .pos = VEC3(-DIM, -DIM,  DIM), .nrm = VEC3( 0.0,  1.0,  0.0), .uv = VEC2(0.0, 0.0) },
+        { .pos = VEC3( DIM, -DIM,  DIM), .nrm = VEC3( 0.0,  1.0,  0.0), .uv = VEC2(1.0, 0.0) },
+        { .pos = VEC3( DIM, -DIM, -DIM), .nrm = VEC3( 0.0,  1.0,  0.0), .uv = VEC2(1.0, 1.0) },
+        { .pos = VEC3(-DIM, -DIM, -DIM), .nrm = VEC3( 0.0,  1.0,  0.0), .uv = VEC2(0.0, 1.0) },
+        { .pos = VEC3(-DIM,  DIM, -DIM), .nrm = VEC3( 0.0, -1.0,  0.0), .uv = VEC2(0.0, 0.0) },
+        { .pos = VEC3( DIM,  DIM, -DIM), .nrm = VEC3( 0.0, -1.0,  0.0), .uv = VEC2(1.0, 0.0) },
+        { .pos = VEC3( DIM,  DIM,  DIM), .nrm = VEC3( 0.0, -1.0,  0.0), .uv = VEC2(1.0, 1.0) },
+        { .pos = VEC3(-DIM,  DIM,  DIM), .nrm = VEC3( 0.0, -1.0,  0.0), .uv = VEC2(0.0, 1.0) }
+    };
+    uint16_t skybox_indices[] = {
+        0, 2, 1,
+        0, 3, 2,
+        4, 6, 5,
+        4, 7, 6,
+        8, 10, 9,
+        8, 11, 10,
+        12, 14, 13,
+        12, 15, 14,
+        16, 18, 17,
+        16, 19, 18,
+        20, 22, 21,
+        20, 23, 22
+    };
+    ENGINE_LOG_WARN("Before binding.\n", NULL);
+    cr->skybox_base.bind.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
+        .data = SG_RANGE(skybox_verts),
+        .usage = {
+            .vertex_buffer = true,
+        }
+    });
+    cr->skybox_base.bind.index_buffer = sg_make_buffer(&(sg_buffer_desc) {
+        .data = SG_RANGE(skybox_indices),
+        .usage = {
+            .index_buffer = true,
+        }
+    });
+    ENGINE_LOG_WARN("After binding.\n", NULL);
+
     // Composite pipeline 
     cr->composite_base.pip = sg_make_pipeline(&(sg_pipeline_desc) {
         .shader = sg_make_shader(composite_shader_desc(sg_query_backend())),
@@ -316,7 +441,12 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         },
     });
 
-    float quad_verts[] = { 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0 };
+    float quad_verts[] = { 
+        0.0, 0.0,
+        1.0, 0.0,
+        0.0, 1.0,
+        1.0, 1.0
+    };
     cr->composite_base.bind.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
         .data = SG_RANGE(quad_verts)
     });
@@ -539,7 +669,31 @@ static void _render_composite_pass(chunk_renderer_t *cr)
     INSTRUMENT_FUNC_END();
 }
 
-void _render_effects_pass(chunk_renderer_t *cr) 
+static void _render_skybox_pass(chunk_renderer_t *cr)
+{
+    INSTRUMENT_FUNC_BEGIN();
+    renderer_base_t *rb = &cr->skybox_base;
+
+    sg_begin_pass(&rb->pass);
+
+    vs_params_skybox_t vs_params = {
+        .u_pos = cr->skybox_base.cam->pos,
+        .u_vp = cr->skybox_base.cam->vp
+    };
+
+    sg_apply_pipeline(rb->pip);
+    sg_apply_bindings(&rb->bind);
+
+    sg_apply_uniforms(UB_vs_params_skybox, &SG_RANGE(vs_params));
+
+    // Render the skybox cube
+    sg_draw(0, 6 * 6, 1);
+
+    sg_end_pass();
+    INSTRUMENT_FUNC_END();
+}
+
+static void _render_effects_pass(chunk_renderer_t *cr) 
 {
     INSTRUMENT_FUNC_BEGIN();
     renderer_base_t *rb = &cr->effects_base;
@@ -555,7 +709,6 @@ void _render_effects_pass(chunk_renderer_t *cr)
     fs_params_effects_t fs_params = {
         .u_inv_vp = em_inverse_mat4(cr->offscreen_base.cam->vp),
         .u_proj = cr->offscreen_base.cam->proj,
-        // .u_proj = cr->offscreen_base.cam->vp,
         .u_view = cr->offscreen_base.cam->view
     };
     memcpy(fs_params.u_ssao_samples, cr->info.ssao_kernel, sizeof(cr->info.ssao_kernel));
@@ -590,5 +743,6 @@ void chunk_renderer_render_all(chunk_renderer_t *cr)
     _render_shadowmap_pass(cr);
     _render_offscreen_pass(cr);
     _render_composite_pass(cr);
+    _render_skybox_pass(cr);
     _render_effects_pass(cr);
 }

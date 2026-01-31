@@ -10,7 +10,6 @@
 
 #define CHUNK_SIZE 16 
 #define CHUNK_HEIGHT 128
-#define SUBCHUNK_HEIGHT 16
 
 typedef struct offset {
     uint16_t v_ofst;
@@ -29,12 +28,11 @@ typedef struct packed_vertex {
     uint8_t xo; // 5:x, 3:o
     uint8_t y;  // 8:y
     uint8_t zn; // 5:z, 3:n
-    uint8_t t;  // 4:u, r:v
+    uint8_t t;  // 4:u, 4:v
 } packed_vertex_t;
 
 typedef struct chunk_data {
 	uint8_t types[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE];
-    uint8_t edited_subchunk;
     bool edited;
 } chunk_data_t;
 

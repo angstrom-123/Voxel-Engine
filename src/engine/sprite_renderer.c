@@ -67,7 +67,7 @@ void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *d
         .action = {
             .colors[0] = {
                 .load_action = SG_LOADACTION_LOAD,
-                .clear_value = { 1.0, 0.0, 1.0, 1.0 }
+                .clear_value = { 0.0, 0.0, 0.0, 1.0 }
             }
         },
         .label = "sprites-pass"
