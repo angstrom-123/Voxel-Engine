@@ -221,6 +221,7 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
     rbase_init(&cr->shadowmap_base, desc->shadowmap_base_desc);
 
     cr->info.sun_dir = desc->sun_dir;
+    cr->info.view_distance = desc->view_distance;
 
     // Inits the render targets and attachment views for the offscreen pass.
     chunk_renderer_resize(cr, desc->base_desc->dimensions);
@@ -368,7 +369,7 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         },
     });
 
-    const float DIM = 100.0;
+    const float DIM = 400.0;
     skybox_vertex_t skybox_verts[] = { 
         { .pos = VEC3(-DIM, -DIM, -DIM), .nrm = VEC3( 0.0,  0.0,  1.0), .uv = VEC2(0.0, 0.0) },
         { .pos = VEC3( DIM, -DIM, -DIM), .nrm = VEC3( 0.0,  0.0,  1.0), .uv = VEC2(1.0, 0.0) },
@@ -652,6 +653,7 @@ static void _render_composite_pass(chunk_renderer_t *cr)
     sg_begin_pass(&rb->pass);
 
     fs_params_composite_t fs_params = {
+        .u_view_distance = cr->info.view_distance,
         .u_inv_vp = em_inverse_mat4(cr->offscreen_base.cam->vp),
         .u_sun_dir = cr->info.sun_dir,
         .u_eye_pos = cr->offscreen_base.cam->pos
@@ -677,14 +679,19 @@ static void _render_skybox_pass(chunk_renderer_t *cr)
     sg_begin_pass(&rb->pass);
 
     vs_params_skybox_t vs_params = {
-        .u_pos = cr->skybox_base.cam->pos,
+        .u_pos = em_add_vec3(cr->skybox_base.cam->pos, VEC3(0.0, 0.0, 0.0)),
         .u_vp = cr->skybox_base.cam->vp
+    };
+
+    fs_params_skybox_t fs_params = {
+        .u_sun_dir = cr->info.sun_dir,
     };
 
     sg_apply_pipeline(rb->pip);
     sg_apply_bindings(&rb->bind);
 
     sg_apply_uniforms(UB_vs_params_skybox, &SG_RANGE(vs_params));
+    sg_apply_uniforms(UB_fs_params_skybox, &SG_RANGE(fs_params));
 
     // Render the skybox cube
     sg_draw(0, 6 * 6, 1);

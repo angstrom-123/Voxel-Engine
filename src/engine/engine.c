@@ -124,7 +124,8 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
     render_sys_init(&engine->_render_sys, &(render_system_desc_t) {
         .es = &engine->_event_sys,
         .window_size = VEC2(sapp_width(), sapp_height()),
-        .view_distance = desc->render_distance * 50.0,
+        .view_distance = desc->render_distance * 10.0,
+        .max_distance = desc->render_distance * 100.0,
         .shadow_scale = 4.0,
         .inv_sun_dir = em_mul_vec3_f(desc->base_sun_dir, -1.0)
     });
@@ -316,7 +317,6 @@ void engine_tick(engine_t *engine)
     uint64_t time = atomic_fetch_add(&engine->meta.world.time, 1);
     uint64_t max = engine->meta.world.max_time;
     float t = (float) (time % max) / max;
-    float lerp = em_clamp((t * t * (3.0 - 2.0 * t)) * 360.0, 0.0, 359.0);
-    vec3 sun_dir = em_rotate_vec3(engine->meta.world.base_sun_dir, lerp, VEC3(1.0, 0.1, 0.2));
+    vec3 sun_dir = em_rotate_vec3(engine->meta.world.base_sun_dir, t * 360.0, VEC3(1.0, 0.1, 0.2));
     engine->_render_sys.chunk_renderer.info.sun_dir = sun_dir;
 }

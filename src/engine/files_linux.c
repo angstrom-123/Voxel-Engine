@@ -8,8 +8,6 @@ bool _file_exists_linux(linux_file_t *file)
         fclose(fptr);
         return true;
     }
-
-    RUNTIME_ASSERT(errno == ENOENT, "File open error must be 'not exists'");
     return false;
 }
 

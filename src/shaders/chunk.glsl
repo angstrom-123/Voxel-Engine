@@ -182,6 +182,7 @@ layout(binding=1) uniform fs_params_composite {
     mat4 u_inv_vp;
     vec3 u_sun_dir;
     vec3 u_eye_pos;
+    float u_view_distance;
 };
 
 in vec2 v_uv;
@@ -204,13 +205,6 @@ vec3 gamma(vec3 c) {
 }
 
 vec3 light(vec3 nrm, float sha) {
-    float night_ambient = 0.2;
-    float day_ambient = 0.5;
-    float sun_dot_up = dot(u_sun_dir, vec3(0.0, 1.0, 0.0));
-    float sun_strength = sun_dot_up > 0.0 ? mix(0.0, 1.0, sun_dot_up) : 0.0;
-
-    vec3 sun_tint = vec3(1.0, vec2(max(abs(sun_dot_up), 0.3)));
-
     vec3 l = normalize(u_sun_dir);
     vec3 n = normalize(nrm);
     float n_dot_l = dot(n, l);
@@ -221,18 +215,31 @@ vec3 light(vec3 nrm, float sha) {
         diffuse = clamp(n_dot_l * s, 0.0, 0.5);
     }
 
-    return vec3(diffuse + day_ambient) * (sun_tint * vec3(max(sun_strength, night_ambient)));
+    float sun_dot_up = dot(u_sun_dir, vec3(0.0, 1.0, 0.0));
+
+    vec3 sun_tint = vec3(1.0);
+    float sun_strength = max(sun_dot_up, 0.3);
+    float day_ambient = 0.5;
+
+    return vec3((diffuse + day_ambient) * sun_tint * sun_strength);
 }
 
 void main() {
     float depth = texture(sampler2D(u_gdepth_composite, u_composite_smp), v_uv).x;
     vec3 position = world_pos_from_depth(depth);
-    vec3 albedo = texture(sampler2D(u_galbedo, u_composite_smp), v_uv).xyz;
+    vec4 albedo = texture(sampler2D(u_galbedo, u_composite_smp), v_uv);
     vec3 normal = remap(texture(sampler2D(u_gnormal_composite, u_composite_smp), v_uv).xyz);
     float shadow = texture(sampler2D(u_gshadow, u_composite_smp), v_uv).x;
 
     vec3 lighting = light(normal, shadow);
-    out_colour = vec4(gamma(lighting * albedo), 1.0);
+    vec3 corrected = vec3(gamma(lighting * albedo.xyz));
+
+    float dist = length(position - u_eye_pos);
+    float rem = (u_view_distance - dist) / 10.0;
+    out_colour = vec4(corrected, 1.0);
+    if (albedo.a == 1.0 && rem <= 1.0) {
+        out_colour.a *= rem;
+    }
 }
 
 @end
@@ -254,6 +261,7 @@ in vec2 a_uv;
 out vec4 v_pos;
 out vec3 v_nrm;
 out vec2 v_uv;
+out vec3 v_view_pos;
 
 void main() {
     vec4 m = vec4(a_pos + u_pos, 1.0);
@@ -261,6 +269,7 @@ void main() {
     v_pos = m;
     v_nrm = a_nrm;
     v_uv = a_uv;
+    v_view_pos = u_pos;
 
     gl_Position = u_vp * m;
 }
@@ -268,14 +277,122 @@ void main() {
 
 @fs fs_skybox
 
+layout(binding=1) uniform fs_params_skybox {
+    vec3 u_sun_dir;
+};
+
 in vec4 v_pos;
 in vec3 v_nrm;
 in vec2 v_uv;
+in vec3 v_view_pos;
 
 layout(location=0) out vec4 out_skybox;
 
-void main() {
-    out_skybox = vec4(normalize(v_pos.xyz), 1.0);
+#define PI (3.14159265)
+#define EARTH_RADIUS (6370997.0)
+
+const float kOuterRadius = EARTH_RADIUS * 1.025;
+const float kOuterRadius2 = kOuterRadius * kOuterRadius;
+const float kInnerRadius = EARTH_RADIUS;
+const float kInnerRadius2 = kInnerRadius * kInnerRadius;
+const float kCameraHeight = 0.0001;
+
+const float kScale = 1.0 / (kOuterRadius - kInnerRadius);
+const float kScaleDepth = 0.25;
+const float kScaleOverScaleDepth = kScale / kScaleDepth;
+
+const float kRAYLEIGH = 0.005;
+const float kMIE = 0.01;
+
+const float kR4PI = kRAYLEIGH * 4.0 * PI;
+
+const vec3 k_lambda_variance = vec3(0.0, 0., 0.);
+const vec3 k_lambda = vec3(0.65, .57, 0.475) - k_lambda_variance;
+
+const float kM4PI = kMIE * 4.0 * PI;
+
+const float mie_g = -0.99;
+const float mie_g2 = mie_g * mie_g;
+
+float saturate(float x) {
+    return clamp(x, 0.0, 1.0);
+}
+
+vec3 saturate(vec3 x) {
+    return clamp(x, vec3(0.0), vec3(1.0));
+}
+
+float rayleigh_phase(float cos2) {
+    return 0.75 * (1.0 + cos2);
+}
+
+float mie_phase(float c, float cos2) {
+    float temp = 1.0 + mie_g2 - 2.0 * mie_g * c;
+    temp = smoothstep(0.0, 0.01, temp) * temp;
+    temp = max(temp, 0.0001);
+    return 1.5 * ((1.0 - mie_g2) / (2.0 + mie_g2)) * (1.0 + cos2) / temp;
+}
+
+float scale(float inCos) {
+    float x = 1.0 - inCos;
+    return 0.25 * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
+}
+
+vec3 renderSky(vec3 viewDir, vec3 lightDir) {
+    float height = kInnerRadius + kCameraHeight;
+    vec3 cameraPos = vec3(0.0, height, 0.0);
+    
+    float depth = exp(kScaleOverScaleDepth * (-kCameraHeight));
+    float startAngle = dot(viewDir, cameraPos) / height;
+    float startAngleScale = scale(startAngle);
+    float startOffset = depth * startAngleScale;
+    
+	float far = sqrt(kOuterRadius2 + kInnerRadius2 * viewDir.y * viewDir.y - kInnerRadius2) - kInnerRadius * viewDir.y;
+
+	vec3 pos = cameraPos + far * viewDir;
+    
+	float sampleLength = far / 2.0;
+	float scaledLength = sampleLength * kScale;
+	vec3 sampleRay = viewDir * sampleLength;
+	vec3 samplePoint = cameraPos + sampleRay * 0.5;
+    
+    vec3 invLambda = pow(k_lambda, vec3(-4.0));
+    vec3 front = vec3(0.0);
+    
+    float brightness = 20.0;
+    const float range = 0.1;
+    for (int i = 0; i < 1; ++i) {
+        float height = length(samplePoint);
+		float depth = exp(kScaleOverScaleDepth * (kInnerRadius - height));
+        float lightAngle = dot(lightDir, samplePoint) / height;
+		float cameraAngle = dot(viewDir, samplePoint) / height;
+		float scatter = (startOffset + depth*(scale(lightAngle) - scale(cameraAngle)));
+        vec3 atten = exp(-clamp(scatter, 0.0, 50.0) * (invLambda * kR4PI + kM4PI));
+        
+        front += atten * (depth * scaledLength);
+        samplePoint += sampleRay;
+    }
+        
+    vec3 c1 = front * invLambda * kRAYLEIGH * brightness;
+    
+    vec3 c2 = front * kMIE * brightness;
+    
+    float eyeCos = -dot(viewDir, lightDir);
+    float eyeCos2 = eyeCos * eyeCos;
+    
+    float rayleigh = rayleigh_phase(eyeCos2);
+    float mie = mie_phase(eyeCos, eyeCos2);
+    
+    vec3 col = step(0.0, viewDir.y) * sqrt(rayleigh * c1 + mie * c2);
+    
+    return col;
+}
+
+void main()
+{
+    vec3 dir = normalize(v_pos.xyz);
+    vec3 sky = renderSky(dir, u_sun_dir);
+    out_skybox = vec4(sky, 1.0);
 }
 @end 
 
@@ -360,15 +477,11 @@ void main() {
     }
     // occlusion = 1.0 - (occlusion / kernel_size);
 
-    // frag_col = vec4(vec3(occlusion), 1.0);
-    // frag_col += vec4(frag_position, 1.0);
-    // frag_col += vec4(frag_normal, 1.0);
-
-    if (any(greaterThan(colour.xyz, vec3(0.0)))) {
-        frag_col = colour;
-        frag_col += vec4(vec3(occlusion), 1.0) * 0.0000001;
-    } else {
+    if (all(lessThan(normal, vec3(0.001))))
         frag_col = vec4(skybox.xyz, 1.0);
+    else {
+        colour.xyz = colour.xyz + vec3(occlusion * 0.0000000000001);
+        frag_col = mix(skybox, colour, colour.a);
     }
 }
 @end 

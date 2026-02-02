@@ -34,6 +34,7 @@ typedef struct render_system_desc {
     vec2 window_size;
     vec3 inv_sun_dir;
     float view_distance;
+    float max_distance;
     float shadow_scale;
 } render_system_desc_t;
 

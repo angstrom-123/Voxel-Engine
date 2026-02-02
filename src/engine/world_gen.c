@@ -1,4 +1,5 @@
 #include "world_gen.h"
+#include <math.h>
 
 shell_t _get_next_shell(shell_t *prev, ivec2 c, uint8_t **mat, size_t mp)
 {
@@ -137,6 +138,9 @@ chunk_data_t *gen_generate_chunk_data(ivec2 pos, uint32_t seed)
         {
             float p = perlin_octave_2d(seed, pos.x + xx, pos.y + zz, 0.004, 6);
             float n = (p + 1.0) / 2.0;
+            n = powf(n, 2);
+            n += 0.22;
+
             uint8_t h = floorf(n * (CHUNK_HEIGHT - 1));
 
             data->types[xx][h][zz] = CUBETYPE_GRASS;
@@ -149,5 +153,6 @@ chunk_data_t *gen_generate_chunk_data(ivec2 pos, uint32_t seed)
         }
     }
 
+    data->edited = false;
     return data;
 }

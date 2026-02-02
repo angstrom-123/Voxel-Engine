@@ -61,6 +61,7 @@ typedef struct chunk_renderer {
         vec4 ssao_kernel[SSAO_SAMPLES];
         vec2 ssao_noise_data[em_sqr(SSAO_NOISE_SCALE)];
         sg_image ssao_noise_image;
+        float view_distance;
     } info;
 } chunk_renderer_t;
 
@@ -68,6 +69,7 @@ typedef struct chunk_renderer_desc {
     const renderer_base_desc_t *base_desc;
     const renderer_base_desc_t *shadowmap_base_desc;
     vec3 sun_dir;
+    float view_distance;
 } chunk_renderer_desc_t;
 
 extern void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc);

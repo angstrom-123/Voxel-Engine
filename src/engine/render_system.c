@@ -40,7 +40,7 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     /* Cameras. */
     cam_init(&rs->cam, PROJECTION_PERSPECTIVE, &(camera_desc_t) {
         .near   = 0.1,
-        .far    = desc->view_distance,
+        .far    = desc->max_distance,
         .aspect = w / h,
         // .fov    = 60.0,
         .fov    = 80.0,
@@ -91,7 +91,8 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
             .dimensions = VEC2(1024.0, 1024.0),
             .cam = &rs->shadow_cam,
         },
-        .sun_dir = em_mul_vec3_f(desc->inv_sun_dir, -1.0)
+        .sun_dir = em_mul_vec3_f(desc->inv_sun_dir, -1.0),
+        .view_distance = desc->view_distance
     });
     chunk_renderer_load_textures(&rs->chunk_renderer);
 

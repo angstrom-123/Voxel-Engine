@@ -39,7 +39,7 @@ static void do_init(engine_t *e, app_t *a)
         .render_distance = RENDER_DISTANCE,
         .ticks_per_second = 20.0,
         .seed = 0,
-        .max_time = 24000, // 20 minute cycle @ 20tps
+        .max_time = 12000, // 10 minute cycle @ 20tps
         .base_sun_dir = em_normalize_vec3(VEC3(0.0, 1.0, 0.1))
     });
 
