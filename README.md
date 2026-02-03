@@ -1,49 +1,56 @@
-# Work In Progress!
+# A High Performance Voxel Engine Written in C (WIP)
+This work in progress is my first ever attempt at using C for a large project, making a game, and programming the GPU.
+The engine is powerful and optimized, able to run effectively on a standard laptop. Many features are already implemented,
+and many more are planned, or on the way!
 
-# A high-performance voxel engine in C
-Currently a work-in-progress, still contains many bugs and is incomplete.
-This is my first time making a non-trivial game, my first time working with the GPU, and my first serious C project. 
+# Build
+> [!IMPORTANT]
+> If testing on a laptop, make sure that cursor movement while typing is allowed.
 
-# Build and Run
-If using a trackpad, ensure that you disable any OS settings that disable your 
-mouse when typing (such as "Disable Touchpad While Typing" on Ubuntu)
+> [!NOTE]
+> Currently only Linux build is supported, with GNU Make.
 
-The build process is only set up on Linux, this will not run on Windows or MacOs. Support for other platforms will be added in the future.
-
-## Clone
-First, clone the project to a local directory using:
-```
-git clone https://github.com/angstrom-123/Voxel-Engine.git
-```
-## Build
-This project uses GNU make which is required to build. 
-To build the project, run:
+## Optimized build:
 ```
 make release
 ```
-## Run
-If successful, the executable will be placed in the output directory.
-Run the executable with:
+## Unoptimized build with logging:
 ```
-./bin/[platform]/output/Voxel-Engine-release
+make debug
 ```
-# Features
-- Infinite worlds
-- Physics for colission with world
-- Chunk mesh optimization
-- Multi-threaded engine
-- Custom linear algebra and utility library (libem)
-- Only using header-only external libraries (Sokol, Nuklear)
-- Smoothly handles 32-chunk render distance on a regular laptop
+## Optimized build emitting profiling data:
+```
+make profiling
+```
+# Run
+```
+./bin/output/Voxel-Engine-[platform]
+```
 
-# Coming Soon
-- Saving edited chunks for persistence
-- Loading world saves
-- Various graphical improvements
-- Proper Windows support
+## Subcommands
+|Subcommand|Params|Example Usage|
+|---|---|---|
+|new|-n (--name), -s (--seed)|```./bin/output/Voxel-Engine-[platform] new -n my_name -s 12345```|
+|load|-n (--name)|```./bin/output/Voxel-Engine-[platform] load -n my_name```|
+|delete|-n (--name)|```./bin/output/Voxel-Engine-[platform] delete -n my_name```|
+|rename|-n (--name), -nn (--newname)|```./bin/output/Voxel-Engine-[platform] rename -n my_name -nn my_new_name```|
+
+
+# Checklist
+- [x] Infinite Worlds
+- [x] Physics-based Movement and Colissions
+- [x] Multi-threaded Engine
+- [x] Runs on a Low-End Device
+- [x] Shadow Mapping
+- [x] Text Support
+- [x] Linux Support
+- [ ] Windows Support
+- [ ] Multiplayer
+- [ ] Cascaded Shadow Maps
 
 # Screenshots 
+<img width="1920" height="1080" alt="20260203_01h40m16s_grim" src="https://github.com/user-attachments/assets/1fea6a23-e8a3-45cc-89f9-53a5110f9455" />
+<img width="1920" height="1080" alt="20260203_01h44m43s_grim" src="https://github.com/user-attachments/assets/4478c4ee-05df-409a-bb7e-50eec73736f5" />
+<img width="1920" height="1080" alt="20260203_01h45m12s_grim" src="https://github.com/user-attachments/assets/ed67ba22-b65f-455f-81a0-295b10af80c0" />
+<img width="1920" height="1080" alt="20260203_01h45m40s_grim" src="https://github.com/user-attachments/assets/0981bbee-0d77-4dba-8915-283772103345" />
 
-<img width="1920" height="1080" alt="20251111_21h17m24s_grim" src="https://github.com/user-attachments/assets/d16f4f26-b1ac-4751-8782-507200ad9de3" />
-<img width="1920" height="1080" alt="20251111_21h18m44s_grim" src="https://github.com/user-attachments/assets/e5f49ec6-3dfa-465b-b9a8-3476a710041c" />
-<img width="1920" height="1080" alt="20251111_21h20m40s_grim" src="https://github.com/user-attachments/assets/c7649fce-31c5-4f3f-a9a7-42d91c08acad" />
