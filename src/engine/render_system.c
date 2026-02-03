@@ -1,5 +1,4 @@
 #include "render_system.h"
-#include "ui_system.h"
 
 static void _on_resize(const event_t *ev, void *args)
 {
@@ -28,7 +27,6 @@ static void _on_resize(const event_t *ev, void *args)
 
     rs->cursor_line_renderer.base.dimensions = ev->window_size;
     rs->global_line_renderer.base.dimensions = ev->window_size;
-    rs->ui_renderer.base.dimensions = ev->window_size;
     rs->sprite_renderer.base.dimensions = ev->window_size;
 }
 
@@ -67,9 +65,6 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
         .pos    = VEC3(0.0, 0.0, 0.0)
     });
     cam_set_scale(&rs->shadow_cam, desc->shadow_scale);
-
-    // TODO: Why are the shadows broken rn?
-    //       Cross reference git !!
 
     // TODO: Stop fiddling with this crap and add:
     //       Texel-perfect-alignment: Move cam in discrete steps aligning with texel,
@@ -121,10 +116,6 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     });
     sprite_renderer_load_textures(&rs->sprite_renderer);
 
-    ui_renderer_init(&rs->ui_renderer, &(ui_renderer_desc_t) {
-        .dimensions = desc->window_size,
-    });
-
     /* Resize event hook. */
     event_sys_subscribe_to_event(desc->es, EVENT_RESIZED, &(event_subscriber_desc_t) {
         .event_cb = _on_resize,
@@ -165,11 +156,9 @@ void render_sys_cleanup(render_system_t *rs)
     line_renderer_cleanup(&rs->cursor_line_renderer);
     line_renderer_cleanup(&rs->global_line_renderer);
     sprite_renderer_cleanup(&rs->sprite_renderer);
-    ui_renderer_cleanup(&rs->ui_renderer);
 }
 
-void render_sys_render(render_system_t *rs, update_system_t *us, 
-                       load_system_t *ls, ui_system_t *uis)
+void render_sys_render(render_system_t *rs, update_system_t *us, load_system_t *ls)
 {
     /* Chunks. */
     { rs->chunk_renderer.info.chunk_data = update_sys_borrow_render_data(us);
@@ -185,12 +174,6 @@ void render_sys_render(render_system_t *rs, update_system_t *us,
 
     /* Sprites. */
     sprite_renderer_render_all(&rs->sprite_renderer);
-
-    /* UI Components. */
-    { rs->ui_renderer.ctx = snk_new_frame();
-        ui_component_t **cs = ui_sys_get_components(uis, &rs->ui_renderer.component_count);
-        rs->ui_renderer.components = cs;
-    } ui_renderer_render_all(&rs->ui_renderer);
 
     sg_commit();
 }

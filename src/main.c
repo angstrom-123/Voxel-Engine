@@ -68,8 +68,6 @@ static void cleanup(void *user_data)
     ENGINE_LOG_WARN("Cleaning up engine.\n", NULL);
     engine_cleanup(engine);
     free(engine);
-    ENGINE_LOG_WARN("Cleaning up nuklear.\n", NULL);
-    snk_shutdown();
     ENGINE_LOG_WARN("Cleaning up sokol.\n", NULL);
     sg_shutdown();
 
@@ -83,7 +81,6 @@ static void event(const sapp_event *event)
 {
     const event_t ev = event_sys_convert_event(event);
     engine_event(engine, &ev);
-    snk_handle_event(event);
 }
 
 struct user_data {

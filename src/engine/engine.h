@@ -8,14 +8,11 @@
 #include "render_system.h"
 #include "tick_system.h"
 #include "update_system.h"
-#include "ui_system.h"
 #include "instrumentor.h"
-#include "console.h"
 #include "raycast.h"
 #include "camera_controller.h"
 
 #include "include_sokol.h"
-#include "include_nuklear.h"
 
 #include <stdatomic.h>
 
@@ -74,7 +71,6 @@ typedef struct engine {
     update_system_t _update_sys;
     tick_system_t _tick_sys;
     event_system_t _event_sys;
-    ui_system_t _ui_sys;
 
     struct {
         void (*subscribe_to_event)(struct engine *engine, event_type_e type,

@@ -8,17 +8,6 @@
 #include <sokol/sokol_log.h>
 #include <sokol/sokol_time.h>
 
-#define NK_INCLUDE_FIXED_TYPES
-#define NK_INCLUDE_STANDARD_IO
-#define NK_INCLUDE_DEFAULT_ALLOCATOR
-#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
-#define NK_INCLUDE_FONT_BAKING
-#define NK_INCLUDE_DEFAULT_FONT // TODO: Make custom font work.
-#define NK_INCLUDE_STANDARD_VARARGS
-#define NK_IMPLEMENTATION
-#include <nuklear/nuklear.h>
-#include <sokol/sokol_nuklear.h>
-
 #define EM_MATH_IMPL
 #include <libem/em_math.h>
 

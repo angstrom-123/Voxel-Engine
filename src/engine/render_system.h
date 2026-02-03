@@ -4,8 +4,6 @@
 #include "logger.h"
 #include "camera.h"
 #include "event_system.h"
-#include "ui_renderer.h"
-#include "ui_system.h"
 #include "load_system.h"
 #include "line_renderer.h"
 #include "sprite_renderer.h"
@@ -25,7 +23,6 @@ typedef struct render_system {
     line_renderer_t cursor_line_renderer;
     line_renderer_t global_line_renderer;
     sprite_renderer_t sprite_renderer;
-    ui_renderer_t ui_renderer;
     bool cursor_active;
 } render_system_t;
 
@@ -40,7 +37,6 @@ typedef struct render_system_desc {
 
 extern void render_sys_init(render_system_t *rs, const render_system_desc_t *desc);
 extern void render_sys_cleanup(render_system_t *rs);
-extern void render_sys_render(render_system_t *rs, update_system_t *us, 
-                              load_system_t *ls, ui_system_t *uis);
+extern void render_sys_render(render_system_t *rs, update_system_t *us, load_system_t *ls);
 
 #endif

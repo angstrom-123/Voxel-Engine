@@ -93,14 +93,6 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
     });
     ENGINE_LOG_OK("Setup sokol gfx.\n", NULL);
 
-    snk_setup(&(snk_desc_t) {
-        .enable_set_mouse_cursor = false,
-        .dpi_scale = sapp_dpi_scale(),
-        .logger.func = slog_func,
-        .no_default_font = false
-    });
-    ENGINE_LOG_OK("Setup sokol nuklear.\n", NULL);
-
     stm_setup();
     ENGINE_LOG_OK("Setup sokol time.\n", NULL);
 
@@ -130,18 +122,6 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
         .inv_sun_dir = em_mul_vec3_f(desc->base_sun_dir, -1.0)
     });
     ENGINE_LOG_OK("Setup render system.\n", NULL);
-
-    ui_sys_init(&engine->_ui_sys, &(ui_system_desc_t) {
-
-    });
-    ui_sys_add(&engine->_ui_sys, COMPONENT_CONSOLE, &(ui_component_desc_t) {
-        .ptr = console_init(&(console_desc_t) {
-            .es = &engine->_event_sys,
-        }),
-        .render_callback = console_render,
-        .visible = console_visible
-    });
-    ENGINE_LOG_OK("Setup ui system.\n", NULL);
 
     load_sys_init(&engine->_load_sys, &(load_system_desc_t) {
         .render_dist = desc->render_distance,
@@ -240,7 +220,6 @@ void engine_cleanup(engine_t *engine)
 {
     render_sys_cleanup(&engine->_render_sys);
     tick_sys_cleanup(&engine->_tick_sys);
-    ui_sys_cleanup(&engine->_ui_sys);
     event_sys_cleanup(&engine->_event_sys);
     load_sys_cleanup(&engine->_load_sys);
     chunk_sys_cleanup(&engine->_chunk_sys);
@@ -254,8 +233,7 @@ void engine_event(engine_t *engine, const event_t *event)
 
 void engine_frame(engine_t *engine, double dt)
 {
-    render_sys_render(&engine->_render_sys, &engine->_update_sys, 
-                      &engine->_load_sys, &engine->_ui_sys);
+    render_sys_render(&engine->_render_sys, &engine->_update_sys, &engine->_load_sys);
 
     atomic_fetch_add(&engine->_tick_sys.cum_dt, dt);
 
