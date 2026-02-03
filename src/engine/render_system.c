@@ -39,7 +39,7 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
 
     /* Cameras. */
     cam_init(&rs->cam, PROJECTION_PERSPECTIVE, &(camera_desc_t) {
-        .near   = 0.1,
+        .near   = 0.005,
         .far    = desc->max_distance,
         .aspect = w / h,
         // .fov    = 60.0,

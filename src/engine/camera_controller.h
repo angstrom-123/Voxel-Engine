@@ -22,12 +22,12 @@ typedef struct ctl {
     size_t time_since_grounded;
     size_t jump_cooldown;
     vec3 velocity;
-    vec3 max_velocity;
     vec3 collider_size;
     aabb_t collider;
     chunk_data_t *surrounding[3][3];
     bool surrounding_loaded;
     ivec2 surrounding_pos;
+    float max_fall_velo;
 } ctl_t;
 
 typedef struct ctl_desc {
@@ -40,8 +40,8 @@ typedef struct ctl_desc {
     float air_accel;
     float turn_speed;
     float gravity;
-    vec3 max_velocity;
     vec3 collider_size;
+    float max_fall_velo;
 } ctl_desc_t;
 
 extern void ctl_init(ctl_t *cc, camera_t *cam, const ctl_desc_t *desc);

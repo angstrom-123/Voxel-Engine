@@ -31,6 +31,8 @@ typedef struct ray {
 extern bool aabb_ray_intersecting(aabb_t box, ray_t ray);
 extern bool aabb_intersecting_depth(aabb_t box_1, aabb_t box_2, vec3 *axis, float *depth);
 extern bool aabb_intersecting(aabb_t box_1, aabb_t box_2);
+extern bool aabb_axis_overlap(vec3 axis, float min_1, float max_1, float min_2, float max_2,
+                              vec3 *min_axis, float *overlap, bool *negative);
 extern aabb_t aabb_from_voxel_coord(ivec3 coord);
 extern aabb_t aabb_with_offset(aabb_t box, vec3 offset);
 extern float interval_size(interval_t interval);

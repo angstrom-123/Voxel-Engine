@@ -52,7 +52,8 @@ static void do_init(engine_t *e, app_t *a)
         .air_accel      = 10.0,
         .turn_speed     = 0.04,
         .gravity        = -38.0,
-        .collider_size  = VEC3(0.3, 1.7, 0.3)
+        .collider_size  = VEC3(0.3, 1.7, 0.3),
+        .max_fall_velo  = -20.0
     });
 
     e->meta.cursor.range = 10.0;

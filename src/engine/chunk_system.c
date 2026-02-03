@@ -71,12 +71,8 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         if (!cd)
             break;
 
-        _LOG("RUNTIME", COL_NRM, "Unloading at pointer: %p, pos: %i %i, edited: %s", 
-             cd, r->pos.x, r->pos.y, (cd != NULL) ? ((cd->edited) ? "True" : "False") : "NULL");
-
         if (cd->edited && cs->world_dir_path[0] != '\0')
         {
-            _LOG("RUNTIME", COL_NRM, "Encoding a chunk rn", NULL);
             ENGINE_LOG_OK("Encoding a chunk at %i %i", r->pos.x, r->pos.y);
             char file_name[STD_BUFLEN] = {0};
             char file_path[STD_BUFLEN] = {0};
@@ -273,7 +269,6 @@ void chunk_sys_cleanup(chunk_system_t *cs)
     {
         em_hashmap_entry_t *e = it->get(it);
         ivec2 *pos = e->key;
-        ENGINE_LOG_WARN("Unloading at %i %i in cleanup.\n", pos->x, pos->y);
         cs->requests->enqueue(cs->requests, (cs_request_t) {
             .type = CSREQ_UNLOAD,
             .pos = *pos

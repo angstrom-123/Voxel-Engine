@@ -37,8 +37,8 @@ bool aabb_intersecting(aabb_t a, aabb_t b)
            a.z.min <= b.z.max && a.z.max >= b.z.min;
 }
 
-static bool _axis_overlap(vec3 ax, float ami, float ama, float bmi, float bma, 
-                          vec3 *mtv_ax, float *mtv_dist, bool *neg)
+bool aabb_axis_overlap(vec3 ax, float ami, float ama, float bmi, float bma, 
+                       vec3 *mtv_ax, float *mtv_dist, bool *neg)
 {
     float lensq = em_length_squared_vec3(ax);
 
@@ -65,11 +65,16 @@ bool aabb_intersecting_depth(aabb_t a, aabb_t b, vec3 *ax, float *d)
     vec3 axis;
     float dist = INF;
     bool neg;
-    if (!_axis_overlap(VEC3(1.0, 0.0, 0.0), a.x.min, a.x.max, b.x.min, b.x.max, &axis, &dist, &neg))
+    if (!aabb_axis_overlap(VEC3(1.0, 0.0, 0.0), a.x.min, a.x.max, b.x.min, b.x.max, 
+                           &axis, &dist, &neg))
         return false;
-    if (!_axis_overlap(VEC3(0.0, 1.0, 0.0), a.y.min, a.y.max, b.y.min, b.y.max, &axis, &dist, &neg))
+
+    if (!aabb_axis_overlap(VEC3(0.0, 1.0, 0.0), a.y.min, a.y.max, b.y.min, b.y.max, 
+                           &axis, &dist, &neg))
         return false;
-    if (!_axis_overlap(VEC3(0.0, 0.0, 1.0), a.z.min, a.z.max, b.z.min, b.z.max, &axis, &dist, &neg))
+
+    if (!aabb_axis_overlap(VEC3(0.0, 0.0, 1.0), a.z.min, a.z.max, b.z.min, b.z.max, 
+                           &axis, &dist, &neg))
         return false;
 
     // _axis_overlap returns dist as a squared length.

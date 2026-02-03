@@ -123,47 +123,60 @@ static void _ground_check(ctl_t *cc, camera_t *cam, float epsilon)
     cc->time_grounded = 0;
 }
 
-static vec3 _resolve_collision(ctl_t *cc, vec3 next_pos)
+static vec3 _resolve_collision(ctl_t *cc, vec3 curr_pos, vec3 move)
 {
-    aabb_t next_coll = aabb_with_offset(cc->collider, next_pos);
-
-    ivec3 next_voxel;
+    ivec3 curr_voxel;
     cube_type_e surr[3][4][3];
-    _get_surrounding_voxels(next_pos, cc->surrounding_pos,  cc->surrounding, surr, 4, &next_voxel);
+    _get_surrounding_voxels(curr_pos, cc->surrounding_pos,  cc->surrounding, surr, 4, &curr_voxel);
 
-    /*
-     * Check collision against block underneath player first.
-     * This ensures that the player is resolved upwards first, so they do not 
-     * hit the side of other blocks that are in the ground which would zero
-     * the players horizontal velocity when jumping around quickly.
-     */
-    ivec3 coord = em_add_ivec3(next_voxel, IVEC3(0, -2, 0));
-    aabb_t block = aabb_from_voxel_coord(coord);
-    vec3 ax;
-    float d;
-    if (surr[1][0][1] != CUBETYPE_AIR && aabb_intersecting_depth(next_coll, block, &ax, &d))
+    // TODO: 
+    //      - Split movement into each component
+    //      - Check collision in each component of movement first
+    //      - Zero out axis velocity if colliding 
+
+    const size_t axis_order[3] = { 1, 0, 2 };
+
+    vec3 next_pos = curr_pos;
+    for (size_t i = 0; i < 3; i++)
     {
-        d *= 1.001;
-        cc->velocity = em_mul_vec3(cc->velocity, em_sub_vec3(VEC3F(1.0), ax));
-        next_pos = em_add_vec3(next_pos, em_mul_vec3_f(ax, d));
-        next_coll = aabb_with_offset(cc->collider, next_pos);
-    }
+        size_t axis = axis_order[i];
+        next_pos.elements[axis] += move.elements[axis];
 
-    // Check collision against all potential blocks the player could touch.
-    for (size_t x = 0; x < 3; x++) for (size_t y = 0; y < 4; y++) for (size_t z = 0; z < 3; z++)
-    {
-        ivec3 coord = em_add_ivec3(next_voxel, IVEC3(x - 1, y - 2, z - 1));
-        aabb_t block = aabb_from_voxel_coord(coord);
+        aabb_t next_coll = aabb_with_offset(cc->collider, next_pos);
+        float axis_depth = 0.0;
+        bool collided = false;
 
-        vec3 ax;
-        float d;
-        if (surr[x][y][z] != CUBETYPE_AIR && aabb_intersecting_depth(next_coll, block, &ax, &d))
+        for (size_t x = 0; x < 3; x++)
         {
-            d *= 1.001;
-            cc->velocity = em_mul_vec3(cc->velocity, em_sub_vec3(VEC3F(1.0), ax));
-            next_pos = em_add_vec3(next_pos, em_mul_vec3_f(ax, d));
-            next_coll = aabb_with_offset(cc->collider, next_pos);
+        for (size_t y = 0; y < 4; y++)
+        {
+        for (size_t z = 0; z < 3; z++)
+        {
+            ivec3 voxel_coord = em_add_ivec3(curr_voxel, IVEC3(x - 1, y - 2, z - 1));
+            aabb_t block_coll = aabb_from_voxel_coord(voxel_coord);
+
+            vec3 ax;
+            float d;
+            bool intersecting = aabb_intersecting_depth(next_coll, block_coll, &ax, &d);
+            if (surr[x][y][z] != CUBETYPE_AIR && intersecting)
+            {
+                if (em_abs(d) > em_abs(axis_depth))
+                    axis_depth = d;
+                collided = true;
+            }
         }
+        }
+        }
+
+        float resolve = 0.0;
+        if (collided)
+        {
+            const float EPSILON = 1.01;
+            resolve = axis_depth * EPSILON;
+            cc->velocity.elements[axis] = 0.0;
+        }
+
+        next_pos.elements[axis] = curr_pos.elements[axis] + move.elements[axis] + resolve;
     }
 
     return next_pos;
@@ -172,7 +185,7 @@ static vec3 _resolve_collision(ctl_t *cc, vec3 next_pos)
 void ctl_init(ctl_t *cc, camera_t *cam, const ctl_desc_t *desc)
 {
     // Shift cam down from top of collider so it doesn't clip inside ceilings when jumping.
-    const float EPSILON = 0.10;
+    const float EPSILON = 0.01;
 
     cam->pos           = desc->start_pos;
     cc->floor_friction = desc->floor_friction;
@@ -188,6 +201,7 @@ void ctl_init(ctl_t *cc, camera_t *cam, const ctl_desc_t *desc)
     cc->collider.x     = interval_around(0.0, desc->collider_size.x);
     cc->collider.y     = (interval_t) { -desc->collider_size.y + EPSILON, EPSILON };
     cc->collider.z     = interval_around(0.0, desc->collider_size.z);
+    cc->max_fall_velo  = desc->max_fall_velo;
 }
 
 void ctl_cleanup(ctl_t *cc)
@@ -278,10 +292,11 @@ void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
 
     cc->velocity = em_add_vec3(cc->velocity, em_mul_vec3_f(accel, dt));
     cc->velocity = em_mul_vec3(cc->velocity, em_sub_vec3(VEC3F(1.0), friction));
+    cc->velocity.y = em_max(cc->velocity.y, cc->max_fall_velo);
 
     // Resolve collision. NOTE: Assumes that player can't move more than 1 voxel per update.
-    vec3 next_pos = em_add_vec3(cam->pos, em_mul_vec3_f(cc->velocity, dt));
-    next_pos = _resolve_collision(cc, next_pos);
+    // vec3 next_pos = em_add_vec3(cam->pos, em_mul_vec3_f(cc->velocity, dt));
+    vec3 next_pos = _resolve_collision(cc, cam->pos, em_mul_vec3_f(cc->velocity, dt));
 
     // Update position
     cam->pos = next_pos;
