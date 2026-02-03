@@ -314,7 +314,6 @@ UINT em_hash(INT k)
 }
 void _em_hashmap_resize(em_hashmap_t *this)
 {
-    EM_LOG("Hashmap resizing.\n", NULL);
     SIZE new_size = this->size * 2;
     em_hashmap_entry_t **entries = calloc(new_size, sizeof(em_hashmap_entry_t *));
     if (!entries)

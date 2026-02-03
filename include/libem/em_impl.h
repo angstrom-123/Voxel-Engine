@@ -10,6 +10,9 @@
 #define EM_PERLIN_IMPL
 #include "em_perlin.h"
 
+#define EM_BINARY_IMPL
+#include "em_binary.h"
+
 #define EM_BMP_IMPL
 #include "em_bmp.h"
 

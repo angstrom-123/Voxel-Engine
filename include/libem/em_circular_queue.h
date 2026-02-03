@@ -204,7 +204,9 @@ void em_cq_destroy(em_circular_queue_t *this);
 
 void _em_cq_resize(em_circular_queue_t *this)
 {
-    EM_LOG("Circular Queue resizing.\n", NULL);
+    EM_LOG("Circular queue resizing is currently broken and pending fix.\n", NULL);
+    exit(1);
+
     SIZE new_size = ceilf(this->size * 1.5);
     SIZE old_size = this->size;
     SIZE difference = new_size - this->size;
@@ -220,7 +222,7 @@ void _em_cq_resize(em_circular_queue_t *this)
     if (this->_head == 0)
         return; // Since head is at 0, reallocated space is already above tail. */
 
-    /* Shift head and all entries above it to occupy new space which frees up sspace above tail. */
+    /* Shift head and all entries above it to occupy new space which frees up space above tail. */
     SIZE num_above_head = old_size - (this->_head + 1);
     memmove(&this->_entries[this->_head + difference], &this->_entries[this->_head],
             num_above_head * sizeof(em_circular_queue_node_t *));
@@ -248,12 +250,12 @@ void _cq_iter_next(em_circular_queue_iter_t *iter)
 em_circular_queue_iter_t *em_cq_iterator(em_circular_queue_t *cq)
 {
     em_circular_queue_iter_t *res = malloc(sizeof(em_circular_queue_iter_t));
-    res->has_next = cq->count > 0;
+    res->has_next = cq->count > 1;
     res->get = _cq_iter_get;
     res->next = _cq_iter_next;
     res->_curr = cq->_entries[cq->_head];
     res->_idx = cq->_head;
-    res->_cnt = 0;
+    res->_cnt = 1;
     res->_cq = cq;
     return res;
 }

@@ -128,6 +128,7 @@ bool _cq_equals(CIRCULAR_QUEUE(i) *q, const int32_t *ei, size_t len)
     for (size_t i = 0; i < len; i++)
     {
         int32_t v = *(int32_t *) it->get(it)->val;
+        it->next(it);
 
         if (v != ei[i])
         {
@@ -155,8 +156,6 @@ bool _cq_equals(CIRCULAR_QUEUE(i) *q, const int32_t *ei, size_t len)
 
             return false;
         }
-
-        it->next(it);
     }
     free(it);
 
