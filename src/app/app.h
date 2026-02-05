@@ -6,6 +6,7 @@
 #include "engine.h"
 #include "world_creation.h"
 #include "arg_parser.h"
+#include "world_gen.h"
 
 #include <stdatomic.h>
 

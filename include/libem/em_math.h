@@ -155,6 +155,10 @@ typedef em_vec4 em_quaternion;
 #define AS_UVEC3(v) (em_uvec3) { (UINT) v.x, (UINT) v.y, (UINT) v.z }
 #define AS_UVEC4(v) (em_uvec4) { (UINT) v.x, (UINT) v.y, (UINT) v.z, (UINT) v.w }
 
+#define DECOMPOSE_2(v) v.x, v.y
+#define DECOMPOSE_3(v) v.x, v.y, v.z
+#define DECOMPOSE_4(v) v.x, v.y, v.z, v.w
+
 bool em_equals_vec3(em_vec3 a, em_vec3 b);
 bool em_equals_vec4(em_vec4 a, em_vec4 b);
 bool em_equals_quaternion(em_quaternion a, em_quaternion b);

@@ -38,9 +38,9 @@ static void do_init(engine_t *e, app_t *a)
     e->api.init_systems(e, &(engine_desc_t) {
         .render_distance = RENDER_DISTANCE,
         .ticks_per_second = 20.0,
-        .seed = 0,
-        .max_time = 12000, // 10 minute cycle @ 20tps
-        .base_sun_dir = em_normalize_vec3(VEC3(0.0, 1.0, 0.1))
+        .max_time = 24000, // 10 minute cycle @ 20tps
+        .base_sun_dir = em_normalize_vec3(VEC3(0.0, 1.0, 0.1)),
+        .gen_func = generate_chunk_data
     });
 
     ctl_init(&a->camera_ctl, &e->_render_sys.cam, &(ctl_desc_t) {
@@ -78,18 +78,21 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
     {
         if (args_match(&pargs, ARGTYPE_ACTION, "help")) world_print_help();
         else RUNTIME_ASSERT(false, "Invalid arguments. Run with help command for information");
-        return;
+
+        // Sokol tries to open a window during the entrypoint, this stops it from flashing on the screen.
+        exit(0);
     }
 
     if (desc->args.argc == 1)
     {
         APP_LOG_OK("Running in default mode", NULL);
+        em_romu_duo_init(time(NULL));
         do_init(e, a);
         e->api.start_running(e, &(engine_run_desc_t) {
             .world_name = NULL,
-            .seed = 0,
+            .seed = em_romu_duo_random(),
             .time = 0,
-            .cam_pos = VEC3(0.0, 100.0, 0.0),
+            .cam_pos = VEC3(0.0, 128.0, 0.0),
             .cam_rot = QUAT(0.0, 0.0, 0.0, 1.0)
         });
 
@@ -113,7 +116,7 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
         else if (args_match(&pargs, ARGTYPE_ACTION, "delete"))
         {
             world_delete(e, name);
-            sapp_quit();
+            exit(0);
         }
         else RUNTIME_ASSERT(false, "Invalid arguments. Run with help command for information");
         return;
@@ -148,7 +151,7 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
             RUNTIME_ASSERT((name), "Name incorrectly specified for rename");
             RUNTIME_ASSERT((newname), "New name incorrectly specified for rename");
             world_rename(e, name, newname);
-            sapp_quit();
+            exit(0);
         }
         else RUNTIME_ASSERT(false, "Invalid arguments. Run with help command for information");
         return;

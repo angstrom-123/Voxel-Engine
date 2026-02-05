@@ -7,7 +7,7 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
     {
         if (cs->world_dir_path[0] == '\0') // Temporary world: Doesn't save / load chunks.
         {
-            chunk_data_t *d = gen_generate_chunk_data(r->pos, cs->seed);
+            chunk_data_t *d = cs->gen_func(r->pos, cs->seed);
             mtx_lock(&cs->genned_lock);
             cs->genned->put_ptr(cs->genned, r->pos, d);
             mtx_unlock(&cs->genned_lock);
@@ -33,7 +33,7 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         }
         else 
         {
-            d = gen_generate_chunk_data(r->pos, cs->seed);
+            d = cs->gen_func(r->pos, cs->seed);
         }
 
         mtx_lock(&cs->genned_lock);
@@ -73,7 +73,6 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
 
         if (cd->edited && cs->world_dir_path[0] != '\0')
         {
-            ENGINE_LOG_OK("Encoding a chunk at %i %i", r->pos.x, r->pos.y);
             char file_name[STD_BUFLEN] = {0};
             char file_path[STD_BUFLEN] = {0};
             chunk_file_name(r->pos, file_name);
@@ -191,11 +190,12 @@ static int _thread_func(void *args)
 
 void chunk_sys_init(chunk_system_t *cs, const chunk_system_desc_t *desc)
 {
-    cs->seed = desc->seed;
-    cs->running = false;
-    cs->thread_ready = false;
+    cs->seed                  = desc->seed;
+    cs->gen_func              = desc->gen_func;
+    cs->running               = false;
+    cs->thread_ready          = false;
     cs->initial_load_complete = false;
-    cs->receiving = false;
+    cs->receiving             = false;
 
     cs->genned = HASHMAP_NEW(ivec2_chunk_data)(&(em_hashmap_desc_t) {
         .capacity = desc->chunk_data_capacity,

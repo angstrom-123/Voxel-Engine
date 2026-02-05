@@ -1,5 +1,12 @@
 #include "engine.h"
 
+static void _resize(const event_t *ev, engine_t *engine)
+{
+    sprite_renderer_move_str(&engine->_render_sys.sprite_renderer,
+                             engine->meta.debug.pos_sprites, POS_MAX_SPRITES,
+                             em_mul_vec2_f(ev->window_size, -0.5));
+}
+
 static void _api_subscribe_to_event(engine_t *engine, event_type_e type,
                                     const event_subscriber_desc_t *desc)
 {
@@ -80,6 +87,7 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action,
 
 void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
 {
+    ENGINE_LOG_OK("Initializing systems", NULL);
     RUNTIME_ASSERT(desc->render_distance >= 3, "Render distance too low");
     const size_t MAX_ACTIVE = (2 * em_sqr(desc->render_distance)) + 
                               (2 * desc->render_distance) + 1;
@@ -97,6 +105,12 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
     ENGINE_LOG_OK("Setup sokol time.\n", NULL);
 
     event_sys_init(&engine->_event_sys);
+    event_sys_subscribe_to_event(&engine->_event_sys, EVENT_RESIZED, 
+                                 &(event_subscriber_desc_t) {
+        .event_cb = (event_func) _resize,
+        .args = engine,
+        .block_cb = event_block_never
+    });
     ENGINE_LOG_OK("Setup event system.\n", NULL);
 
     update_sys_init(&engine->_update_sys, &(update_system_desc_t) {
@@ -109,7 +123,7 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
     chunk_sys_init(&engine->_chunk_sys, &(chunk_system_desc_t) {
         .chunk_data_capacity = MAX_ACTIVE,
         .request_capacity = QUEUE_SIZE,
-        .seed = desc->seed
+        .gen_func = desc->gen_func
     });
     ENGINE_LOG_OK("Setup chunk system.\n", NULL);
 
@@ -151,16 +165,17 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
     // Font is 11x13 so this is a pixel perfect scale.
     const vec2 DEBUG_TEXT_SIZE = em_mul_vec2_f(VEC2(11.0, 13.0), 2.0);
     sprite_t **tmp;
+    char buf[POS_MAX_SPRITES + 1];
+    memset(buf, ' ', sizeof(buf) - 1);
     tmp = sprite_renderer_push_str(&engine->_render_sys.sprite_renderer, 
-                                              "00000 00000 00000", 
-                                              &(sprite_desc_t) {
+                                   buf, &(sprite_desc_t) {
         .bg_col = VEC4(0.0, 0.0, 0.0, 0.5),
         .pos = em_mul_vec2_f(engine->_render_sys.sprite_renderer.base.dimensions, -0.5),
         .size = DEBUG_TEXT_SIZE,
         .z_index = 1.0,
         .is_char = true
     });
-    memcpy(engine->meta.debug.cur_sprites, tmp, 17 * sizeof(sprite_t *));
+    memcpy(engine->meta.debug.pos_sprites, tmp, POS_MAX_SPRITES * sizeof(sprite_t *));
     free(tmp);
  
     ENGINE_LOG_OK("Setup engine metadata.\n", NULL);
@@ -168,8 +183,9 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
 
 void _api_start_running(engine_t *engine, const engine_run_desc_t *desc)
 {
+    ENGINE_LOG_OK("Starting to Run", NULL);
     engine->meta.world.seed = desc->seed;
-    engine->meta.world.name = desc->world_name;
+    strncpy(engine->meta.world.name, desc->world_name, STD_BUFLEN);
     engine->meta.world.time = desc->time;
 
     if (desc->world_name)
@@ -178,6 +194,8 @@ void _api_start_running(engine_t *engine, const engine_run_desc_t *desc)
     engine->_chunk_sys.seed = desc->seed;
     engine->_render_sys.cam.pos = desc->cam_pos;
     engine->_render_sys.cam.rot = desc->cam_rot;
+    engine->_render_sys.cam.pitch = desc->cam_pitch;
+    engine->_render_sys.cam.yaw = desc->cam_yaw;
     engine->_load_sys.curr_pos = IVEC2(
         floorf(engine->_render_sys.cam.pos.x / (float) CHUNK_SIZE) * CHUNK_SIZE, 
         floorf(engine->_render_sys.cam.pos.z / (float) CHUNK_SIZE) * CHUNK_SIZE
@@ -218,6 +236,29 @@ void engine_init(engine_t *engine)
 
 void engine_cleanup(engine_t *engine)
 {
+    // Save meta file for the world.
+    if (engine->meta.world.name[0] !=  '\0')
+    {
+        char meta_path[STD_BUFLEN] = {0};
+        multicat(meta_path, 4, WORLD_DATA_DIR, engine->meta.world.name, SEP, WORLD_META_FILE);
+        file_t meta = {
+            .base = WORLD_DATA_DIR,
+            .path = meta_path,
+            .name = WORLD_META_FILE
+        };
+        RUNTIME_ASSERT(file_open(&meta, USAGE_WRITE), "Failed to open meta file for writing");
+
+        meta_file_t mf = {
+            .pos = engine->_render_sys.cam.pos,
+            .rot = engine->_render_sys.cam.rot,
+            .pitch = engine->_render_sys.cam.pitch,
+            .yaw = engine->_render_sys.cam.yaw,
+            .seed = engine->meta.world.seed,
+            .time = atomic_load(&engine->meta.world.time) % engine->meta.world.max_time
+        };
+        RUNTIME_ASSERT(write_meta_file(&meta, mf), "Failed to write meta file");
+    }
+
     render_sys_cleanup(&engine->_render_sys);
     tick_sys_cleanup(&engine->_tick_sys);
     event_sys_cleanup(&engine->_event_sys);
@@ -242,9 +283,10 @@ void engine_frame(engine_t *engine, double dt)
 
 void engine_tick(engine_t *engine)
 {
+    vec3 cam_pos = engine->_render_sys.cam.pos;
     ivec2 cam_chunk = {
-        floorf(engine->_render_sys.cam.pos.x / (float) CHUNK_SIZE) * CHUNK_SIZE, 
-        floorf(engine->_render_sys.cam.pos.z / (float) CHUNK_SIZE) * CHUNK_SIZE
+        floorf(cam_pos.x / (float) CHUNK_SIZE) * CHUNK_SIZE, 
+        floorf(cam_pos.z / (float) CHUNK_SIZE) * CHUNK_SIZE
     };
 
     if (load_sys_update(&engine->_load_sys, &engine->_chunk_sys, &engine->_update_sys, cam_chunk))
@@ -272,16 +314,6 @@ void engine_tick(engine_t *engine)
 
         engine->_render_sys.cursor_line_renderer.origin = global_pos;
         engine->_render_sys.cursor_active = true;
-
-        char buf[18];
-        snprintf(buf, 18, "%05i %05i %05i", 
-                 (int) global_pos.x, (int) global_pos.y, (int) global_pos.z);
-        sprite_renderer_change_str(&engine->_render_sys.sprite_renderer,
-                                   engine->meta.debug.cur_sprites,
-                                   buf);
-        sprite_renderer_move_str(&engine->_render_sys.sprite_renderer,
-                                 engine->meta.debug.cur_sprites, 17,
-                                 em_mul_vec2_f(engine->_render_sys.sprite_renderer.base.dimensions, -0.5));
     } 
     else 
     {
@@ -297,4 +329,10 @@ void engine_tick(engine_t *engine)
     float t = (float) (time % max) / max;
     vec3 sun_dir = em_rotate_vec3(engine->meta.world.base_sun_dir, t * 360.0, VEC3(1.0, 0.1, 0.2));
     engine->_render_sys.chunk_renderer.info.sun_dir = sun_dir;
+
+    // Update position display
+    char buf[POS_MAX_SPRITES + 1]; // Leave space for sprintf to add null terminator.
+    snprintf(buf, sizeof(buf), "%09.3f %09.3f %09.3f", cam_pos.x, cam_pos.y, cam_pos.z);
+    sprite_renderer_change_str(&engine->_render_sys.sprite_renderer,
+                               engine->meta.debug.pos_sprites, buf);
 }

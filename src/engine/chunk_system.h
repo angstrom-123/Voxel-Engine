@@ -4,12 +4,10 @@
 #include "data_structures.h"
 #include "chunk_system_types.h"
 #include "geometry.h"
-#include "world_gen.h"
 #include "update_system.h"
 #include "files.h"
 
 #include <stdio.h>
-
 #include <threads.h>
 
 #define CS_REQUEST(cs, typ, crd) \
@@ -22,6 +20,8 @@
 typedef struct chunk_system {
     HASHMAP(ivec2_chunk_data) *genned;
     CIRCULAR_QUEUE(cs_request) *requests;
+
+    chunk_data_t *( *gen_func)(ivec2, uint32_t);
 
     thrd_t worker;
     mtx_t requests_lock;
@@ -42,6 +42,7 @@ typedef struct chunk_system_desc {
     size_t chunk_data_capacity;
     size_t request_capacity;
     uint32_t seed;
+    chunk_data_t *( *gen_func)(ivec2, uint32_t);
 } chunk_system_desc_t;
 
 typedef struct chunk_system_thread_args {

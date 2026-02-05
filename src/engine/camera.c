@@ -1,5 +1,4 @@
 #include "camera.h"
-#include "em_math.h"
 
 vec3 cam_get_fwd(camera_t *cam)
 {

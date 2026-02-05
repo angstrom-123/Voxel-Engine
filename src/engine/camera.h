@@ -10,8 +10,8 @@
 #include "geometry_types.h"
 #include "logger.h"
 
-#define WORLD_X ((vec3) {1.0, 0.0, 0.0})
-#define WORLD_Y ((vec3) {0.0, 1.0, 0.0})
+#define WORLD_X VEC3(1.0, 0.0, 0.0)
+#define WORLD_Y VEC3(0.0, 1.0, 0.0)
 
 typedef enum camera_projection {
     PROJECTION_NONE,

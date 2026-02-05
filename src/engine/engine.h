@@ -16,12 +16,14 @@
 
 #include <stdatomic.h>
 
+#define POS_MAX_SPRITES 29
+
 typedef struct engine_desc {
     uint8_t render_distance;
-    uint32_t seed;
     uint8_t ticks_per_second;
     vec3 base_sun_dir;
     uint64_t max_time;
+    chunk_data_t *( *gen_func)(ivec2, uint32_t);
 } engine_desc_t;
 
 typedef struct engine_meta {
@@ -37,10 +39,10 @@ typedef struct engine_meta {
         atomic_uint_least64_t time;
         uint64_t max_time;
         uint32_t seed;
-        const char *name;
+        char name[STD_BUFLEN];
     } world;
     struct {
-        sprite_t *cur_sprites[17];
+        sprite_t *pos_sprites[POS_MAX_SPRITES];
     } debug;
 } engine_meta_t;
 
@@ -61,6 +63,8 @@ typedef struct engine_run_desc {
     uint64_t time;
     vec3 cam_pos;
     quat cam_rot;
+    float cam_pitch;
+    float cam_yaw;
 } engine_run_desc_t;
 
 typedef struct engine {

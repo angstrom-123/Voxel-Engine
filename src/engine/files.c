@@ -82,8 +82,21 @@ chunk_file_t encode_chunk_file(const chunk_data_t *cd)
 
 bool write_chunk_file(file_t *file, chunk_file_t cf)
 {
-    if (!file_write_bytes(file, cf.size, cf.data)) return false;
-    return true;
+    return file_write_bytes(file, cf.size, cf.data);
+}
+
+bool write_meta_file(file_t *file, meta_file_t mf)
+{
+    snprintf(mf.lines[0], sizeof(mf.lines[0]), "%.5f,%.5f,%.5f", DECOMPOSE_3(mf.pos));
+    snprintf(mf.lines[1], sizeof(mf.lines[1]), "%.5f,%.5f,%.5f,%.5f", DECOMPOSE_4(mf.rot));
+    snprintf(mf.lines[2], sizeof(mf.lines[2]), "%.5f", mf.pitch);
+    snprintf(mf.lines[3], sizeof(mf.lines[3]), "%.5f", mf.yaw);
+    snprintf(mf.lines[4], sizeof(mf.lines[4]), "%u", mf.seed);
+    snprintf(mf.lines[5], sizeof(mf.lines[5]), "%lu", mf.time);
+    return file_write_lines(file, 
+                            sizeof(mf.lines) / sizeof(mf.lines[0]), 
+                            sizeof(mf.lines[0]) / sizeof(mf.lines[0][0]), 
+                            mf.lines);
 }
 
 bool file_exists(file_t *file) 

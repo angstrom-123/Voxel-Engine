@@ -6,7 +6,6 @@
 
 #include "file_meta.h"
 #include "geometry_types.h"
-#include "geometry.h"
 
 #ifdef PLAT_LINUX
     #include "files_linux.h"
@@ -23,12 +22,21 @@ typedef struct chunk_file {
     uint8_t *data;
 } chunk_file_t;
 
-typedef chunk_data_t *(*gen_func)(ivec2, uint32_t);
+typedef struct meta_file {
+    vec3 pos;
+    quat rot;
+    float pitch;
+    float yaw;
+    uint32_t seed;
+    uint64_t time;
+    char lines[6][STD_BUFLEN];
+} meta_file_t;
 
 extern void chunk_file_name(ivec2 pos, char *res);
 extern chunk_data_t *decode_chunk_file(file_t *file);
 extern chunk_file_t encode_chunk_file(const chunk_data_t *data);
 extern bool write_chunk_file(file_t *file, chunk_file_t cf);
+extern bool write_meta_file(file_t *file, meta_file_t mf);
 
 extern bool file_exists(file_t *file);
 extern bool file_dir_exists(file_t *file);

@@ -10,6 +10,12 @@ typedef enum shell_type {
     SHELL_NUM
 } shell_type_e;
 
+typedef struct shell {
+    ivec2 *crds;
+    size_t cnt;
+    size_t lvl;
+} shell_t;
+
 typedef struct render_coords {
     ivec2 *coords;
     size_t num;
