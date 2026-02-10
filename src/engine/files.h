@@ -3,19 +3,40 @@
 
 #include <libem/em_math.h>
 #include <libem/em_binary.h>
+#include <errno.h>
 
+#include "logger.h"
+#include "base.h"
 #include "file_meta.h"
 #include "geometry_types.h"
 
 #ifdef PLAT_LINUX
-    #include "files_linux.h"
-    #define file_t linux_file_t
+
+#include <dirent.h>
+#include <sys/stat.h>
+
 #elif defined(PLAT_WINDOWS)
-    #include "files_windows.h"
-    #define file_t windows_file_t
+
+#include "dirent/dirent.h"
+
 #endif
 
+extern int scandir(const char *dirp, 
+                   struct dirent ***namelist, 
+                   int (*filter)(const struct dirent *), 
+                   int (*compar)(const struct dirent **, const struct dirent **));
+
 #define CHUNK_FILENAME_LEN 30
+
+typedef struct file {
+    FILE *fptr;
+    DIR *dptr;
+    uint8_t flags;
+    size_t offset;
+    const char *path;
+    const char *base;
+    const char *name;
+} file_t;
 
 typedef struct chunk_file {
     uint16_t size;

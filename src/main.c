@@ -109,6 +109,10 @@ static void init(void *user_data)
 
 sapp_desc sokol_main(int argc, char* argv[])
 {
+    #ifndef PLAT_LINUX
+        RUNTIME_ASSERT(false, "Currently only linux is supported");
+    #endif
+
     struct user_data *ud = malloc(sizeof(*ud));
     ud->argc = argc;
     ud->argv = argv;

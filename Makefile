@@ -9,6 +9,7 @@ BIN_DIR			:= $(MAKE_DIR)/bin
 OUTPUT_DIR		:= $(BIN_DIR)/output
 PREBUILT_DIR	:= $(BIN_DIR)/prebuilt
 PLATFORM		:= linux
+# PLATFORM		:= windows
 
 ENGINE_DIR		:= $(SRC_DIR)/engine
 APP_DIR			:= $(SRC_DIR)/app
@@ -25,7 +26,7 @@ INCLUDE_PATHS	+= -I$(TEST_DIR)/
 INCLUDE_PATHS	+= -I$(SRC_DIR)/
 INCLUDE_PATHS	+= -I$(INC_DIR)/
 INCLUDE_PATHS	+= -I$(INC_DIR)/sokol/
-INCLUDE_PATHS	+= -I$(INC_DIR)/nuklear/
+# INCLUDE_PATHS	+= -I$(INC_DIR)/dirent/
 INCLUDE_PATHS	+= -I$(INC_DIR)/libem/
 
 LIB_PATHS		:=
@@ -34,11 +35,14 @@ CC				= clang
 BEAR			= bear
 
 LINK_FLAGS		:= -pthread -lX11 -lXi -lXcursor -lGL -ldl -lm -lEGL
+# LINK_FLAGS		:= -lm 
 
 C_FLAGS			:= 
 C_FLAGS			+= $(INCLUDE_PATHS) $(LIB_PATHS)
 C_FLAGS			+= -Wall -Wextra -Wno-missing-braces -Wno-missing-field-initializers -std=c11
-C_FLAGS			+= -DSOKOL_GLES3 -DPLAT_LINUX
+C_FLAGS			+= -DSOKOL_GLES3 
+C_FLAGS			+= -DPLAT_LINUX
+# C_FLAGS			+= -DPLAT_WINDOWS
 
 DEBUG_FLAGS		:=
 DEBUG_FLAGS		+= -fsanitize=address -g -O0
