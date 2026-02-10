@@ -10,8 +10,10 @@
 #include "base.h"
 #include "instrumentor.h"
 
-#define US_REQUEST(us, typ, crd, msh) \
-    update_sys_make_request(us, (us_request_t) {.type = typ, .pos = crd, .mesh = msh})
+#define US_REQUEST(us, typ, crd, msh_o, msh_t) \
+    update_sys_make_request(us, (us_request_t) {\
+        .type = typ, .pos = crd, .mesh_o = msh_o, .mesh_t = msh_t\
+    })
 
 typedef struct render_data {
     HASHMAP(ivec2_cri) *chunks;

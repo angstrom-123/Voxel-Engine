@@ -227,12 +227,15 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
     chunk_renderer_resize(cr, desc->base_desc->dimensions);
 
     // SSAO kernel
+    em_romu_duo_state_t s;
+    em_romu_duo_init(&s, time(NULL));
+
     for (size_t i = 0; i < SSAO_SAMPLES; i++)
     {
         vec3 sample = em_normalize_vec3(VEC3(
-            ((float) em_romu_duo_random() / EM_ROMU_DUO_MAXF) * 2.0 - 1.0,
-            ((float) em_romu_duo_random() / EM_ROMU_DUO_MAXF) * 2.0 - 1.0,
-            ((float) em_romu_duo_random() / EM_ROMU_DUO_MAXF)
+            ((float) em_romu_duo_random(&s) / EM_ROMU_DUO_MAXF) * 2.0 - 1.0,
+            ((float) em_romu_duo_random(&s) / EM_ROMU_DUO_MAXF) * 2.0 - 1.0,
+            ((float) em_romu_duo_random(&s) / EM_ROMU_DUO_MAXF)
         ));
         float scale = 0.1 + em_sqr((float) i / SSAO_SAMPLES) * 0.9;
         sample = em_mul_vec3_f(sample, scale);
@@ -243,8 +246,8 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
     for (size_t i = 0; i < em_sqr(SSAO_NOISE_SCALE); i++)
     {
         vec2 noise = {
-            ((float) em_romu_duo_random() / EM_ROMU_DUO_MAXF) * 2.0 - 1.0,
-            ((float) em_romu_duo_random() / EM_ROMU_DUO_MAXF) * 2.0 - 1.0,
+            ((float) em_romu_duo_random(&s) / EM_ROMU_DUO_MAXF) * 2.0 - 1.0,
+            ((float) em_romu_duo_random(&s) / EM_ROMU_DUO_MAXF) * 2.0 - 1.0,
         };
         cr->info.ssao_noise_data[i] = noise;
     }
@@ -410,7 +413,6 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         20, 22, 21,
         20, 23, 22
     };
-    ENGINE_LOG_WARN("Before binding.\n", NULL);
     cr->skybox_base.bind.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
         .data = SG_RANGE(skybox_verts),
         .usage = {
@@ -423,7 +425,6 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
             .index_buffer = true,
         }
     });
-    ENGINE_LOG_WARN("After binding.\n", NULL);
 
     // Composite pipeline 
     cr->composite_base.pip = sg_make_pipeline(&(sg_pipeline_desc) {
@@ -563,27 +564,57 @@ static void _render_shadowmap_pass(chunk_renderer_t *cr)
             .u_chunk = pos,
         };
 
-        if (cri->needs_update && cri->mesh->v_cnt > 0)
+        // Render opaque geometry for shadowcasting
+        if (cri->mesh_o)
         {
-            sg_update_buffer(cri->bufs.vertex, &(sg_range) {
-                .ptr = cri->mesh->v_buf,
-                .size = cri->mesh->v_cnt * sizeof(packed_vertex_t)
-            });
-            sg_update_buffer(cri->bufs.index, &(sg_range) {
-                .ptr = cri->mesh->i_buf,
-                .size = cri->mesh->i_cnt * sizeof(uint32_t)
-            });
+            if (cri->needs_update_o && cri->mesh_o->v_cnt > 0)
+            {
+                sg_update_buffer(cri->bufs_o.vertex, &(sg_range) {
+                    .ptr = cri->mesh_o->v_buf,
+                    .size = cri->mesh_o->v_cnt * sizeof(packed_vertex_t)
+                });
+                sg_update_buffer(cri->bufs_o.index, &(sg_range) {
+                    .ptr = cri->mesh_o->i_buf,
+                    .size = cri->mesh_o->i_cnt * sizeof(uint16_t)
+                });
 
-            cri->needs_update = false;
+                cri->needs_update_o = false;
+            }
+
+            rb->bind.vertex_buffers[0] = cri->bufs_o.vertex;
+            rb->bind.index_buffer = cri->bufs_o.index;
+            sg_apply_bindings(&rb->bind);
+
+            sg_apply_uniforms(UB_vs_params_shadowmap, &SG_RANGE(vs_params));
+
+            sg_draw(0, cri->mesh_o->i_cnt, 1);
         }
 
-        rb->bind.vertex_buffers[0] = cri->bufs.vertex;
-        rb->bind.index_buffer = cri->bufs.index;
-        sg_apply_bindings(&rb->bind);
+        // Render translucent geometry for shadowcasting
+        if (cri->mesh_t)
+        {
+            if (cri->needs_update_t && cri->mesh_t->v_cnt > 0)
+            {
+                sg_update_buffer(cri->bufs_t.vertex, &(sg_range) {
+                    .ptr = cri->mesh_t->v_buf,
+                    .size = cri->mesh_t->v_cnt * sizeof(packed_vertex_t)
+                });
+                sg_update_buffer(cri->bufs_t.index, &(sg_range) {
+                    .ptr = cri->mesh_t->i_buf,
+                    .size = cri->mesh_t->i_cnt * sizeof(uint16_t)
+                });
 
-        sg_apply_uniforms(UB_vs_params_shadowmap, &SG_RANGE(vs_params));
+                cri->needs_update_t = false;
+            }
 
-        sg_draw(0, cri->mesh->i_cnt, 1);
+            rb->bind.vertex_buffers[0] = cri->bufs_t.vertex;
+            rb->bind.index_buffer = cri->bufs_t.index;
+            sg_apply_bindings(&rb->bind);
+
+            sg_apply_uniforms(UB_vs_params_shadowmap, &SG_RANGE(vs_params));
+
+            sg_draw(0, cri->mesh_t->i_cnt, 1);
+        }
     }
 
     sg_end_pass();
@@ -606,10 +637,9 @@ static void _render_offscreen_pass(chunk_renderer_t *cr)
         if (!cri)
             continue;
 
-        vec3 pos = { cri->pos.x, 0.0, cri->pos.y };
         vs_params_offscreen_t vs_params = {
             .u_vp = rb->cam->vp,
-            .u_chunk = pos,
+            .u_chunk = VEC3(cri->pos.x, 0.0, cri->pos.y),
             .u_sun_vp = cr->shadowmap_base.cam->vp,
         };
 
@@ -617,28 +647,59 @@ static void _render_offscreen_pass(chunk_renderer_t *cr)
             .u_sun_dir = cr->info.sun_dir
         };
 
-        if (cri->needs_update && cri->mesh->v_cnt > 0)
+        // Render opaque geometry 
+        if (cri->mesh_o)
         {
-            sg_update_buffer(cri->bufs.vertex, &(sg_range) {
-                .ptr = cri->mesh->v_buf,
-                .size = cri->mesh->v_cnt * sizeof(packed_vertex_t)
-            });
-            sg_update_buffer(cri->bufs.index, &(sg_range) {
-                .ptr = cri->mesh->i_buf,
-                .size = cri->mesh->i_cnt * sizeof(uint32_t)
-            });
+            if (cri->needs_update_o && cri->mesh_o->v_cnt > 0)
+            {
+                sg_update_buffer(cri->bufs_o.vertex, &(sg_range) {
+                    .ptr = cri->mesh_o->v_buf,
+                    .size = cri->mesh_o->v_cnt * sizeof(packed_vertex_t)
+                });
+                sg_update_buffer(cri->bufs_o.index, &(sg_range) {
+                    .ptr = cri->mesh_o->i_buf,
+                    .size = cri->mesh_o->i_cnt * sizeof(uint16_t)
+                });
 
-            cri->needs_update = false;
+                cri->needs_update_o = false;
+            }
+
+            rb->bind.vertex_buffers[0] = cri->bufs_o.vertex;
+            rb->bind.index_buffer = cri->bufs_o.index;
+            sg_apply_bindings(&rb->bind);
+
+            sg_apply_uniforms(UB_vs_params_offscreen, &SG_RANGE(vs_params));
+            sg_apply_uniforms(UB_fs_params_offscreen, &SG_RANGE(fs_params));
+
+            sg_draw(0, cri->mesh_o->i_cnt, 1);
         }
 
-        rb->bind.vertex_buffers[0] = cri->bufs.vertex;
-        rb->bind.index_buffer = cri->bufs.index;
-        sg_apply_bindings(&rb->bind);
+        // Render translucent geometry for now, until proper support is added
+        if (cri->mesh_t)
+        {
+            if (cri->needs_update_t && cri->mesh_t->v_cnt > 0)
+            {
+                sg_update_buffer(cri->bufs_t.vertex, &(sg_range) {
+                    .ptr = cri->mesh_t->v_buf,
+                    .size = cri->mesh_t->v_cnt * sizeof(packed_vertex_t)
+                });
+                sg_update_buffer(cri->bufs_t.index, &(sg_range) {
+                    .ptr = cri->mesh_t->i_buf,
+                    .size = cri->mesh_t->i_cnt * sizeof(uint16_t)
+                });
 
-        sg_apply_uniforms(UB_vs_params_offscreen, &SG_RANGE(vs_params));
-        sg_apply_uniforms(UB_fs_params_offscreen, &SG_RANGE(fs_params));
+                cri->needs_update_t = false;
+            }
 
-        sg_draw(0, cri->mesh->i_cnt, 1);
+            rb->bind.vertex_buffers[0] = cri->bufs_t.vertex;
+            rb->bind.index_buffer = cri->bufs_t.index;
+            sg_apply_bindings(&rb->bind);
+
+            sg_apply_uniforms(UB_vs_params_offscreen, &SG_RANGE(vs_params));
+            sg_apply_uniforms(UB_fs_params_offscreen, &SG_RANGE(fs_params));
+
+            sg_draw(0, cri->mesh_t->i_cnt, 1);
+        }
     }
 
     sg_end_pass();
@@ -732,6 +793,12 @@ static void _render_effects_pass(chunk_renderer_t *cr)
     INSTRUMENT_FUNC_END();
 }
 
+static void _render_translucency_pass(chunk_renderer_t *cr)
+{
+    (void) cr;
+    // TODO: Add support for transparency.
+}
+
 void chunk_renderer_render_all(chunk_renderer_t *cr)
 {
     // Synchronize main camera and shadow camera.
@@ -752,4 +819,5 @@ void chunk_renderer_render_all(chunk_renderer_t *cr)
     _render_composite_pass(cr);
     _render_skybox_pass(cr);
     _render_effects_pass(cr);
+    _render_translucency_pass(cr);
 }

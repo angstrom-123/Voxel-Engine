@@ -8,9 +8,12 @@ static void _handle_request(update_system_t *us, us_request_t *r)
     {
         chunk_render_info_t *cri = malloc(sizeof(chunk_render_info_t));
         cri->pos = r->pos;
-        cri->mesh = r->mesh;
-        cri->bufs = us->buffer_pool->dequeue(us->buffer_pool);
-        cri->needs_update = true;
+        cri->mesh_o = r->mesh_o;
+        cri->mesh_t = r->mesh_t;
+        cri->bufs_o = us->buffer_pool->dequeue(us->buffer_pool);
+        cri->bufs_t = us->buffer_pool->dequeue(us->buffer_pool);
+        if (cri->mesh_o) cri->needs_update_o = true;
+        if (cri->mesh_t) cri->needs_update_t = true;
 
         mtx_lock(&us->chunks_lock);
 
@@ -24,8 +27,10 @@ static void _handle_request(update_system_t *us, us_request_t *r)
         mtx_lock(&us->chunks_lock);
 
         chunk_render_info_t *cri = us->chunks->get_ptr(us->chunks, r->pos);
-        cri->mesh = r->mesh;
-        cri->needs_update = true;
+        cri->mesh_o = r->mesh_o;
+        cri->mesh_t = r->mesh_t;
+        cri->needs_update_o = (cri->mesh_o);
+        cri->needs_update_t = (cri->mesh_t);
 
         mtx_unlock(&us->chunks_lock);
         break;
@@ -37,11 +42,22 @@ static void _handle_request(update_system_t *us, us_request_t *r)
         if (us->chunks->contains_key(us->chunks, r->pos))
         {
             chunk_render_info_t cri = us->chunks->pop(us->chunks, r->pos);
-            us->buffer_pool->enqueue(us->buffer_pool, cri.bufs);
 
-            free(cri.mesh->v_buf);
-            free(cri.mesh->i_buf);
-            free(cri.mesh);
+            us->buffer_pool->enqueue(us->buffer_pool, cri.bufs_o);
+            if (cri.mesh_o != NULL)
+            {
+                free(cri.mesh_o->v_buf);
+                free(cri.mesh_o->i_buf);
+                free(cri.mesh_o);
+            }
+
+            us->buffer_pool->enqueue(us->buffer_pool, cri.bufs_t);
+            if (cri.mesh_t != NULL)
+            {
+                free(cri.mesh_t->v_buf);
+                free(cri.mesh_t->i_buf);
+                free(cri.mesh_t);
+            }
         }
 
         mtx_unlock(&us->chunks_lock);

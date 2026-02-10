@@ -391,6 +391,7 @@ vec3 renderSky(vec3 viewDir, vec3 lightDir) {
 void main()
 {
     vec3 dir = normalize(v_pos.xyz);
+    dir.y = abs(dir.y); // Stops the area just below the horizon from being black in day time.
     vec3 sky = renderSky(dir, u_sun_dir);
     out_skybox = vec4(sky, 1.0);
 }

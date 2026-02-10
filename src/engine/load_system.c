@@ -130,7 +130,7 @@ void load_sys_init(load_system_t *ls, const load_system_desc_t *desc)
 {
     ls->curr_pos = desc->start_pos;
     ls->load_dist = desc->render_dist + 1;
-    ls->base_chunk_coords = _gen_get_coords((ivec2) {0, 0}, desc->render_dist, &ls->base_chunk_count);
+    ls->base_chunk_coords = _gen_get_coords(IVEC2(0, 0), desc->render_dist, &ls->base_chunk_count);
 }
 
 void load_sys_cleanup(load_system_t *ls)
@@ -181,47 +181,47 @@ void load_sys_load_initial(load_system_t *ls, chunk_system_t *cs)
 }
 
 static void _get_direction(uint8_t direction, ivec2 start_crd, ivec2 test_crd, 
-                           bool *forward, bool *backward)
+                           bool *fwd, bool *bwd)
 {
     /* NOTE: North, East, South, West all use >= AND <= for forward and backward. */
     switch (direction) {
     case DIR_NORTH:
-        *forward = test_crd.y >= start_crd.y;
-        *backward = test_crd.y <= start_crd.y;
+        *fwd = test_crd.y >= start_crd.y;
+        *bwd = test_crd.y <= start_crd.y;
         break;
     case DIR_EAST:
-        *forward = test_crd.x >= start_crd.x;
-        *backward = test_crd.x <= start_crd.x;
+        *fwd = test_crd.x >= start_crd.x;
+        *bwd = test_crd.x <= start_crd.x;
         break;
     case DIR_SOUTH:
-        *forward = test_crd.y <= start_crd.y;
-        *backward = test_crd.y >= start_crd.y;
+        *fwd = test_crd.y <= start_crd.y;
+        *bwd = test_crd.y >= start_crd.y;
         break;
     case DIR_WEST:
-        *forward = test_crd.x <= start_crd.x;
-        *backward = test_crd.x >= start_crd.x;
+        *fwd = test_crd.x <= start_crd.x;
+        *bwd = test_crd.x >= start_crd.x;
         break;
     case (DIR_NORTH | DIR_EAST):
-        *forward = test_crd.x >= start_crd.x && test_crd.y >= start_crd.y;
-        *backward = test_crd.x <= start_crd.x && test_crd.y <= start_crd.y;
+        *fwd = test_crd.x >= start_crd.x && test_crd.y >= start_crd.y;
+        *bwd = test_crd.x <= start_crd.x && test_crd.y <= start_crd.y;
         break;
     case (DIR_NORTH | DIR_WEST):
-        *forward = test_crd.x <= start_crd.x && test_crd.y >= start_crd.y;
-        *backward = test_crd.x >= start_crd.x && test_crd.y <= start_crd.y;
+        *fwd = test_crd.x <= start_crd.x && test_crd.y >= start_crd.y;
+        *bwd = test_crd.x >= start_crd.x && test_crd.y <= start_crd.y;
         break;
     case (DIR_SOUTH | DIR_EAST):
-        *forward = test_crd.x >= start_crd.x && test_crd.y <= start_crd.y;
-        *backward = test_crd.x <= start_crd.x && test_crd.y >= start_crd.y;
+        *fwd = test_crd.x >= start_crd.x && test_crd.y <= start_crd.y;
+        *bwd = test_crd.x <= start_crd.x && test_crd.y >= start_crd.y;
         break;
     case (DIR_SOUTH | DIR_WEST):
-        *forward = test_crd.x <= start_crd.x && test_crd.y <= start_crd.y;
-        *backward = test_crd.x >= start_crd.x && test_crd.y >= start_crd.y;
+        *fwd = test_crd.x <= start_crd.x && test_crd.y <= start_crd.y;
+        *bwd = test_crd.x >= start_crd.x && test_crd.y >= start_crd.y;
         break;
     };
 }
 
-static void _dispatch_diagonal_loads(load_system_t *ls, chunk_system_t *cs, update_system_t *us, 
-                                     ivec2 delta)
+static void _dispatch_diagonal_loads(load_system_t *ls, chunk_system_t *cs, 
+                                     update_system_t *us, ivec2 delta)
 {
     INSTRUMENT_FUNC_BEGIN();
 
@@ -260,7 +260,7 @@ static void _dispatch_diagonal_loads(load_system_t *ls, chunk_system_t *cs, upda
         if (backward) // Unload old.
         {
             CS_REQUEST(cs, CSREQ_UNLOAD, old_crd);
-            US_REQUEST(us, USREQ_UNSTAGE, new_out[i], NULL);
+            US_REQUEST(us, USREQ_UNSTAGE, new_out[i], NULL, NULL);
         }
     }
 
@@ -283,7 +283,7 @@ static void _dispatch_diagonal_loads(load_system_t *ls, chunk_system_t *cs, upda
         if (backward) // Unstage old.
         {
             CS_REQUEST(cs, CSREQ_UNLOAD, old_crd);
-            US_REQUEST(us, USREQ_UNSTAGE, old_crd, NULL);
+            US_REQUEST(us, USREQ_UNSTAGE, old_crd, NULL, NULL);
         }
     }
 
@@ -345,7 +345,7 @@ static void _dispatch_loads(load_system_t *ls, chunk_system_t *cs, update_system
             CS_REQUEST(cs, CSREQ_MESH, new_rim[i]);
 
         if (backward) // Unstage old.
-            US_REQUEST(us, USREQ_UNSTAGE, old_crd, NULL);
+            US_REQUEST(us, USREQ_UNSTAGE, old_crd, NULL, NULL);
     }
 
     memcpy(&ls->shells[SHELL_OUT].crds[0], &new_out[0], out_cnt * sizeof(ivec2));

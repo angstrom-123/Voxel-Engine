@@ -89,10 +89,10 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
 {
     ENGINE_LOG_OK("Initializing systems", NULL);
     RUNTIME_ASSERT(desc->render_distance >= 3, "Render distance too low");
-    const size_t MAX_ACTIVE = (2 * em_sqr(desc->render_distance)) + 
-                              (2 * desc->render_distance) + 1;
+    const size_t MAX_ACTIVE = (2 * em_sqr(desc->render_distance + 1)) + 
+                              (2 * (desc->render_distance + 1)) + 1;
     const size_t QUEUE_SIZE = MAX_ACTIVE * 2;
-    const size_t BUF_POOL_SIZE = MAX_ACTIVE * 2 + 20;
+    const size_t BUF_POOL_SIZE = MAX_ACTIVE * 4 + 20;
 
     sg_setup(&(sg_desc) {
         .buffer_pool_size = BUF_POOL_SIZE,
@@ -115,7 +115,7 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
 
     update_sys_init(&engine->_update_sys, &(update_system_desc_t) {
         .chunk_capacity = MAX_ACTIVE,
-        .free_capacity = MAX_ACTIVE,
+        .free_capacity = MAX_ACTIVE * 2,
         .request_capacity = QUEUE_SIZE
     });
     ENGINE_LOG_OK("Setup update system.\n", NULL);
@@ -185,7 +185,8 @@ void _api_start_running(engine_t *engine, const engine_run_desc_t *desc)
 {
     ENGINE_LOG_OK("Starting to Run", NULL);
     engine->meta.world.seed = desc->seed;
-    strncpy(engine->meta.world.name, desc->world_name, STD_BUFLEN);
+    if (desc->world_name)
+        strncpy(engine->meta.world.name, desc->world_name, STD_BUFLEN);
     engine->meta.world.time = desc->time;
 
     if (desc->world_name)

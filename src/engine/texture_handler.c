@@ -4,8 +4,7 @@ static const size_t BUF_LEN = 128;
 
 bool texture_load(texture_t *res, const texture_desc_t *desc)
 {
-    ENGINE_ASSERT(strlen(desc->path) + 4 <= BUF_LEN,
-                  "Texture path length exceeds buffer length");
+    ENGINE_ASSERT(strlen(desc->path) + 4 <= BUF_LEN, "Texture path length exceeds buffer length");
 
     char buf[BUF_LEN];
     sprintf(buf, "%s.bmp", desc->path);
@@ -41,10 +40,8 @@ bool texture_load(texture_t *res, const texture_desc_t *desc)
 
 bool texture_mip_load(texture_t *res, const texture_desc_t *desc)
 {
-    ENGINE_ASSERT(strlen(desc->path) + 3 + 4 <= BUF_LEN, 
-                  "Texture path length exceeds buffer length");
-    ENGINE_ASSERT(desc->mip_levels <= SG_MAX_MIPMAPS,
-                  "Mipmap amount exceeds maximum");
+    ENGINE_ASSERT(strlen(desc->path) + 7 <= BUF_LEN, "Texture path length exceeds buffer length");
+    ENGINE_ASSERT(desc->mip_levels <= SG_MAX_MIPMAPS, "Mipmap amount exceeds maximum");
 
     em_bmp_image_t mips[desc->mip_levels];
     for (uint8_t i = 0; i < desc->mip_levels; i++)
@@ -89,6 +86,5 @@ bool texture_mip_load(texture_t *res, const texture_desc_t *desc)
 
 vec2 texture_query_subimage_uv(const texture_t *tex)
 {
-    return VEC2(1.0 / (float) tex->subimages_x, 
-                1.0 / (float) tex->subimages_y);
+    return VEC2(1.0 / (float) tex->subimages_x, 1.0 / (float) tex->subimages_y);
 }

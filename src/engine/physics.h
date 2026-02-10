@@ -15,6 +15,11 @@ typedef struct interval {
     float max;
 } interval_t;
 
+typedef struct i_interval {
+    int32_t min;
+    int32_t max;
+} i_interval_t;
+
 typedef union aabb {
     struct {
         interval_t x, y, z;
@@ -38,5 +43,6 @@ extern aabb_t aabb_with_offset(aabb_t box, vec3 offset);
 extern float interval_size(interval_t interval);
 extern interval_t interval_around(float value, float size);
 extern bool interval_contains(interval_t interval, float value);
+extern bool interval_contains_i(i_interval_t interval, int32_t value);
 
 #endif

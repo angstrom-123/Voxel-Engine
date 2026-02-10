@@ -116,3 +116,8 @@ bool interval_contains(interval_t interval, float val)
 {
     return (interval.min <= val && interval.max >= val);
 }
+
+bool interval_contains_i(i_interval_t interval, int32_t val)
+{
+    return (interval.min <= val && interval.max >= val);
+}

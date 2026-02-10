@@ -13,7 +13,8 @@ typedef struct buffer_pair {
 
 typedef struct us_request {
     ivec2 pos;
-    mesh_t *mesh;
+    mesh_t *mesh_o;
+    mesh_t *mesh_t;
     enum {
         USREQ_STAGE,
         USREQ_UNSTAGE,

@@ -28,12 +28,15 @@ static void _on_mousedown(const event_t *ev, void *args)
 static void do_init(engine_t *e, app_t *a)
 {
     APP_LOG_WARN("Init called.\n", NULL);
+    // TODO: Try with smaller render distance (out of buffers silently??)
     APP_TODO("Make the render distance editable at runtime");
     #if defined(RELEASE) || defined(PROFILING)
-        const size_t RENDER_DISTANCE = 32;
+        const size_t RENDER_DISTANCE = 24;
     #elif defined(DEBUG)
-        const size_t RENDER_DISTANCE = 16;
+        const size_t RENDER_DISTANCE = 12;
     #endif
+
+    load_model_files();
 
     e->api.init_systems(e, &(engine_desc_t) {
         .render_distance = RENDER_DISTANCE,
@@ -86,11 +89,12 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
     if (desc->args.argc == 1)
     {
         APP_LOG_OK("Running in default mode", NULL);
-        em_romu_duo_init(time(NULL));
+        em_romu_duo_state_t s;
+        em_romu_duo_init(&s, time(NULL));
         do_init(e, a);
         e->api.start_running(e, &(engine_run_desc_t) {
             .world_name = NULL,
-            .seed = em_romu_duo_random(),
+            .seed = em_romu_duo_random(&s),
             .time = 0,
             .cam_pos = VEC3(0.0, 128.0, 0.0),
             .cam_rot = QUAT(0.0, 0.0, 0.0, 1.0)
@@ -162,6 +166,7 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
 
 void app_cleanup(app_t *app)
 {
+    unload_model_files();
     ctl_cleanup(&app->camera_ctl);
 }
 

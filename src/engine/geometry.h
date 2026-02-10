@@ -1,6 +1,7 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H 
 
+#include "chunk_system_types.h"
 #include "geometry_types.h"
 #include "logger.h"
 
@@ -93,9 +94,9 @@ static const tex_type_e tex_lookup[CUBETYPE_NUM][6] = {
     },
 };
 
+extern const char *log_mesh(mesh_t *mesh);
 extern const char *cubename(cube_type_e type);
 extern bool geom_cube_is_transparent(cube_type_e type);
-extern mesh_t *geom_generate_mesh(chunk_data_t *cd, 
-                                  chunk_data_t *nd, chunk_data_t *ed, 
-                                  chunk_data_t *sd, chunk_data_t *wd);
+extern void geom_generate_mesh(mesh_t **res_o, mesh_t **res_t, chunk_set_t cs);
+extern void geom_generate_safe_remesh(mesh_t **res_o, mesh_t *res_t, chunk_set_t cs);
 #endif

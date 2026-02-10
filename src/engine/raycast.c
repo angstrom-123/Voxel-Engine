@@ -16,8 +16,8 @@ hit_desc_t raycast(chunk_system_t *cs, const raycast_desc_t *desc)
     vec3 step = em_mul_vec3_f(em_normalize_vec3(desc->direction), STEP_SIZE);
 
     ivec2 data_idx = {1, 1}; // Middle is current chunk, so 1, 1.
-    chunk_data_t *cd[3][3];
-    chunk_sys_borrow_surrounding_data(cs, prev_chunk, cd);
+    chunk_set_t chunks;
+    chunk_sys_borrow_surrounding_data(cs, prev_chunk, &chunks);
 
     hit_desc_t hd = {
         .hit = false
@@ -85,7 +85,7 @@ hit_desc_t raycast(chunk_system_t *cs, const raycast_desc_t *desc)
             };
 
             /* Handle hit. */
-            uint8_t *type = &cd[data_idx.x][data_idx.y]->types[cell.x][cell.y][cell.z];
+            uint8_t *type = &chunks.data[data_idx.x][data_idx.y]->types[cell.x][cell.y][cell.z];
             if (*type != CUBETYPE_AIR)
             {
                 hd.hit = true;
@@ -100,6 +100,6 @@ hit_desc_t raycast(chunk_system_t *cs, const raycast_desc_t *desc)
     }
 
     end:
-        chunk_sys_return_surrounding_data(cs, cd);
+        chunk_sys_return_surrounding_data(cs, &chunks);
         return hd;
 }

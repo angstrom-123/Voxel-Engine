@@ -36,10 +36,11 @@ extern FLOAT perlin_octave_3d(UINT seed, FLOAT x, FLOAT y, FLOAT z, FLOAT freque
 
 vec2 _grad_2d(UINT seed, INT x, INT y)
 {
-    em_romu_mono32_init(seed + em_abs(perlin_pair(x, y)));
+    em_romu_mono32_state_t s;
+    em_romu_mono32_init(&s, seed + em_abs(perlin_pair(x, y)));
 
-    FLOAT x_01 = (FLOAT) em_romu_mono32_random() / (FLOAT) EM_ROMU_MONO32_MAX;
-    FLOAT y_01 = (FLOAT) em_romu_mono32_random() / (FLOAT) EM_ROMU_MONO32_MAX;
+    FLOAT x_01 = (FLOAT) em_romu_mono32_random(&s) / (FLOAT) EM_ROMU_MONO32_MAX;
+    FLOAT y_01 = (FLOAT) em_romu_mono32_random(&s) / (FLOAT) EM_ROMU_MONO32_MAX;
 
     FLOAT x_cmp = (2 * x_01) - 1.0;
     FLOAT y_cmp = (2 * y_01) - 1.0;
@@ -49,11 +50,12 @@ vec2 _grad_2d(UINT seed, INT x, INT y)
 
 vec3 _grad_3d(UINT seed, INT x, INT y, INT z)
 {
-    em_romu_mono32_init(seed + em_abs(perlin_pair(x, perlin_pair(y, z))));
+    em_romu_mono32_state_t s;
+    em_romu_mono32_init(&s, seed + em_abs(perlin_pair(x, perlin_pair(y, z))));
 
-    FLOAT x_01 = (FLOAT) em_romu_mono32_random() / (FLOAT) EM_ROMU_MONO32_MAX;
-    FLOAT y_01 = (FLOAT) em_romu_mono32_random() / (FLOAT) EM_ROMU_MONO32_MAX;
-    FLOAT z_01 = (FLOAT) em_romu_mono32_random() / (FLOAT) EM_ROMU_MONO32_MAX;
+    FLOAT x_01 = (FLOAT) em_romu_mono32_random(&s) / (FLOAT) EM_ROMU_MONO32_MAX;
+    FLOAT y_01 = (FLOAT) em_romu_mono32_random(&s) / (FLOAT) EM_ROMU_MONO32_MAX;
+    FLOAT z_01 = (FLOAT) em_romu_mono32_random(&s) / (FLOAT) EM_ROMU_MONO32_MAX;
 
     FLOAT x_cmp = (2 * x_01) - 1.0;
     FLOAT y_cmp = (2 * y_01) - 1.0;

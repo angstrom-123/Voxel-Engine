@@ -92,9 +92,6 @@ static void init(void *user_data)
 {
     INSTRUMENTOR_SESSION_BEGIN(Minecraft_Session);
 
-    em_romu_mono32_init(time(NULL));
-    em_romu_duo_init(time(NULL));
-
     engine = malloc(sizeof(engine_t));
     app = malloc(sizeof(app_t));
     memset(engine, 0, sizeof(engine_t));

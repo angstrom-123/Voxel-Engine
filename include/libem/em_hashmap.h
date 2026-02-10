@@ -187,14 +187,14 @@ em_hashmap_##NAME##_t *em_hashmap_##NAME##_new(const em_hashmap_desc_t *desc)\
         || !desc->cln_k_func || !desc->cln_v_func)\
     {\
         EM_LOG("Hashmap initialization params are invalid.\n", NULL);\
-        exit(1);\
+        raise(SIGABRT);\
     }\
     \
     em_hashmap_##NAME##_t *res = malloc(sizeof(em_hashmap_##NAME##_t));\
     if (!res)\
     {\
         EM_LOG("Failed to allocate memory for hashmap.\n", NULL);\
-        exit(1);\
+        raise(SIGABRT);\
     }\
     \
     res->_hashmap       = em_hashmap_new(desc);\
@@ -572,7 +572,7 @@ void *em_hashmap_pop(em_hashmap_t *this, const void *key)
     {
         /* Hashmap does not contain the key. */
         EM_LOG("Attempting to access invalid element in hashmap pop.\n", NULL);
-        exit(1);
+        raise(SIGABRT);
     }
 
     void *res = e->val;
@@ -616,7 +616,7 @@ void em_hashmap_remove(em_hashmap_t *this, const void *key)
     {
         /* Hashmap does not contain the key. */
         EM_LOG("Attempting to access invalid element in hashmap remove.\n", NULL);
-        exit(1);
+        raise(SIGABRT);
     }
 
     if (!e->_next)

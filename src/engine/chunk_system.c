@@ -45,21 +45,29 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
     case CSREQ_REMESH:
     {
         mtx_lock(&cs->genned_lock);
-        chunk_data_t *c = cs->genned->get_or_default(cs->genned, r->pos, NULL);
-        chunk_data_t *n = cs->genned->get_or_default(cs->genned, REL_N(r->pos), NULL);
-        chunk_data_t *e = cs->genned->get_or_default(cs->genned, REL_E(r->pos), NULL);
-        chunk_data_t *s = cs->genned->get_or_default(cs->genned, REL_S(r->pos), NULL);
-        chunk_data_t *w = cs->genned->get_or_default(cs->genned, REL_W(r->pos), NULL);
+        chunk_set_t chunks = {
+            .cd = cs->genned->get_or_default(cs->genned, r->pos, NULL),
+            .nd = cs->genned->get_or_default(cs->genned, REL_N(r->pos), NULL),
+            .ed = cs->genned->get_or_default(cs->genned, REL_E(r->pos), NULL),
+            .sd = cs->genned->get_or_default(cs->genned, REL_S(r->pos), NULL),
+            .wd = cs->genned->get_or_default(cs->genned, REL_W(r->pos), NULL)
+        };
         mtx_unlock(&cs->genned_lock);
 
-        ENGINE_ASSERT(c != NULL, "Chunk to be meshed doesn't exist.\n");
-        ENGINE_ASSERT(n != NULL, "North chunk of the chunk to be meshed doesn't exist.\n");
-        ENGINE_ASSERT(e != NULL, "East chunk of the chunk to be meshed doesn't exist.\n");
-        ENGINE_ASSERT(s != NULL, "South chunk of the chunk to be meshed doesn't exist.\n");
-        ENGINE_ASSERT(w != NULL, "West chunk of the chunk to be meshed doesn't exist.\n");
+        ENGINE_ASSERT(chunks.cd != NULL, "Chunk to be meshed doesn't exist.\n");
+        ENGINE_ASSERT(chunks.nd != NULL, "North of the chunk to mesh doesn't exist.\n");
+        ENGINE_ASSERT(chunks.ed != NULL, "East of the chunk to mesh doesn't exist.\n");
+        ENGINE_ASSERT(chunks.sd != NULL, "South of the chunk to mesh doesn't exist.\n");
+        ENGINE_ASSERT(chunks.wd != NULL, "West of the chunk to mesh doesn't exist.\n");
+        
+        mesh_t *mesh_o = NULL; // Opaque geometry for deferred rendering
+        mesh_t *mesh_t = NULL; // Translucent geometry for forward rendering
+        geom_generate_mesh(&mesh_o, &mesh_t, chunks);
 
-        mesh_t *mesh = geom_generate_mesh(c, n, e, s, w);
-        US_REQUEST(us, (r->type == CSREQ_MESH) ? USREQ_STAGE : USREQ_RESTAGE, r->pos, mesh);
+        if (r->type == CSREQ_MESH)
+            US_REQUEST(us, USREQ_STAGE, r->pos, mesh_o, mesh_t);
+        else 
+            US_REQUEST(us, USREQ_RESTAGE, r->pos, mesh_o, mesh_t);
         break;
     }
     case CSREQ_UNLOAD: 
@@ -108,32 +116,15 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         c->edited = true;
         mtx_unlock(&cs->genned_lock);
 
-        _handle_request(cs, us, &(cs_request_t) {
-            .type = CSREQ_REMESH,
-            .pos = r->pos
-        });
+        #define REMESH_AT(at) _handle_request(cs, us, &(cs_request_t) {\
+            .type = CSREQ_REMESH, .pos = at })
 
-        if (r->cell.x == CHUNK_SIZE - 1) 
-            _handle_request(cs, us, &(cs_request_t) {
-                .type = CSREQ_REMESH,
-                .pos = REL_E(r->pos)
-            });
-        else if (r->cell.x == 0) 
-            _handle_request(cs, us, &(cs_request_t) {
-                .type = CSREQ_REMESH,
-                .pos = REL_W(r->pos)
-            });
+        REMESH_AT(r->pos);
+        if (r->cell.z == CHUNK_SIZE - 1) REMESH_AT(REL_N(r->pos));
+        if (r->cell.x == CHUNK_SIZE - 1) REMESH_AT(REL_E(r->pos));
+        else if (r->cell.z == 0)         REMESH_AT(REL_S(r->pos));
+        else if (r->cell.x == 0)         REMESH_AT(REL_W(r->pos));
 
-        if (r->cell.z == CHUNK_SIZE - 1) 
-            _handle_request(cs, us, &(cs_request_t) {
-                .type = CSREQ_REMESH,
-                .pos = REL_N(r->pos)
-            });
-        else if (r->cell.z == 0) 
-            _handle_request(cs, us, &(cs_request_t) {
-                .type = CSREQ_REMESH,
-                .pos = REL_S(r->pos)
-            });
         break;
     }
     case CSREQ_PLACE:
@@ -311,27 +302,27 @@ void chunk_sys_make_request(chunk_system_t *cs, cs_request_t r)
     mtx_unlock(&cs->requests_lock);
 }
 
-void chunk_sys_borrow_surrounding_data(chunk_system_t *cs, ivec2 pos, chunk_data_t *res[3][3])
+void chunk_sys_borrow_surrounding_data(chunk_system_t *cs, ivec2 pos, chunk_set_t *chunks)
 {
     if (!atomic_load(&cs->running)) return;
 
     mtx_lock(&cs->genned_lock);
 
-    res[0][0] = cs->genned->get_ptr(cs->genned, REL_NW(pos));
-    res[1][0] = cs->genned->get_ptr(cs->genned, REL_N(pos));
-    res[2][0] = cs->genned->get_ptr(cs->genned, REL_NE(pos));
-    res[0][1] = cs->genned->get_ptr(cs->genned, REL_W(pos));
-    res[1][1] = cs->genned->get_ptr(cs->genned, pos);
-    res[2][1] = cs->genned->get_ptr(cs->genned, REL_E(pos));
-    res[0][2] = cs->genned->get_ptr(cs->genned, REL_SW(pos));
-    res[1][2] = cs->genned->get_ptr(cs->genned, REL_S(pos));
-    res[2][2] = cs->genned->get_ptr(cs->genned, REL_SE(pos));
+    chunks->nwd = cs->genned->get_ptr(cs->genned, REL_NW(pos));
+    chunks->nd  = cs->genned->get_ptr(cs->genned, REL_N(pos));
+    chunks->ned = cs->genned->get_ptr(cs->genned, REL_NE(pos));
+    chunks->wd  = cs->genned->get_ptr(cs->genned, REL_W(pos));
+    chunks->cd  = cs->genned->get_ptr(cs->genned, pos);
+    chunks->ed  = cs->genned->get_ptr(cs->genned, REL_E(pos));
+    chunks->swd = cs->genned->get_ptr(cs->genned, REL_SW(pos));
+    chunks->sd  = cs->genned->get_ptr(cs->genned, REL_S(pos));
+    chunks->sed = cs->genned->get_ptr(cs->genned, REL_SE(pos));
 }
 
-void chunk_sys_return_surrounding_data(chunk_system_t *cs, chunk_data_t *data[3][3])
+void chunk_sys_return_surrounding_data(chunk_system_t *cs, chunk_set_t *chunks)
 {
     (void) cs;
-    (void) data;
+    (void) chunks;
     mtx_unlock(&cs->genned_lock);
 }
 

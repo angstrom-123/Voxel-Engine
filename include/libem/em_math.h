@@ -90,6 +90,14 @@ typedef union em_uvec4 {
     UINT elements[4];
 } em_uvec4;
 
+typedef union em_mat3 {
+    struct {
+        em_vec4 x, y, z;
+    };
+
+    FLOAT elements[3][3];
+} em_mat3;
+
 typedef union em_mat4 {
     struct {
         em_vec4 x, y, z, w;
@@ -115,6 +123,7 @@ typedef em_vec4 em_quaternion;
     typedef em_uvec3 uvec3;
     typedef em_uvec4 uvec4;
     
+    typedef em_mat3 mat3;
     typedef em_mat4 mat4;
 #endif
 
@@ -158,6 +167,10 @@ typedef em_vec4 em_quaternion;
 #define DECOMPOSE_2(v) v.x, v.y
 #define DECOMPOSE_3(v) v.x, v.y, v.z
 #define DECOMPOSE_4(v) v.x, v.y, v.z, v.w
+
+#define INDEX_2(v) v.x][v.y
+#define INDEX_3(v) v.x][v.y][v.z
+#define INDEX_4(v) v.x][v.y][v.z][v.w
 
 bool em_equals_vec3(em_vec3 a, em_vec3 b);
 bool em_equals_vec4(em_vec4 a, em_vec4 b);

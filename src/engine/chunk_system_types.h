@@ -3,15 +3,33 @@
 
 #include <libem/em_math.h>
 
-#include "geometry.h"
 #include "update_system_types.h"
 
 typedef struct chunk_render_info {
+    bool needs_update_o;
+    bool needs_update_t;
     ivec2 pos;
-    buffer_pair_t bufs;
-    mesh_t *mesh;
-    bool needs_update;
+    buffer_pair_t bufs_o;
+    buffer_pair_t bufs_t;
+    mesh_t *mesh_o;
+    mesh_t *mesh_t;
 } chunk_render_info_t;
+
+typedef union chunk_set {
+    struct {
+        // NOTE: This order is important as it allows for correct indexing of data.
+        chunk_data_t *nwd;
+        chunk_data_t *wd;
+        chunk_data_t *swd;
+        chunk_data_t *nd;
+        chunk_data_t *cd;
+        chunk_data_t *sd;
+        chunk_data_t *ned;
+        chunk_data_t *ed;
+        chunk_data_t *sed;
+    };
+    chunk_data_t *data[3][3];
+} chunk_set_t;
 
 typedef struct cs_request {
     enum {

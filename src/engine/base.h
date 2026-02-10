@@ -5,7 +5,6 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <string.h>
-#include <signal.h>
 
 #ifdef PLAT_LINUX
 #define SEP "/"
@@ -28,18 +27,19 @@
 #define WORLD_DATA_DIR "app_data" SEP
 #define WORLD_META_FILE "meta"
 #define TEXTURE_DATA_DIR "res" SEP "tex" SEP
+#define MODEL_DATA_DIR "res" SEP "model" SEP
 
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
 
 #define THREAD_AWAIT_NS 100000000
 
-    typedef enum directions {
-      DIR_NORTH = 1,
-      DIR_EAST = 2,
-      DIR_SOUTH = 4,
-      DIR_WEST = 8
-    } directions_e;
+typedef enum directions {
+    DIR_NORTH = 1,
+    DIR_EAST  = 2,
+    DIR_SOUTH = 4,
+    DIR_WEST  = 8
+} directions_e;
 
 #define QUOTE(...) #__VA_ARGS__
 
