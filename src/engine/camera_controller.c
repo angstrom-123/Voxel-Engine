@@ -18,6 +18,7 @@ static struct coord_set _get_pos_data(vec3 pos, ivec2 centre)
 static void _get_surrounding_voxels(vec3 pos, ivec2 surr_pos, chunk_data_t *surr[3][3], 
                                     cube_type_e res[3][4][3], size_t res_height, ivec3 *cam_voxel)
 {
+    INSTRUMENT_FUNC_BEGIN();
     struct coord_set cs = _get_pos_data(pos, surr_pos);
     *cam_voxel = cs.voxel_coord;
 
@@ -55,6 +56,7 @@ static void _get_surrounding_voxels(vec3 pos, ivec2 surr_pos, chunk_data_t *surr
                            : CUBETYPE_AIR;
         }
     }
+    INSTRUMENT_FUNC_END();
 }
 
 static void _ground_check(ctl_t *cc, camera_t *cam, float epsilon)
@@ -125,14 +127,10 @@ static void _ground_check(ctl_t *cc, camera_t *cam, float epsilon)
 
 static vec3 _resolve_collision(ctl_t *cc, vec3 curr_pos, vec3 move)
 {
+    INSTRUMENT_FUNC_BEGIN();
     ivec3 curr_voxel;
     cube_type_e surr[3][4][3];
     _get_surrounding_voxels(curr_pos, cc->surrounding_pos,  cc->surrounding, surr, 4, &curr_voxel);
-
-    // TODO: 
-    //      - Split movement into each component
-    //      - Check collision in each component of movement first
-    //      - Zero out axis velocity if colliding 
 
     const size_t axis_order[3] = { 1, 0, 2 };
 
@@ -179,6 +177,7 @@ static vec3 _resolve_collision(ctl_t *cc, vec3 curr_pos, vec3 move)
         next_pos.elements[axis] = curr_pos.elements[axis] + move.elements[axis] + resolve;
     }
 
+    INSTRUMENT_FUNC_END();
     return next_pos;
 }
 
@@ -237,8 +236,9 @@ void ctl_update_view(ctl_t *cc, camera_t *cam, event_system_t *es)
 
 void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
 {
+    INSTRUMENT_FUNC_BEGIN();
     const size_t coyote_time = 4;
-    const size_t cooldown_time = 20;
+    const size_t cooldown_time = coyote_time + 1;
 
     if (!cc->surrounding_loaded) return;
 
@@ -269,7 +269,7 @@ void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
     move = em_normalize_vec3(move);
     vec3 friction;
     vec3 accel;
-    if (cc->time_grounded >= 1)
+    if (cc->time_grounded >= 2)
     {
         cc->velocity.y = 0.0;
 
@@ -301,10 +301,12 @@ void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
     // Update position
     cam->pos = next_pos;
     if (cc->jump_cooldown > 0) cc->jump_cooldown--;
+    INSTRUMENT_FUNC_END();
 }
 
 void ctl_update_surrounding(ctl_t *cc, camera_t *cam, chunk_system_t *cs)
 {
+    INSTRUMENT_FUNC_BEGIN();
     ivec2 pos = {
         floorf(cam->pos.x / (float) CHUNK_SIZE) * CHUNK_SIZE, 
         floorf(cam->pos.z / (float) CHUNK_SIZE) * CHUNK_SIZE
@@ -322,4 +324,5 @@ void ctl_update_surrounding(ctl_t *cc, camera_t *cam, chunk_system_t *cs)
 
     cc->surrounding_loaded = true;
     cc->surrounding_pos = pos;
+    INSTRUMENT_FUNC_END();
 }

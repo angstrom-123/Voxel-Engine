@@ -260,7 +260,7 @@ static void _dispatch_diagonal_loads(load_system_t *ls, chunk_system_t *cs,
         if (backward) // Unload old.
         {
             CS_REQUEST(cs, CSREQ_UNLOAD, old_crd);
-            US_REQUEST(us, USREQ_UNSTAGE, new_out[i], NULL, NULL);
+            US_REQUEST(us, USREQ_UNSTAGE, new_out[i], NULL);
         }
     }
 
@@ -283,7 +283,7 @@ static void _dispatch_diagonal_loads(load_system_t *ls, chunk_system_t *cs,
         if (backward) // Unstage old.
         {
             CS_REQUEST(cs, CSREQ_UNLOAD, old_crd);
-            US_REQUEST(us, USREQ_UNSTAGE, old_crd, NULL, NULL);
+            US_REQUEST(us, USREQ_UNSTAGE, old_crd, NULL);
         }
     }
 
@@ -345,7 +345,7 @@ static void _dispatch_loads(load_system_t *ls, chunk_system_t *cs, update_system
             CS_REQUEST(cs, CSREQ_MESH, new_rim[i]);
 
         if (backward) // Unstage old.
-            US_REQUEST(us, USREQ_UNSTAGE, old_crd, NULL, NULL);
+            US_REQUEST(us, USREQ_UNSTAGE, old_crd, NULL);
     }
 
     memcpy(&ls->shells[SHELL_OUT].crds[0], &new_out[0], out_cnt * sizeof(ivec2));

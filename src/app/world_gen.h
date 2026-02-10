@@ -10,6 +10,7 @@
 #include "chunk_system_types.h"
 #include "base.h"
 #include "physics.h"
+#include "instrumentor.h"
 
 #define PERLIN_SCALE 0.004
 #define PERLIN_OCTAVES 6
@@ -23,8 +24,10 @@ typedef struct gen_tree {
 } gen_tree_t;
 
 static gen_tree_t tree_basic;
+static gen_tree_t tree_tall;
+static gen_tree_t tree_pink;
 
-extern bool load_model_files();
+extern void load_model_files();
 extern void unload_model_files();
 extern chunk_data_t *generate_chunk_data(ivec2 pos, uint32_t seed);
 

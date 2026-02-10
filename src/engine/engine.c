@@ -92,7 +92,7 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
     const size_t MAX_ACTIVE = (2 * em_sqr(desc->render_distance + 1)) + 
                               (2 * (desc->render_distance + 1)) + 1;
     const size_t QUEUE_SIZE = MAX_ACTIVE * 2;
-    const size_t BUF_POOL_SIZE = MAX_ACTIVE * 4 + 20;
+    const size_t BUF_POOL_SIZE = MAX_ACTIVE * 2 + 40;
 
     sg_setup(&(sg_desc) {
         .buffer_pool_size = BUF_POOL_SIZE,
@@ -115,7 +115,7 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
 
     update_sys_init(&engine->_update_sys, &(update_system_desc_t) {
         .chunk_capacity = MAX_ACTIVE,
-        .free_capacity = MAX_ACTIVE * 2,
+        .free_capacity = MAX_ACTIVE + 10,
         .request_capacity = QUEUE_SIZE
     });
     ENGINE_LOG_OK("Setup update system.\n", NULL);
@@ -132,7 +132,7 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
         .window_size = VEC2(sapp_width(), sapp_height()),
         .view_distance = desc->render_distance * 10.0,
         .max_distance = desc->render_distance * 100.0,
-        .shadow_scale = 4.0,
+        .shadow_scale = 6.0,
         .inv_sun_dir = em_mul_vec3_f(desc->base_sun_dir, -1.0)
     });
     ENGINE_LOG_OK("Setup render system.\n", NULL);

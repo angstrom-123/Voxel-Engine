@@ -2,41 +2,40 @@
 
 static void _handle_request(update_system_t *us, us_request_t *r)
 {
-    INSTRUMENT_FUNC_BEGIN();
     switch (r->type) {
     case USREQ_STAGE:
     {
+        INSTRUMENT_SCOPE_BEGIN(req_stage);
         chunk_render_info_t *cri = malloc(sizeof(chunk_render_info_t));
         cri->pos = r->pos;
         cri->mesh_o = r->mesh_o;
-        cri->mesh_t = r->mesh_t;
         cri->bufs_o = us->buffer_pool->dequeue(us->buffer_pool);
-        cri->bufs_t = us->buffer_pool->dequeue(us->buffer_pool);
         if (cri->mesh_o) cri->needs_update_o = true;
-        if (cri->mesh_t) cri->needs_update_t = true;
 
         mtx_lock(&us->chunks_lock);
 
         us->chunks->put_ptr(us->chunks, r->pos, cri);
 
         mtx_unlock(&us->chunks_lock);
+        INSTRUMENT_SCOPE_END(req_stage);
         break;
     }
     case USREQ_RESTAGE:
     {
+        INSTRUMENT_SCOPE_BEGIN(req_restage);
         mtx_lock(&us->chunks_lock);
 
         chunk_render_info_t *cri = us->chunks->get_ptr(us->chunks, r->pos);
         cri->mesh_o = r->mesh_o;
-        cri->mesh_t = r->mesh_t;
         cri->needs_update_o = (cri->mesh_o);
-        cri->needs_update_t = (cri->mesh_t);
 
         mtx_unlock(&us->chunks_lock);
+        INSTRUMENT_SCOPE_END(req_restage);
         break;
     }
     case USREQ_UNSTAGE: 
     {
+        INSTRUMENT_SCOPE_BEGIN(req_unstage);
         mtx_lock(&us->chunks_lock);
 
         if (us->chunks->contains_key(us->chunks, r->pos))
@@ -50,21 +49,13 @@ static void _handle_request(update_system_t *us, us_request_t *r)
                 free(cri.mesh_o->i_buf);
                 free(cri.mesh_o);
             }
-
-            us->buffer_pool->enqueue(us->buffer_pool, cri.bufs_t);
-            if (cri.mesh_t != NULL)
-            {
-                free(cri.mesh_t->v_buf);
-                free(cri.mesh_t->i_buf);
-                free(cri.mesh_t);
-            }
         }
 
         mtx_unlock(&us->chunks_lock);
+        INSTRUMENT_SCOPE_END(req_unstage);
         break;
     }
     }
-    INSTRUMENT_FUNC_END();
 }
 
 static int _thread_func(void *args)

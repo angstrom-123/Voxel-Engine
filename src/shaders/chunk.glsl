@@ -129,7 +129,7 @@ float visibility() {
     if (sm_pos.x > 1.0 || sm_pos.x < 0.0 || sm_pos.y > 1.0 || sm_pos.y < 0.0)
         return 1.0;
 
-    float bias = max(0.002 * (1.0 - dot(v_nrm, u_sun_dir)), 0.002);
+    float bias = max(0.005 * (1.0 - dot(v_nrm, u_sun_dir)), 0.005);
 
     float curr_dep = sm_pos.z;
 
@@ -414,7 +414,15 @@ void main() {
 
 @fs fs_effects
 
+// #define DEBUG_SHADOWS
+
 layout(binding=0) uniform sampler u_effects_smp;
+#ifdef DEBUG_SHADOWS
+
+layout(binding=5) uniform texture2D u_effects_shadow_map;
+
+#else
+
 layout(binding=0) uniform texture2D u_colour;
 layout(binding=1) uniform texture2D u_gnormal_effects;
 layout(binding=2) uniform texture2D u_gdepth_effects;
@@ -428,9 +436,19 @@ layout(binding=0) uniform fs_params_effects {
     mat4 u_view;
 };
 
+#endif
+
 in vec2 v_uv;
 
 out vec4 frag_col;
+
+#ifdef DEBUG_SHADOWS
+
+void main() {
+    frag_col = texture(sampler2D(u_effects_shadow_map, u_effects_smp), v_uv);
+}
+
+#else
 
 const vec2 noise_scale = vec2(1920.0 / 4.0, 1080.0 / 4.0);
 const float kernel_size = 64.0;
@@ -485,6 +503,7 @@ void main() {
         frag_col = mix(skybox, colour, colour.a);
     }
 }
+#endif
 @end 
 
 @program effects vs_effects fs_effects

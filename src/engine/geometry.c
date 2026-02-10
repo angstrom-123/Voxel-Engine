@@ -35,7 +35,6 @@ bool geom_cube_is_transparent(cube_type_e type)
 {
     switch (type) {
     case CUBETYPE_AIR: 
-    case CUBETYPE_LEAF: 
         return true;
     default: 
         return false;
@@ -102,33 +101,7 @@ static void _pack_face_to_mesh(uint16_t *v_cnt, uint16_t *i_cnt,
     *i_cnt += 6;
 }
 
-const char *log_mesh(mesh_t *m)
-{
-    char *buf = malloc(STD_BUFLEN);
-    snprintf(buf, STD_BUFLEN, "mesh (%p)\n"
-                              "    .i_cnt = (%hu)\n"
-                              "    .v_cnt = (%hu)\n"
-                              "    .i_buf = (%p)\n"
-                              "    .v_buf = (%p)\n",
-             m, m->i_cnt, m->v_cnt, m->i_buf, m->v_buf);
-    return buf;
-}
-
-const char *cubename(cube_type_e type)
-{
-    switch (type) {
-    case CUBETYPE_AIR:   return "Air";
-    case CUBETYPE_GRASS: return "Grass";
-    case CUBETYPE_DIRT:  return "Dirt";
-    case CUBETYPE_STONE: return "Stone";
-    case CUBETYPE_SAND:  return "Sand";
-    case CUBETYPE_LOG:   return "Log";
-    case CUBETYPE_LEAF:  return "Leaf";
-    default: return "unknown";
-    }
-}
-
-void geom_generate_mesh(mesh_t **res_o, mesh_t **res_t, chunk_set_t cs)
+void geom_generate_mesh(mesh_t **res_o, chunk_set_t cs)
 {
     mesh_t *opaque = malloc(sizeof(mesh_t));
     uint16_t v_max_o = V_MAX / 8;
@@ -138,20 +111,9 @@ void geom_generate_mesh(mesh_t **res_o, mesh_t **res_t, chunk_set_t cs)
     packed_vertex_t *v_buf_o = malloc(v_max_o * sizeof(packed_vertex_t));
     uint16_t *i_buf_o = malloc(i_max_o * sizeof(uint16_t));
 
-    mesh_t *translucent = malloc(sizeof(mesh_t));
-    uint16_t v_max_t = V_MAX / 8;
-    uint16_t i_max_t = I_MAX / 8;
-    uint16_t v_cnt_t = 0;
-    uint16_t i_cnt_t = 0;
-    packed_vertex_t *v_buf_t = malloc(v_max_t * sizeof(packed_vertex_t));
-    uint16_t *i_buf_t = malloc(i_max_t * sizeof(uint16_t));
-
     ENGINE_ASSERT(opaque != NULL, "Failed to allocate opaque mesh.\n");
     ENGINE_ASSERT(v_buf_o != NULL, "Failed to allocate opaque vertex buffer.\n");
     ENGINE_ASSERT(i_buf_o != NULL, "Failed to allocate opaque vertex buffer.\n");
-    ENGINE_ASSERT(translucent != NULL, "Failed to allocate translucent mesh.\n");
-    ENGINE_ASSERT(v_buf_t != NULL, "Failed to allocate translucent vertex buffer.\n");
-    ENGINE_ASSERT(i_buf_t != NULL, "Failed to allocate translucent vertex buffer.\n");
 
     /* Iterating x, y, z, as one dimension in row-major order for less nesting. */
     uint8_t *ptr = &cs.cd->types[0][0][0];
@@ -170,39 +132,20 @@ void geom_generate_mesh(mesh_t **res_o, mesh_t **res_t, chunk_set_t cs)
         for (uint8_t face = 0; face < 6; face++)
         {
             const cube_type_e nhbr = _get_adj_neighbour(x, y, z, face, cs);
-            if (!geom_cube_is_transparent(nhbr)) 
-                continue; // Opaque neighbour on this side, block face not visible.
+            if (!geom_cube_is_transparent(nhbr)) continue;
 
-            if (!geom_cube_is_transparent(type))
+            if (v_cnt_o + 4 >= v_max_o)
             {
-                if (v_cnt_o + 4 >= v_max_o)
-                {
-                    v_buf_o = realloc(v_buf_o, (v_max_o *= 2) * sizeof(packed_vertex_t));
-                    i_buf_o = realloc(i_buf_o, (i_max_o *= 2) * sizeof(uint16_t));
-                }
-                _pack_face_to_mesh(&v_cnt_o, &i_cnt_o, v_buf_o, i_buf_o, &(quad_desc_t) {
-                    .x = x,
-                    .y = y,
-                    .z = z,
-                    .face = face,
-                    .type = type
-                });
-            } 
-            else 
-            {
-                if (v_cnt_t + 4 >= v_max_t)
-                {
-                    v_buf_t = realloc(v_buf_t, (v_max_t *= 2) * sizeof(packed_vertex_t));
-                    i_buf_t = realloc(i_buf_t, (i_max_t *= 2) * sizeof(uint16_t));
-                }
-                _pack_face_to_mesh(&v_cnt_t, &i_cnt_t, v_buf_t, i_buf_t, &(quad_desc_t) {
-                    .x = x,
-                    .y = y,
-                    .z = z,
-                    .face = face,
-                    .type = type
-                });
+                v_buf_o = realloc(v_buf_o, (v_max_o *= 2) * sizeof(packed_vertex_t));
+                i_buf_o = realloc(i_buf_o, (i_max_o *= 2) * sizeof(uint16_t));
             }
+            _pack_face_to_mesh(&v_cnt_o, &i_cnt_o, v_buf_o, i_buf_o, &(quad_desc_t) {
+                .x = x,
+                .y = y,
+                .z = z,
+                .face = face,
+                .type = type
+            });
         }
     }
 
@@ -217,17 +160,5 @@ void geom_generate_mesh(mesh_t **res_o, mesh_t **res_t, chunk_set_t cs)
         };
         memcpy(opaque, &mo, sizeof(mo));
         *res_o = opaque;
-    }
-
-    if (i_cnt_t > 0)
-    {
-        mesh_t mt = {
-            .i_cnt = i_cnt_t,
-            .v_cnt = v_cnt_t,
-            .i_buf = i_buf_t,
-            .v_buf = v_buf_t
-        };
-        memcpy(translucent, &mt, sizeof(mt));
-        *res_t = translucent;
     }
 }

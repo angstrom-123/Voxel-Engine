@@ -28,7 +28,6 @@ static void _on_mousedown(const event_t *ev, void *args)
 static void do_init(engine_t *e, app_t *a)
 {
     APP_LOG_WARN("Init called.\n", NULL);
-    // TODO: Try with smaller render distance (out of buffers silently??)
     APP_TODO("Make the render distance editable at runtime");
     #if defined(RELEASE) || defined(PROFILING)
         const size_t RENDER_DISTANCE = 24;

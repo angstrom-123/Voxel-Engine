@@ -7,12 +7,9 @@
 
 typedef struct chunk_render_info {
     bool needs_update_o;
-    bool needs_update_t;
     ivec2 pos;
     buffer_pair_t bufs_o;
-    buffer_pair_t bufs_t;
     mesh_t *mesh_o;
-    mesh_t *mesh_t;
 } chunk_render_info_t;
 
 typedef union chunk_set {

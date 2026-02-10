@@ -10,9 +10,9 @@
 #include "base.h"
 #include "instrumentor.h"
 
-#define US_REQUEST(us, typ, crd, msh_o, msh_t) \
+#define US_REQUEST(us, typ, crd, msh_o) \
     update_sys_make_request(us, (us_request_t) {\
-        .type = typ, .pos = crd, .mesh_o = msh_o, .mesh_t = msh_t\
+        .type = typ, .pos = crd, .mesh_o = msh_o\
     })
 
 typedef struct render_data {

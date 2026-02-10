@@ -10,17 +10,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <malloc.h>
-#include <stdlib.h> // fprintf, stderr, exit
 #include <math.h>
 
-#define REL_N(pos)  (em_add_ivec2((pos), (ivec2) { 0         ,  CHUNK_SIZE }))
-#define REL_NE(pos) (em_add_ivec2((pos), (ivec2) { CHUNK_SIZE,  CHUNK_SIZE }))
-#define REL_E(pos)  (em_add_ivec2((pos), (ivec2) { CHUNK_SIZE,  0          }))
-#define REL_SE(pos) (em_add_ivec2((pos), (ivec2) { CHUNK_SIZE, -CHUNK_SIZE }))
-#define REL_S(pos)  (em_add_ivec2((pos), (ivec2) { 0         , -CHUNK_SIZE }))
-#define REL_SW(pos) (em_add_ivec2((pos), (ivec2) {-CHUNK_SIZE, -CHUNK_SIZE }))
-#define REL_W(pos)  (em_add_ivec2((pos), (ivec2) {-CHUNK_SIZE,  0          }))
-#define REL_NW(pos) (em_add_ivec2((pos), (ivec2) {-CHUNK_SIZE,  CHUNK_SIZE }))
+#define REL_N(pos)  (em_add_ivec2((pos), IVEC2( 0         ,  CHUNK_SIZE)))
+#define REL_NE(pos) (em_add_ivec2((pos), IVEC2( CHUNK_SIZE,  CHUNK_SIZE)))
+#define REL_E(pos)  (em_add_ivec2((pos), IVEC2( CHUNK_SIZE,  0         )))
+#define REL_SE(pos) (em_add_ivec2((pos), IVEC2( CHUNK_SIZE, -CHUNK_SIZE)))
+#define REL_S(pos)  (em_add_ivec2((pos), IVEC2( 0         , -CHUNK_SIZE)))
+#define REL_SW(pos) (em_add_ivec2((pos), IVEC2(-CHUNK_SIZE, -CHUNK_SIZE)))
+#define REL_W(pos)  (em_add_ivec2((pos), IVEC2(-CHUNK_SIZE,  0         )))
+#define REL_NW(pos) (em_add_ivec2((pos), IVEC2(-CHUNK_SIZE,  CHUNK_SIZE)))
 
 /* A chunk's mesh will never exceed these maximums. */
 #define V_MAX 66048
@@ -92,11 +91,24 @@ static const tex_type_e tex_lookup[CUBETYPE_NUM][6] = {
         [FACEIDX_BOTTOM] = 8,
         [FACEIDX_TOP   ] = 8
     },
+    [CUBETYPE_LOG_P] = {
+        [FACEIDX_BACK  ] = 10,
+        [FACEIDX_FRONT ] = 10,
+        [FACEIDX_LEFT  ] = 10,
+        [FACEIDX_RIGHT ] = 10,
+        [FACEIDX_BOTTOM] = 9,
+        [FACEIDX_TOP   ] = 9
+    },
+    [CUBETYPE_LEAF_P] = {
+        [FACEIDX_BACK  ] = 11,
+        [FACEIDX_FRONT ] = 11,
+        [FACEIDX_LEFT  ] = 11,
+        [FACEIDX_RIGHT ] = 11,
+        [FACEIDX_BOTTOM] = 11,
+        [FACEIDX_TOP   ] = 11
+    },
 };
 
-extern const char *log_mesh(mesh_t *mesh);
-extern const char *cubename(cube_type_e type);
 extern bool geom_cube_is_transparent(cube_type_e type);
-extern void geom_generate_mesh(mesh_t **res_o, mesh_t **res_t, chunk_set_t cs);
-extern void geom_generate_safe_remesh(mesh_t **res_o, mesh_t *res_t, chunk_set_t cs);
+extern void geom_generate_mesh(mesh_t **res_o, chunk_set_t cs);
 #endif

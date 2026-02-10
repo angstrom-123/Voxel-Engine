@@ -22,6 +22,7 @@ uint8_t _get_height(ivec2 pos, uint32_t seed)
 
 void _place_tree(ivec3 pos, ivec2 chunk_pos, chunk_data_t *data, gen_tree_t tree)
 {
+    INSTRUMENT_FUNC_BEGIN();
     const interval_t ALLOWED_Y = { CHUNK_HEIGHT * 0.2, CHUNK_HEIGHT * 0.75 };
 
     if (!interval_contains(ALLOWED_Y, pos.y)) return;
@@ -49,35 +50,31 @@ void _place_tree(ivec3 pos, ivec2 chunk_pos, chunk_data_t *data, gen_tree_t tree
     }
     }
     }
+    INSTRUMENT_FUNC_END();
 }
 
-bool load_model_files()
+static bool load_model_file(file_t *f, gen_tree_t *out)
 {
-    file_t f = {
-        .base = MODEL_DATA_DIR,
-        .path = MODEL_DATA_DIR SEP "tree_basic",
-        .name = "tree_basic",
-    };
-    RUNTIME_ASSERT(file_open(&f, USAGE_READ), "Failed to open tree file for reading");
+    RUNTIME_ASSERT(file_open(f, USAGE_READ), "Failed to open tree file for reading");
     size_t hdr_len = 3;
     char hdr_buf[hdr_len][STD_BUFLEN];
-    RUNTIME_ASSERT(file_read_lines(&f, &hdr_len, STD_BUFLEN, hdr_buf),
+    RUNTIME_ASSERT(file_read_lines(f, &hdr_len, STD_BUFLEN, hdr_buf),
                    "Failed to read tree file header");
-    tree_basic.size_x = strtoul(hdr_buf[0], NULL, 10);
-    tree_basic.size_y = strtoul(hdr_buf[1], NULL, 10);
-    tree_basic.size_z = strtoul(hdr_buf[2], NULL, 10);
+    out->size_x = strtoul(hdr_buf[0], NULL, 10);
+    out->size_y = strtoul(hdr_buf[1], NULL, 10);
+    out->size_z = strtoul(hdr_buf[2], NULL, 10);
 
-    size_t body_len = tree_basic.size_z * tree_basic.size_y;
+    size_t body_len = out->size_z * out->size_y;
     char body_buf[body_len][STD_BUFLEN];
-    RUNTIME_ASSERT(file_read_lines(&f, &body_len, STD_BUFLEN, body_buf), 
+    RUNTIME_ASSERT(file_read_lines(f, &body_len, STD_BUFLEN, body_buf), 
                    "Failed to read tree file body");
-    cube_type_e body_data[body_len][tree_basic.size_x];
+    cube_type_e body_data[body_len][out->size_x];
     for (size_t i = 0; i < body_len; i++)
     {
         char tmp[STD_BUFLEN];
         strcpy(tmp, body_buf[i]);
         char *tok = strtok(body_buf[i], " ");
-        for (int32_t j = 0; j < tree_basic.size_x; j++)
+        for (int32_t j = 0; j < out->size_x; j++)
         {
             RUNTIME_ASSERT(tok != NULL, "Tree data must not be empty");
             body_data[i][j] = strtoul(tok, NULL, 10);
@@ -85,47 +82,51 @@ bool load_model_files()
         }
     }
 
-    for (size_t i = 0; i < body_len; i++)
-    {
-        for (int32_t j = 0; j < tree_basic.size_x; j++)
-            PUT_WARN("%hhu ", body_data[i][j]);
-        PUT_WARN("\n", NULL);
-    }
+    RUNTIME_ASSERT(file_close(f), "Failed to close tree file");
 
-    tree_basic.types = malloc(tree_basic.size_x * sizeof(cube_type_e *));
-    for (int32_t x = 0; x < tree_basic.size_x; x++)
-        tree_basic.types[x] = malloc(tree_basic.size_y * sizeof(cube_type_e *));
+    out->types = malloc(out->size_x * sizeof(cube_type_e *));
+    for (int32_t x = 0; x < out->size_x; x++)
+        out->types[x] = malloc(out->size_y * sizeof(cube_type_e *));
 
-    for (int32_t x = 0; x < tree_basic.size_x; x++)
-        for (int32_t y = 0; y < tree_basic.size_y; y++)
-            tree_basic.types[x][y] = malloc(tree_basic.size_z * sizeof(cube_type_e));
+    for (int32_t x = 0; x < out->size_x; x++)
+        for (int32_t y = 0; y < out->size_y; y++)
+            out->types[x][y] = malloc(out->size_z * sizeof(cube_type_e));
 
-    for (int32_t x = 0; x < tree_basic.size_x; x++)
+    for (int32_t x = 0; x < out->size_x; x++)
     {
-    for (int32_t y = 0; y < tree_basic.size_y; y++)
+    for (int32_t y = 0; y < out->size_y; y++)
     {
-    for (int32_t z = 0; z < tree_basic.size_z; z++)
+    for (int32_t z = 0; z < out->size_z; z++)
     {
         int32_t i = x;
-        int32_t j = z + (tree_basic.size_x * y);
-        APP_LOG_OK("%i, %i => %i, %i, %i", i, j, x, y, z);
-        tree_basic.types[x][y][z] = body_data[j][i];
+        int32_t j = z + (out->size_x * y);
+        out->types[x][y][z] = body_data[j][i];
     }
     }
-    }
-
-    for (int32_t y = 0; y < tree_basic.size_y; y++)
-    {
-        for (int32_t x = 0; x < tree_basic.size_x; x++)
-        {
-            for (int32_t z = 0; z < tree_basic.size_z; z++)
-                PUT_WARN("%hhu ", tree_basic.types[x][y][z]);
-            PUT_WARN("\n", NULL);
-        }
-        PUT_WARN("\n\n", NULL);
     }
 
     return true;
+}
+
+void load_model_files()
+{
+    #define model_file(f_name)\
+    {\
+        .base = MODEL_DATA_DIR,\
+        .path = MODEL_DATA_DIR SEP QUOTE(f_name),\
+        .name = QUOTE(f_name)\
+    };\
+
+    file_t f;
+
+    f = (file_t) model_file(tree_basic);
+    RUNTIME_ASSERT(load_model_file(&f, &tree_basic), "Failed to load tree basic file");
+
+    f = (file_t) model_file(tree_tall);
+    RUNTIME_ASSERT(load_model_file(&f, &tree_tall), "Failed to load tree tall file");
+
+    f = (file_t) model_file(tree_pink);
+    RUNTIME_ASSERT(load_model_file(&f, &tree_pink), "Failed to load tree tall file");
 }
 
 void unload_model_files()
@@ -133,15 +134,28 @@ void unload_model_files()
     for (int32_t x = 0; x < tree_basic.size_x; x++)
         for (int32_t y = 0; y < tree_basic.size_y; y++)
             free(tree_basic.types[x][y]);
-
     for (int32_t x = 0; x < tree_basic.size_x; x++)
         free(tree_basic.types[x]);
-
     free(tree_basic.types);
+
+    for (int32_t x = 0; x < tree_tall.size_x; x++)
+        for (int32_t y = 0; y < tree_tall.size_y; y++)
+            free(tree_tall.types[x][y]);
+    for (int32_t x = 0; x < tree_tall.size_x; x++)
+        free(tree_tall.types[x]);
+    free(tree_tall.types);
+
+    for (int32_t x = 0; x < tree_pink.size_x; x++)
+        for (int32_t y = 0; y < tree_pink.size_y; y++)
+            free(tree_pink.types[x][y]);
+    for (int32_t x = 0; x < tree_pink.size_x; x++)
+        free(tree_pink.types[x]);
+    free(tree_pink.types);
 }
 
 chunk_data_t *generate_chunk_data(ivec2 pos, uint32_t seed) 
 {
+    INSTRUMENT_FUNC_BEGIN();
     chunk_data_t *data = malloc(sizeof(chunk_data_t));
     memset(&data->types[0][0][0], 0, sizeof(data->types));
 
@@ -166,10 +180,22 @@ chunk_data_t *generate_chunk_data(ivec2 pos, uint32_t seed)
             }
 
             if (_is_tree(block_pos, seed))
-                _place_tree(block_pos, pos, data, tree_basic);
+            {
+                bool x_even = block_pos.x % 2 == 0;
+                bool y_even = block_pos.y % 2 == 0;
+                bool z_even = block_pos.z % 2 == 0;
+
+                if (x_even && y_even && z_even)
+                    _place_tree(block_pos, pos, data, tree_pink);
+                else if (y_even) 
+                    _place_tree(block_pos, pos, data, tree_tall);
+                else
+                    _place_tree(block_pos, pos, data, tree_basic);
+            }
         }
     }
 
+    INSTRUMENT_FUNC_END();
     data->edited = false;
     return data;
 }

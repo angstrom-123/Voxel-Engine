@@ -40,7 +40,6 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
         .near   = 0.005,
         .far    = desc->max_distance,
         .aspect = w / h,
-        // .fov    = 60.0,
         .fov    = 80.0,
         .pos    = VEC3(0.0, 0.0, 0.0)
     });
@@ -56,8 +55,8 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     });
 
     cam_init(&rs->shadow_cam, PROJECTION_ORTHOGRAPHIC, &(camera_desc_t) {
-        .near   = -10.0,
-        .far    = 300.0,
+        .near   = 0.0,
+        .far    = 100.0,
         .left   = -512.0,
         .right  = 512.0,
         .bottom = -512.0,
@@ -66,14 +65,7 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     });
     cam_set_scale(&rs->shadow_cam, desc->shadow_scale);
 
-    // TODO: Stop fiddling with this crap and add:
-    //       Texel-perfect-alignment: Move cam in discrete steps aligning with texel,
-    //                                this should let me just move it with the player
-    //                                without stepping at each chunk.
-    //       Cascades: For this, need to figure out how to tightly fit the camera 
-    //                 frustum to the player's surroundings.
-
-    rs->shadow_cam.view = em_look_at(desc->inv_sun_dir, VEC3(0, 0, 0), WORLD_Y);
+    rs->shadow_cam.view = em_look_at(desc->inv_sun_dir, VEC3(0, (float) CHUNK_HEIGHT / 2, 0), WORLD_Y);
     cam_update(&rs->shadow_cam);
 
     /* Renderers */

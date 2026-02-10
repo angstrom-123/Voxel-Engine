@@ -2,13 +2,11 @@
 ## General
 - Chunk LOD (lower res for distant chunks 16x16 -> 8x8 -> 4x4 -> 2x2 -> 1x1)
 - Greedy meshing for chunks (decreases required bandwidth by a LOT)
-- Add more variety to world generation
 - Use file walk and not hardcoded names for asset loading
-- Add Windows Support (Mainly just need to setup the build system)
-- Multiplayer
+- Add Windows Support
 
 ## Graphics
+- Remove transparency from leaves for now
 - Radial blur god rays (Volumetric lighting)
 - Screen Space Ambient Occlusion
-- Fix drawing order (transparent blocks last)
-- Frustum culling (Currently rendering takes like 1% of frame time so don't worry)
+- Add translucency support to deferred pipeline (need a new forward pass)

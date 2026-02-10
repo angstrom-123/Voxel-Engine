@@ -1,5 +1,7 @@
 #include "chunk_renderer.h"
 
+// #define DEBUG_SHADOWS
+
 void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim) 
 {
     cr->offscreen_base.dimensions = dim;
@@ -35,8 +37,10 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     sg_destroy_view(cr->composite_base.bind.views[VIEW_u_gnormal_composite]);
     sg_destroy_view(cr->composite_base.bind.views[VIEW_u_gdepth_composite]);
     sg_destroy_view(cr->composite_base.bind.views[VIEW_u_gshadow]);
+    #ifndef DEBUG_SHADOWS
     sg_destroy_view(cr->effects_base.bind.views[VIEW_u_gnormal_effects]);
     sg_destroy_view(cr->effects_base.bind.views[VIEW_u_gdepth_effects]);
+    #endif
 
     // Make new targets with the new dimensions.
     cr->targets = (struct targets) {
@@ -190,10 +194,12 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     cr->composite_base.bind.views[VIEW_u_gshadow] = sg_make_view(&(sg_view_desc) {
         .texture = { .image = cr->targets.shadow },
     });
-    // For debugging: Visualize the shadowmap
-    // cr->display_base.bind.views[VIEW_u_gshadow] = sg_make_view(&(sg_view_desc) {
-    //     .texture = { .image = cr->targets.shadowmap },
-    // });
+
+    #ifdef DEBUG_SHADOWS
+    cr->effects_base.bind.views[VIEW_u_effects_shadow_map] = sg_make_view(&(sg_view_desc) {
+        .texture = { .image = cr->targets.shadowmap }
+    });
+    #else
 
     cr->effects_base.bind.views[VIEW_u_colour] = sg_make_view(&(sg_view_desc) {
         .texture = { .image = cr->targets.colour }
@@ -210,6 +216,7 @@ void chunk_renderer_resize(chunk_renderer_t *cr, const vec2 dim)
     cr->effects_base.bind.views[VIEW_u_ssao_noise] = sg_make_view(&(sg_view_desc) {
         .texture = { .image = cr->info.ssao_noise_image }
     });
+    #endif
 }
 
 void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc)
@@ -522,9 +529,11 @@ void chunk_renderer_cleanup(chunk_renderer_t *cr)
     sg_destroy_view(cr->composite_base.bind.views[VIEW_u_gnormal_composite]);
     sg_destroy_view(cr->composite_base.bind.views[VIEW_u_gdepth_composite]);
     sg_destroy_view(cr->composite_base.bind.views[VIEW_u_gshadow]);
+    #ifndef DEBUG_SHADOWS
     sg_destroy_view(cr->effects_base.bind.views[VIEW_u_gnormal_effects]);
     sg_destroy_view(cr->effects_base.bind.views[VIEW_u_gdepth_effects]);
     sg_destroy_view(cr->effects_base.bind.views[VIEW_u_ssao_noise]);
+    #endif
 
     sg_destroy_image(cr->targets.albedo);
     sg_destroy_image(cr->targets.normal);
@@ -589,32 +598,6 @@ static void _render_shadowmap_pass(chunk_renderer_t *cr)
 
             sg_draw(0, cri->mesh_o->i_cnt, 1);
         }
-
-        // Render translucent geometry for shadowcasting
-        if (cri->mesh_t)
-        {
-            if (cri->needs_update_t && cri->mesh_t->v_cnt > 0)
-            {
-                sg_update_buffer(cri->bufs_t.vertex, &(sg_range) {
-                    .ptr = cri->mesh_t->v_buf,
-                    .size = cri->mesh_t->v_cnt * sizeof(packed_vertex_t)
-                });
-                sg_update_buffer(cri->bufs_t.index, &(sg_range) {
-                    .ptr = cri->mesh_t->i_buf,
-                    .size = cri->mesh_t->i_cnt * sizeof(uint16_t)
-                });
-
-                cri->needs_update_t = false;
-            }
-
-            rb->bind.vertex_buffers[0] = cri->bufs_t.vertex;
-            rb->bind.index_buffer = cri->bufs_t.index;
-            sg_apply_bindings(&rb->bind);
-
-            sg_apply_uniforms(UB_vs_params_shadowmap, &SG_RANGE(vs_params));
-
-            sg_draw(0, cri->mesh_t->i_cnt, 1);
-        }
     }
 
     sg_end_pass();
@@ -672,33 +655,6 @@ static void _render_offscreen_pass(chunk_renderer_t *cr)
             sg_apply_uniforms(UB_fs_params_offscreen, &SG_RANGE(fs_params));
 
             sg_draw(0, cri->mesh_o->i_cnt, 1);
-        }
-
-        // Render translucent geometry for now, until proper support is added
-        if (cri->mesh_t)
-        {
-            if (cri->needs_update_t && cri->mesh_t->v_cnt > 0)
-            {
-                sg_update_buffer(cri->bufs_t.vertex, &(sg_range) {
-                    .ptr = cri->mesh_t->v_buf,
-                    .size = cri->mesh_t->v_cnt * sizeof(packed_vertex_t)
-                });
-                sg_update_buffer(cri->bufs_t.index, &(sg_range) {
-                    .ptr = cri->mesh_t->i_buf,
-                    .size = cri->mesh_t->i_cnt * sizeof(uint16_t)
-                });
-
-                cri->needs_update_t = false;
-            }
-
-            rb->bind.vertex_buffers[0] = cri->bufs_t.vertex;
-            rb->bind.index_buffer = cri->bufs_t.index;
-            sg_apply_bindings(&rb->bind);
-
-            sg_apply_uniforms(UB_vs_params_offscreen, &SG_RANGE(vs_params));
-            sg_apply_uniforms(UB_fs_params_offscreen, &SG_RANGE(fs_params));
-
-            sg_draw(0, cri->mesh_t->i_cnt, 1);
         }
     }
 
@@ -774,29 +730,24 @@ static void _render_effects_pass(chunk_renderer_t *cr)
     ENGINE_ASSERT(cr->offscreen_base.cam->kind == PROJECTION_PERSPECTIVE,
                   "offscreen camera should be perspective");
 
+    sg_apply_pipeline(rb->pip);
+    sg_apply_bindings(&rb->bind);
+
+    #ifndef DEBUG_SHADOWS
     fs_params_effects_t fs_params = {
         .u_inv_vp = em_inverse_mat4(cr->offscreen_base.cam->vp),
         .u_proj = cr->offscreen_base.cam->proj,
         .u_view = cr->offscreen_base.cam->view
     };
     memcpy(fs_params.u_ssao_samples, cr->info.ssao_kernel, sizeof(cr->info.ssao_kernel));
-
-    sg_apply_pipeline(rb->pip);
-    sg_apply_bindings(&rb->bind);
-
     sg_apply_uniforms(UB_fs_params_effects, &SG_RANGE(fs_params));
+    #endif
 
     // Render the fullscreen quad
     sg_draw(0, 4, 1);
 
     sg_end_pass();
     INSTRUMENT_FUNC_END();
-}
-
-static void _render_translucency_pass(chunk_renderer_t *cr)
-{
-    (void) cr;
-    // TODO: Add support for transparency.
 }
 
 void chunk_renderer_render_all(chunk_renderer_t *cr)
@@ -819,5 +770,4 @@ void chunk_renderer_render_all(chunk_renderer_t *cr)
     _render_composite_pass(cr);
     _render_skybox_pass(cr);
     _render_effects_pass(cr);
-    _render_translucency_pass(cr);
 }

@@ -5,6 +5,7 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
     switch (r->type) {
     case CSREQ_LOAD:
     {
+        INSTRUMENT_SCOPE_BEGIN(req_load);
         if (cs->world_dir_path[0] == '\0') // Temporary world: Doesn't save / load chunks.
         {
             chunk_data_t *d = cs->gen_func(r->pos, cs->seed);
@@ -39,11 +40,13 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         mtx_lock(&cs->genned_lock);
         cs->genned->put_ptr(cs->genned, r->pos, d);
         mtx_unlock(&cs->genned_lock);
+        INSTRUMENT_SCOPE_END(req_load);
         break;
     }
     case CSREQ_MESH:
     case CSREQ_REMESH:
     {
+        INSTRUMENT_SCOPE_BEGIN(req_mesh_remesh);
         mtx_lock(&cs->genned_lock);
         chunk_set_t chunks = {
             .cd = cs->genned->get_or_default(cs->genned, r->pos, NULL),
@@ -61,17 +64,16 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         ENGINE_ASSERT(chunks.wd != NULL, "West of the chunk to mesh doesn't exist.\n");
         
         mesh_t *mesh_o = NULL; // Opaque geometry for deferred rendering
-        mesh_t *mesh_t = NULL; // Translucent geometry for forward rendering
-        geom_generate_mesh(&mesh_o, &mesh_t, chunks);
+        geom_generate_mesh(&mesh_o, chunks);
 
-        if (r->type == CSREQ_MESH)
-            US_REQUEST(us, USREQ_STAGE, r->pos, mesh_o, mesh_t);
-        else 
-            US_REQUEST(us, USREQ_RESTAGE, r->pos, mesh_o, mesh_t);
+        if (r->type == CSREQ_MESH) US_REQUEST(us, USREQ_STAGE, r->pos, mesh_o);
+        else                       US_REQUEST(us, USREQ_RESTAGE, r->pos, mesh_o);
+        INSTRUMENT_SCOPE_END(req_mesh_remesh);
         break;
     }
     case CSREQ_UNLOAD: 
     {
+        INSTRUMENT_SCOPE_BEGIN(req_unload);
         mtx_lock(&cs->genned_lock);
         chunk_data_t *cd = cs->genned->get_or_default(cs->genned, r->pos, NULL);
         mtx_unlock(&cs->genned_lock);
@@ -106,10 +108,12 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         mtx_lock(&cs->genned_lock);
         cs->genned->remove(cs->genned, r->pos);
         mtx_unlock(&cs->genned_lock);
+        INSTRUMENT_SCOPE_END(req_unload);
         break;
     }
     case CSREQ_BREAK:
     {
+        INSTRUMENT_SCOPE_BEGIN(req_break);
         mtx_lock(&cs->genned_lock);
         chunk_data_t *c = cs->genned->get_or_default(cs->genned, r->pos, NULL);
         c->types[r->cell.x][r->cell.y][r->cell.z] = CUBETYPE_AIR;
@@ -125,10 +129,12 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         else if (r->cell.z == 0)         REMESH_AT(REL_S(r->pos));
         else if (r->cell.x == 0)         REMESH_AT(REL_W(r->pos));
 
+        INSTRUMENT_SCOPE_END(req_break);
         break;
     }
     case CSREQ_PLACE:
     {
+        INSTRUMENT_SCOPE_BEGIN(req_place);
         mtx_lock(&cs->genned_lock);
         chunk_data_t *c = cs->genned->get_or_default(cs->genned, r->pos, NULL);
         c->types[r->cell.x][r->cell.y][r->cell.z] = CUBETYPE_SAND;
@@ -140,6 +146,7 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
             .pos = r->pos
         });
 
+        INSTRUMENT_SCOPE_END(req_place);
         break;
     }
     case CSREQ_INITIAL_LOAD_COMPLETE:
@@ -304,6 +311,7 @@ void chunk_sys_make_request(chunk_system_t *cs, cs_request_t r)
 
 void chunk_sys_borrow_surrounding_data(chunk_system_t *cs, ivec2 pos, chunk_set_t *chunks)
 {
+    INSTRUMENT_FUNC_BEGIN();
     if (!atomic_load(&cs->running)) return;
 
     mtx_lock(&cs->genned_lock);
@@ -317,6 +325,7 @@ void chunk_sys_borrow_surrounding_data(chunk_system_t *cs, ivec2 pos, chunk_set_
     chunks->swd = cs->genned->get_ptr(cs->genned, REL_SW(pos));
     chunks->sd  = cs->genned->get_ptr(cs->genned, REL_S(pos));
     chunks->sed = cs->genned->get_ptr(cs->genned, REL_SE(pos));
+    INSTRUMENT_FUNC_END();
 }
 
 void chunk_sys_return_surrounding_data(chunk_system_t *cs, chunk_set_t *chunks)

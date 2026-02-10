@@ -5,6 +5,7 @@
 #include "camera.h"
 #include "chunk_system.h"
 #include "event_system.h"
+#include "instrumentor.h"
 #include <stdatomic.h>
 
 #define MAX_PITCH 89.9

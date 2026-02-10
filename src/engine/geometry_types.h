@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h> // size_t
+#include <stddef.h> // size_t
 #include <stdatomic.h>
 
 #include <libem/em_math.h> // ivec2
@@ -68,6 +68,8 @@ typedef enum cube_type {
 	CUBETYPE_SAND,
 	CUBETYPE_LOG,
 	CUBETYPE_LEAF,
+	CUBETYPE_LOG_P,
+	CUBETYPE_LEAF_P,
     CUBETYPE_NUM
 } cube_type_e;
 
@@ -81,6 +83,9 @@ typedef enum tex_type {
 	TEXTYPE_LOG_TOP,
 	TEXTYPE_LOG_SIDE,
 	TEXTYPE_LEAF,
+	TEXTYPE_LOG_P_TOP,
+	TEXTYPE_LOG_P_SIDE,
+    TEXTYPE_LEAF_P,
     TEXTYPE_NUM
 } tex_type_e;
 

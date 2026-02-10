@@ -11,11 +11,14 @@
 #include <threads.h>
 
 #define CS_REQUEST(cs, typ, crd) \
-    chunk_sys_make_request(cs, (cs_request_t) { .type = typ, .pos = crd })
+    chunk_sys_make_request(cs, (cs_request_t) \
+            { .type = typ, .pos = crd })
 #define CS_REQUEST_BREAK(cs, crd, cel) \
-    chunk_sys_make_request(cs, (cs_request_t) { .type = CSREQ_BREAK, .pos = crd, .cell = cel });
+    chunk_sys_make_request(cs, (cs_request_t) \
+            { .type = CSREQ_BREAK, .pos = crd, .cell = cel });
 #define CS_REQUEST_PLACE(cs, crd, cel, blo) \
-    chunk_sys_make_request(cs, (cs_request_t) { .type = CSREQ_PLACE, .pos = crd, .cell = cel, .block = blo });
+    chunk_sys_make_request(cs, (cs_request_t) \
+            { .type = CSREQ_PLACE, .pos = crd, .cell = cel, .block = blo });
 
 typedef struct chunk_system {
     HASHMAP(ivec2_chunk_data) *genned;
