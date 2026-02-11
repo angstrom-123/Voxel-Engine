@@ -4,6 +4,7 @@
 #include "camera_controller.h"
 #include "instrumentor.h"
 #include "engine.h"
+#include "ui_component.h"
 #include "world_creation.h"
 #include "arg_parser.h"
 #include "world_gen.h"
@@ -11,7 +12,7 @@
 #include <stdatomic.h>
 
 #define HOTBAR_SIZE 9
-#define HOTBAR_CELL_SIZE VEC2(64.0, 64.0)
+#define HOTBAR_CELL_SIZE VEC2(80.0, 80.0)
 #define BASE_HOTBAR_POS VEC2(-HOTBAR_CELL_SIZE.x * (HOTBAR_SIZE / 2.0), \
                              -SCREEN_HEIGHT / 2.0 + HOTBAR_CELL_SIZE.y)
 
@@ -28,6 +29,18 @@ typedef struct app {
         sprite_t *selected_sprite;
         size_t curr;
     } hotbar;
+
+    struct menu {
+        bool active;
+        ui_component_t button_1;
+        // TODO: 
+        //      - Make UI components for each menu button
+        //          - Probably best to make an array with enum indices 
+        //              - Will let me iterate them (e.g., to make them all visible)
+        //      - Make callbacks for the onclick of each button 
+        //      - Implement a text box for inputting values (will need for main menu)
+        //      - Implement a slider? (good for render distance)
+    } menu;
 } app_t;
 
 typedef struct app_event_args app_event_args_t;

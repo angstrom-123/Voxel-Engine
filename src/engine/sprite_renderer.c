@@ -192,7 +192,7 @@ void sprite_renderer_render_all(sprite_renderer_t *sr)
     for (size_t i = 0; i < sr->max_sprites; i++)
     {
         sprite_t *s = sr->sprites[i];
-        if (!s)
+        if (!s || !s->visible)
             continue;
 
         if (s->removed)
@@ -306,13 +306,70 @@ sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str,
     return res;
 }
 
+sprite_t **sprite_renderer_push_ui(sprite_renderer_t *sr, const ui_sprites_desc_t *desc)
+{
+    ENGINE_ASSERT(desc->dim.x >= 2, "Must have at least 2 ui sprites in x dimension");
+    ENGINE_ASSERT(desc->dim.y >= 2, "Must have at least 2 ui sprites in y dimension");
+
+    sprite_t **res = malloc(desc->dim.x * desc->dim.y * sizeof(sprite_t *));
+
+    icon_id_e tl = (desc->rounded) ? IID_CORNER_TL_SOFT: IID_CORNER_TL_HARD;
+    icon_id_e tr = (desc->rounded) ? IID_CORNER_TR_SOFT: IID_CORNER_TR_HARD;
+    icon_id_e bl = (desc->rounded) ? IID_CORNER_BL_SOFT: IID_CORNER_BL_HARD;
+    icon_id_e br = (desc->rounded) ? IID_CORNER_BR_SOFT: IID_CORNER_BR_HARD;
+
+    const size_t MINI_OFFSET = 13;
+    size_t id_offset = (desc->mini) ? MINI_OFFSET : 0;
+
+    sprite_desc_t spr_desc = {
+        .z_index = desc->z_index,
+        .size = desc->size,
+        .pos = desc->pos,
+        .visible = desc->visible,
+        .bg_col = desc->bg_col
+    };
+
+    size_t cnt = 0;
+    for (size_t y = 0; y < desc->dim.y; y++)
+    {
+        for (size_t x = 0; x < desc->dim.x; x++)
+        {
+            icon_id_e id;
+            bool l = x == 0;
+            bool r = x == desc->dim.x - 1;
+            bool t = y == 0;
+            bool b = y == desc->dim.y - 1;
+
+            if      (t && l) id = tl;
+            else if (t && r) id = tr;
+            else if (b && l) id = bl;
+            else if (b && r) id = br;
+            else if (t)      id = IID_EDGE_T;
+            else if (b)      id = IID_EDGE_B;
+            else if (l)      id = IID_EDGE_L;
+            else if (r)      id = IID_EDGE_R;
+            else             id = IID_BG_TINT;
+
+            spr_desc.uv_offset = sprite_icon_uv_offset(sr, id + id_offset);
+            res[cnt++] = sprite_renderer_push(sr, &spr_desc);
+            spr_desc.pos.x += (desc->mini) ? spr_desc.size.x / 2 : spr_desc.size.x;
+        }
+        spr_desc.pos.x = desc->pos.x;
+        spr_desc.pos.y -= (desc->mini) ? spr_desc.size.y / 2 : spr_desc.size.y;
+    }
+
+    return res;
+}
+
 sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
 {
-    ENGINE_ASSERT(sr->sprite_count < sr->max_sprites, "Maximum sprites reached in sprite renderer");
+    ENGINE_ASSERT(sr->sprite_count < sr->max_sprites,
+                  "Maximum sprites reached in sprite renderer");
 
     sprite_t *s = malloc(sizeof(sprite_t));
     s->bg_col = desc->bg_col;
     s->offset = sr->offset_pool->dequeue_ptr(sr->offset_pool);
+    s->visible = desc->visible;
     s->removed = false;
     s->is_char = desc->is_char;
 
@@ -341,14 +398,6 @@ sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
         .uv = em_add_vec2(VEC2(0.0, uv_scale.y), desc->uv_offset),
         .z = desc->z_index
     };
-
-    ENGINE_LOG_WARN("\n\nSprite Verts:", NULL);
-    for (size_t i = 0; i < 4; i++)
-    {
-        sprite_vertex_t sv = sr->vbo[s->offset->v_ofst + i];
-        ENGINE_LOG_WARN("pos: (%.2f, %.2f); uv: (%.2f, %.2f);", 
-                        sv.pos.x, sv.pos.y, sv.uv.x, sv.uv.y);
-    }
 
     sr->ibo[s->offset->i_ofst]     = 0;
     sr->ibo[s->offset->i_ofst + 1] = 2;

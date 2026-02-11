@@ -43,12 +43,11 @@ out vec4 frag_color;
 void main() {
     if (bool(u_is_char)) {
         frag_color = texture(sampler2D(u_tex_font_atlas, u_smp), v_uv);
+        if (frag_color.a < 0.01) frag_color = u_bg;
     } else {
         frag_color = texture(sampler2D(u_tex_sprite_atlas, u_smp), v_uv);
+        if (all(equal(frag_color, vec4(1.0, 0.0, 1.0, 1.0)))) frag_color = u_bg;
     }
-
-    if (frag_color.a < 0.01) frag_color = u_bg;
-
 }
 
 @end 

@@ -13,14 +13,21 @@ static void _on_mousedown(const event_t *ev, void *args)
 
     switch (ev->mouse_button) {
     case MOUSE_BUTTON_LEFT:
-        engine->api.edit_active_block(engine, app->hotbar.types[app->hotbar.curr], 
-                                      BLOCK_ACTION_BREAK, &coll);
+        if (app->menu.active) 
+        {
+        }
+        else 
+        {
+            sapp_lock_mouse(true);
+            engine->api.edit_active_block(engine, app->hotbar.types[app->hotbar.curr], 
+                                          BLOCK_ACTION_BREAK, &coll);
+        }
         break;
     case MOUSE_BUTTON_RIGHT:
+        if (app->menu.active) return;
+
         engine->api.edit_active_block(engine, app->hotbar.types[app->hotbar.curr], 
                                       BLOCK_ACTION_PLACE, &coll);
-        break;
-    case MOUSE_BUTTON_MIDDLE:
         break;
     default:
         break;
@@ -32,12 +39,26 @@ static void _on_keydown(const event_t *ev, void *args)
     app_event_args_t *ev_args = args;
     app_t *app = ev_args->app;
     engine_t *engine = ev_args->engine;
-    if (ev->keycode >= KEYCODE_1 && ev->keycode <= KEYCODE_9)
-    {
+    switch (ev->keycode) {
+    case KEYCODE_1: case KEYCODE_2: case KEYCODE_3: case KEYCODE_4: case KEYCODE_5:
+    case KEYCODE_6: case KEYCODE_7: case KEYCODE_8: case KEYCODE_9:
+        if (app->menu.active)
+            break;
+
         app->hotbar.curr = ev->keycode - KEYCODE_1;
         vec2 selected_pos = BASE_HOTBAR_POS;
         selected_pos.x += app->hotbar.curr * HOTBAR_CELL_SIZE.x;
         engine->api.move_sprite(engine, app->hotbar.selected_sprite, selected_pos);
+        break;
+
+    case KEYCODE_ESCAPE:
+        app->menu.active = !app->menu.active;
+        sapp_lock_mouse(!app->menu.active);
+        ui_show_component(&app->menu.button_1, app->menu.active);
+        break;
+
+    default:
+        break;
     }
 }
 
@@ -111,14 +132,13 @@ static void do_init(engine_t *e, app_t *a)
         .pos = BASE_HOTBAR_POS,
         .size = HOTBAR_CELL_SIZE,
         .is_char = true,
+        .visible = true
     };
     for (size_t i = 0; i < HOTBAR_SIZE; i++)
     {
-        hb_desc.bg_col = VEC4(0.0, 0.0, 0.0, 0.4);
+        hb_desc.bg_col = VEC4(0.0, 0.0, 0.0, 0.5);
         e->api.place_icon_sprite(e, IID_SLOT, &hb_desc);
-
-        hb_desc.bg_col = VEC4(0.0, 0.0, 0.0, 0.0);
-        e->api.place_icon_sprite(e, a->hotbar.types[i] + CUBETYPE_TO_IID, &hb_desc);
+        e->api.place_icon_sprite(e, (icon_id_e) a->hotbar.types[i], &hb_desc);
 
         hb_desc.pos.x += HOTBAR_CELL_SIZE.x;
     }
@@ -127,6 +147,38 @@ static void do_init(engine_t *e, app_t *a)
     hb_desc.pos.x = BASE_HOTBAR_POS.x + a->hotbar.curr * BASE_HOTBAR_POS.x;
     hb_desc.bg_col = VEC4(0.0, 0.0, 0.0, 0.0);
     a->hotbar.selected_sprite = e->api.place_icon_sprite(e, IID_SLOT_SELECTED, &hb_desc);
+
+    ui_make_button(&a->menu.button_1, &e->_render_sys.sprite_renderer, &(ui_button_desc_t) {
+        .transform = {
+            .pos = VEC2(100.0, 100.0),
+            .dim = UVEC2(4, 2)
+        },
+        .style = {
+            .body = {
+                .size = VEC2(48.0, 48.0),
+                .rounded = false,
+                .mini = false,
+                .z_index = 3.0,
+                .bg_col = VEC4(1.0, 0.0, 0.0, 1.0),
+            },
+            .text = {
+                .z_index = 4.0,
+                .size = VEC2(16.0, 16.0)
+            },
+            .visible = false
+        },
+        .text = "Test :)"
+    });
+    // sprite_t **tmp = sprite_renderer_push_ui(&e->_render_sys.sprite_renderer, &(ui_sprites_desc_t) {
+    //     .rounded = true,
+    //     .z_index = 2.0,
+    //     .size = VEC2(48.0, 48.0),
+    //     .pos = VEC2(100.0, 100.0),
+    //     .dim = UVEC2(6, 2),
+    //     .visible = true,
+    //     .mini = false,
+    //     .bg_col = VEC4(1.0, 0.0, 0.0, 1.0)
+    // });
 }
 
 void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
@@ -224,6 +276,7 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
 void app_cleanup(app_t *app)
 {
     unload_model_files();
+    ui_cleanup_component(&app->menu.button_1);
     ctl_cleanup(&app->camera_ctl);
 }
 
@@ -232,8 +285,8 @@ void app_frame(engine_t *engine, app_t *app, double dt)
     INSTRUMENT_FUNC_BEGIN();
 
     ctl_update_surrounding(&app->camera_ctl, &engine->_render_sys.cam, &engine->_chunk_sys);
-    ctl_update_pos(&app->camera_ctl, &engine->_render_sys.cam, &engine->_event_sys, dt);
-    ctl_update_view(&app->camera_ctl, &engine->_render_sys.cam, &engine->_event_sys);
+    ctl_update_pos(&app->camera_ctl, &engine->_render_sys.cam, &engine->_event_sys, dt, !app->menu.active);
+    ctl_update_view(&app->camera_ctl, &engine->_render_sys.cam, &engine->_event_sys, !app->menu.active);
 
     cam_update(&engine->_render_sys.cam);
 

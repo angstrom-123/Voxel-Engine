@@ -13,8 +13,6 @@
 
 #include <libem/em_bmp.h>
 
-#define MAX_UI_COMPONENTS 5
-
 typedef struct render_system {
     camera_t cam;
     camera_t ortho_cam;

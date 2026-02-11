@@ -129,21 +129,21 @@ float visibility() {
     if (sm_pos.x > 1.0 || sm_pos.x < 0.0 || sm_pos.y > 1.0 || sm_pos.y < 0.0)
         return 1.0;
 
-    float bias = max(0.005 * (1.0 - dot(v_nrm, u_sun_dir)), 0.005);
+    float bias = max(0.010 * (1.0 - dot(v_nrm, u_sun_dir)), 0.010);
 
     float curr_dep = sm_pos.z;
 
     float texel_size = 1.0 / 1024.0;
     float visibility = 0.0;
-    for (int x = -1; x <= 1; x++) {
-        for (int y = -1; y <= 1; y++) {
+    for (int x = -2; x <= 2; x++) {
+        for (int y = -2; y <= 2; y++) {
             vec2 pcf_uv = sm_pos.xy + vec2(x, y) * texel_size;
             float pcf_dep = texture(sampler2D(u_shadow_map, u_shadow_smp), pcf_uv).x;
             visibility += (curr_dep + bias < pcf_dep) ? 0.0 : 1.0;
         }
     }
 
-    return visibility / 9.0;
+    return visibility / 25.0;
 }
 
 void main() {

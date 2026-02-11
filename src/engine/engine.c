@@ -14,6 +14,7 @@ static sprite_t *_api_place_icon_sprite(engine_t *engine, icon_id_e id, const sp
         .pos = desc->pos,
         .bg_col = desc->bg_col,
         .z_index = desc->z_index,
+        .visible = desc->visible,
         .uv_offset = sprite_icon_uv_offset(&engine->_render_sys.sprite_renderer, id)
     });
 }
@@ -157,7 +158,7 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
         .window_size = VEC2(sapp_width(), sapp_height()),
         .view_distance = desc->render_distance * 10.0,
         .max_distance = desc->render_distance * 100.0,
-        .shadow_scale = 6.0,
+        .shadow_scale = 4.0,
         .inv_sun_dir = em_mul_vec3_f(desc->base_sun_dir, -1.0)
     });
     ENGINE_LOG_OK("Setup render system.\n", NULL);
@@ -198,7 +199,8 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
         .pos = em_mul_vec2_f(engine->_render_sys.sprite_renderer.base.dimensions, -0.5),
         .size = DEBUG_TEXT_SIZE,
         .z_index = 1.0,
-        .is_char = true
+        .is_char = true,
+        .visible = true
     });
     memcpy(engine->meta.debug.pos_sprites, tmp, POS_MAX_SPRITES * sizeof(sprite_t *));
     free(tmp);

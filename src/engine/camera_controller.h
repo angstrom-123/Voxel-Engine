@@ -47,8 +47,8 @@ typedef struct ctl_desc {
 
 extern void ctl_init(ctl_t *cc, camera_t *cam, const ctl_desc_t *desc);
 extern void ctl_cleanup(ctl_t *cc);
-extern void ctl_update_view(ctl_t *cc, camera_t *cam, event_system_t *es);
-extern void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt);
+extern void ctl_update_view(ctl_t *cc, camera_t *cam, event_system_t *es, bool get_inputs);
+extern void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt, bool get_inputs);
 extern void ctl_update_surrounding(ctl_t *cc, camera_t *cam, chunk_system_t *cs);
 
 #endif

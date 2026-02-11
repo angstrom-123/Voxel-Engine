@@ -42,19 +42,15 @@ void event_sys_get_event(event_system_t *es, const event_t *ev)
         break;
     case EVENT_KEYDOWN:
         es->keys_down[ev->keycode] = true;
-        if (ev->keycode == KEYCODE_ESCAPE)
-            sapp_lock_mouse(false);
         break;
     case EVENT_KEYUP:
         es->keys_down[ev->keycode] = false;
         break;
     case EVENT_KEYTYPED:
-        // ENGINE_LOG_WARN("Keytyped: %i\n", ev->code_utf32);
         break;
     case EVENT_MOUSEDOWN:
         es->modifiers_down = ev->modifiers;
         es->frame.modifiers_pressed |= ev->modifiers;
-        sapp_lock_mouse(true);
         break;
     case EVENT_MOUSEUP:
         es->modifiers_down = ev->modifiers;

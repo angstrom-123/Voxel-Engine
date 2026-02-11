@@ -208,33 +208,37 @@ void ctl_cleanup(ctl_t *cc)
     (void) cc;
 }
 
-void ctl_update_view(ctl_t *cc, camera_t *cam, event_system_t *es)
+void ctl_update_view(ctl_t *cc, camera_t *cam, event_system_t *es, bool get_inputs)
 {
-    vec2 delta = es->frame.mouse_delta;
+    if (get_inputs)
+    {
+        vec2 delta = es->frame.mouse_delta;
 
-    cam->pitch += -delta.y * cc->turn_speed;
-    cam->yaw += -delta.x * cc->turn_speed;
+        cam->pitch += -delta.y * cc->turn_speed;
+        cam->yaw += -delta.x * cc->turn_speed;
 
-    cam->pitch = em_min(cam->pitch, MAX_PITCH);
-    cam->pitch = em_max(cam->pitch, -MAX_PITCH);
+        cam->pitch = em_min(cam->pitch, MAX_PITCH);
+        cam->pitch = em_max(cam->pitch, -MAX_PITCH);
 
-    quat yaw_q = em_quaternion_from_axis_angle(WORLD_Y, cam->yaw);
+        quat yaw_q = em_quaternion_from_axis_angle(WORLD_Y, cam->yaw);
 
-    vec3 right = em_quaternion_rotate_vec3(WORLD_X, yaw_q);
-    quat pitch_q = em_quaternion_from_axis_angle(right, cam->pitch);
+        vec3 right = em_quaternion_rotate_vec3(WORLD_X, yaw_q);
+        quat pitch_q = em_quaternion_from_axis_angle(right, cam->pitch);
 
-    cam->rot = em_normalize_quaternion(em_mul_quaternion(pitch_q, yaw_q));
+        cam->rot = em_normalize_quaternion(em_mul_quaternion(pitch_q, yaw_q));
 
-    cam->fwd = cam_get_fwd(cam);
-    cam->right = cam_get_right(cam);
-    cam->up = cam_get_up(cam);
+        cam->fwd = cam_get_fwd(cam);
+        cam->right = cam_get_right(cam);
+        cam->up = cam_get_up(cam);
+
+    }
 
     mat4 rot = em_quaternion_to_mat4(em_conjugate_quaternion(cam->rot));
     mat4 trans = em_translate_mat4(em_mul_vec3_f(cam->pos, -1.0));
     cam->view = em_mul_mat4(rot, trans);
 }
 
-void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
+void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt, bool get_inputs)
 {
     INSTRUMENT_FUNC_BEGIN();
     const size_t coyote_time = 4;
@@ -258,18 +262,24 @@ void ctl_update_pos(ctl_t *cc, camera_t *cam, event_system_t *es, double dt)
         cc->time_since_grounded = 0;
 
     // Collect player inputs
-    vec3 move = {};
-    if (es->keys_down[KEYCODE_W]) move = em_add_vec3(move, fwd);
-    if (es->keys_down[KEYCODE_S]) move = em_sub_vec3(move, fwd);
-    if (es->keys_down[KEYCODE_D]) move = em_add_vec3(move, right);
-    if (es->keys_down[KEYCODE_A]) move = em_sub_vec3(move, right);
-    bool jump = es->keys_down[KEYCODE_SPACE];
-    bool walk = es->keys_down[KEYCODE_LEFT_SHIFT];
+    bool jump = false;
+    bool walk = false;
+    vec3 move = {0};
 
-    move = em_normalize_vec3(move);
+    if (get_inputs)
+    {
+        if (es->keys_down[KEYCODE_W]) move = em_add_vec3(move, fwd);
+        if (es->keys_down[KEYCODE_S]) move = em_sub_vec3(move, fwd);
+        if (es->keys_down[KEYCODE_D]) move = em_add_vec3(move, right);
+        if (es->keys_down[KEYCODE_A]) move = em_sub_vec3(move, right);
+        jump = es->keys_down[KEYCODE_SPACE];
+        walk = es->keys_down[KEYCODE_LEFT_SHIFT];
+        move = em_normalize_vec3(move);
+    }
+
     vec3 friction;
     vec3 accel;
-    if (cc->time_grounded >= 2)
+    if (cc->time_grounded >= 1)
     {
         cc->velocity.y = 0.0;
 

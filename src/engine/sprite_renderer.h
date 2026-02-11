@@ -27,6 +27,7 @@ typedef struct sprite_vertex {
 typedef struct sprite {
     offset_t *offset;
     vec4 bg_col;
+    bool visible;
     bool removed;
     bool is_char;
 } sprite_t;
@@ -57,14 +58,10 @@ typedef struct sprite_desc {
     float z_index;
     vec2 uv_offset;
     bool is_char;
+    bool visible;
 } sprite_desc_t;
 
-#define CUBETYPE_TO_IID 3
-
 typedef enum icon_id {
-    IID_CROSSHAIR,
-    IID_SLOT,
-    IID_SLOT_SELECTED,
     IID_BLOCK_NONE,
     IID_BLOCK_GRASS,
     IID_BLOCK_DIRT,
@@ -74,7 +71,38 @@ typedef enum icon_id {
     IID_BLOCK_LEAF,
     IID_BLOCK_LOG_P,
     IID_BLOCK_LEAF_P,
+
+    IID_CROSSHAIR = 128,
+    IID_SLOT,
+    IID_SLOT_SELECTED,
+    IID_CORNER_TL_HARD,
+    IID_CORNER_TR_HARD,
+    IID_CORNER_BL_HARD,
+    IID_CORNER_BR_HARD,
+    IID_EDGE_L,
+    IID_EDGE_R,
+    IID_EDGE_B,
+    IID_EDGE_T,
+    IID_CORNER_TL_SOFT,
+    IID_CORNER_TR_SOFT,
+    IID_CORNER_BL_SOFT,
+    IID_CORNER_BR_SOFT,
+    IID_BG_TINT,
 } icon_id_e;
+
+typedef struct ui_sprites_desc {
+    vec2 pos;
+    vec2 size;
+    uvec2 dim;
+    float z_index;
+    bool visible;
+    vec4 bg_col;
+    bool rounded;
+    bool mini;
+} ui_sprites_desc_t;
+
+// TODO: Make the background colour of sprites a sentinel value to be replaced during 
+//       rendering by the background colour.
 
 extern void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *desc);
 extern void sprite_renderer_load_textures(sprite_renderer_t *sr);
@@ -89,6 +117,7 @@ extern void sprite_renderer_change_char(sprite_renderer_t *sr, sprite_t *s, char
 extern vec2 sprite_icon_uv_offset(sprite_renderer_t *sr, icon_id_e id);
 extern sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str, 
                                            const sprite_desc_t *desc);
+extern sprite_t **sprite_renderer_push_ui(sprite_renderer_t *sr, const ui_sprites_desc_t *desc);
 extern sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc);
 extern void sprite_renderer_pop(sprite_renderer_t *sr, sprite_t *sprite);
 

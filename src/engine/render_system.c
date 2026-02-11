@@ -1,5 +1,4 @@
 #include "render_system.h"
-#include "sprite_renderer.h"
 
 static void _on_resize(const event_t *ev, void *args)
 {
@@ -56,7 +55,7 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     });
 
     cam_init(&rs->shadow_cam, PROJECTION_ORTHOGRAPHIC, &(camera_desc_t) {
-        .near   = 0.0,
+        .near   = -100.0,
         .far    = 100.0,
         .left   = -512.0,
         .right  = 512.0,
@@ -140,7 +139,8 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
         .pos = em_mul_vec2_f(crosshair_size, -0.5),
         .size = crosshair_size,
         .z_index = 1.0,
-        .uv_offset = sprite_icon_uv_offset(&rs->sprite_renderer, IID_CROSSHAIR)
+        .uv_offset = sprite_icon_uv_offset(&rs->sprite_renderer, IID_CROSSHAIR),
+        .visible = true
     });
 }
 
