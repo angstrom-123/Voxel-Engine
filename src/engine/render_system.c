@@ -1,4 +1,5 @@
 #include "render_system.h"
+#include "sprite_renderer.h"
 
 static void _on_resize(const event_t *ev, void *args)
 {
@@ -134,11 +135,12 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     });
 
     /* Crosshair. */
-    const vec2 crosshair_size = VEC2(40.0, 40.0);
+    const vec2 crosshair_size = VEC2(32.0, 32.0);
     sprite_renderer_push(&rs->sprite_renderer, &(sprite_desc_t) {
         .pos = em_mul_vec2_f(crosshair_size, -0.5),
         .size = crosshair_size,
-        .z_index = 1.0
+        .z_index = 1.0,
+        .uv_offset = sprite_icon_uv_offset(&rs->sprite_renderer, IID_CROSSHAIR)
     });
 }
 

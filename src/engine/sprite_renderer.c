@@ -21,6 +21,16 @@ vec2 _sprite_dimensions(sprite_renderer_t *sr, sprite_t *s)
     return em_sub_vec2(sr->vbo[s->offset->v_ofst + 2].pos, sr->vbo[s->offset->v_ofst].pos);
 }
 
+vec2 sprite_icon_uv_offset(sprite_renderer_t *sr, icon_id_e id)
+{
+    texture_t t = sr->textures[SPRITETEX_ATLAS];
+    int32_t x = id % t.subimages_x;
+    int32_t y = floorf((float) id / t.subimages_y);
+
+    vec2 d = texture_query_subimage_uv(&sr->textures[SPRITETEX_ATLAS]);
+    return em_mul_vec2(d, VEC2(x, t.subimages_y - y - 1));
+}
+
 void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *desc)
 {
     sr->offset_pool = CIRCULAR_QUEUE_NEW(offset)(&(em_circular_queue_desc_t) {
@@ -107,16 +117,23 @@ void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *d
 
 void sprite_renderer_load_textures(sprite_renderer_t *sr)
 {
-    ENGINE_TODO("Make an atlas for sprite textures such as crosshair");
-
+    // bool res;
+    // res = texture_load(&sr->textures[SPRITETEX_ATLAS], &(texture_desc_t) {
+    //     .path = "res/tex/sprite/crosshair"
+    // });
+    // ENGINE_ASSERT(res, "Failed to load sprite atlas texture");
     bool res;
+
     res = texture_load(&sr->textures[SPRITETEX_ATLAS], &(texture_desc_t) {
-        .path = "res/tex/sprite/crosshair"
+        .path = "res/tex/sprite/sprite-atlas",
+        .subimages_x = 16,
+        .subimages_y = 16
     });
     ENGINE_ASSERT(res, "Failed to load sprite atlas texture");
 
     res = texture_load(&sr->textures[SPRITETEX_FONT], &(texture_desc_t) {
-        .path = "res/tex/sprite/font-atlas",
+        // .path = "res/tex/sprite/font-atlas",
+        .path = TEXTURE_DATA_DIR "sprite" SEP "font-atlas",
         .subimages_x = 10,
         .subimages_y = 10
     });
@@ -306,7 +323,7 @@ sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
     /* Counter clockwise winding. */
     sr->vbo[s->offset->v_ofst] = (sprite_vertex_t) {
         .pos = desc->pos,
-        .uv = em_add_vec2(VEC2(0.0, 0.0), desc->uv_offset),
+        .uv = desc->uv_offset,
         .z = desc->z_index
     };
     sr->vbo[s->offset->v_ofst + 1] = (sprite_vertex_t) {
@@ -324,6 +341,14 @@ sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
         .uv = em_add_vec2(VEC2(0.0, uv_scale.y), desc->uv_offset),
         .z = desc->z_index
     };
+
+    ENGINE_LOG_WARN("\n\nSprite Verts:", NULL);
+    for (size_t i = 0; i < 4; i++)
+    {
+        sprite_vertex_t sv = sr->vbo[s->offset->v_ofst + i];
+        ENGINE_LOG_WARN("pos: (%.2f, %.2f); uv: (%.2f, %.2f);", 
+                        sv.pos.x, sv.pos.y, sv.uv.x, sv.uv.y);
+    }
 
     sr->ibo[s->offset->i_ofst]     = 0;
     sr->ibo[s->offset->i_ofst + 1] = 2;

@@ -2,27 +2,43 @@
 
 static void _on_mousedown(const event_t *ev, void *args) 
 {
-    struct md_args *mdargs = args;
-    engine_t *engine = mdargs->engine;
-    app_t *app = mdargs->app;
+    app_event_args_t *ev_args = args;
+    engine_t *engine = ev_args->engine;
+    app_t *app = ev_args->app;
 
-    const player_collider_desc_t desc = {
+    const player_collider_desc_t coll = {
         .pos = engine->_render_sys.cam.pos,
         .collider = app->camera_ctl.collider
     };
 
     switch (ev->mouse_button) {
     case MOUSE_BUTTON_LEFT:
-        engine->api.edit_active_block(engine, BLOCK_ACTION_BREAK, &desc);
+        engine->api.edit_active_block(engine, app->hotbar.types[app->hotbar.curr], 
+                                      BLOCK_ACTION_BREAK, &coll);
         break;
     case MOUSE_BUTTON_RIGHT:
-        engine->api.edit_active_block(engine, BLOCK_ACTION_PLACE, &desc);
+        engine->api.edit_active_block(engine, app->hotbar.types[app->hotbar.curr], 
+                                      BLOCK_ACTION_PLACE, &coll);
         break;
     case MOUSE_BUTTON_MIDDLE:
         break;
     default:
         break;
     };
+}
+
+static void _on_keydown(const event_t *ev, void *args)
+{
+    app_event_args_t *ev_args = args;
+    app_t *app = ev_args->app;
+    engine_t *engine = ev_args->engine;
+    if (ev->keycode >= KEYCODE_1 && ev->keycode <= KEYCODE_9)
+    {
+        app->hotbar.curr = ev->keycode - KEYCODE_1;
+        vec2 selected_pos = BASE_HOTBAR_POS;
+        selected_pos.x += app->hotbar.curr * HOTBAR_CELL_SIZE.x;
+        engine->api.move_sprite(engine, app->hotbar.selected_sprite, selected_pos);
+    }
 }
 
 static void do_init(engine_t *e, app_t *a)
@@ -36,6 +52,21 @@ static void do_init(engine_t *e, app_t *a)
     #endif
 
     load_model_files();
+
+    a->hotbar = (struct hotbar) {
+        .curr = 0,
+        .types = {
+            CUBETYPE_AIR,
+            CUBETYPE_DIRT,
+            CUBETYPE_GRASS,
+            CUBETYPE_STONE,
+            CUBETYPE_SAND,
+            CUBETYPE_LOG,
+            CUBETYPE_LEAF,
+            CUBETYPE_LOG_P,
+            CUBETYPE_LEAF_P
+        }
+    };
 
     e->api.init_systems(e, &(engine_desc_t) {
         .render_distance = RENDER_DISTANCE,
@@ -60,15 +91,42 @@ static void do_init(engine_t *e, app_t *a)
 
     e->meta.cursor.range = 10.0;
 
-    a->mousedown_args = (struct md_args) {
+    a->ev_args = (app_event_args_t) {
         .app = a,
         .engine = e
     };
     e->api.subscribe_to_event(e, EVENT_MOUSEDOWN, &(event_subscriber_desc_t) {
         .event_cb = _on_mousedown,
         .block_cb = event_block_never,
-        .args = &a->mousedown_args
+        .args = &a->ev_args
     });
+    e->api.subscribe_to_event(e, EVENT_KEYDOWN, &(event_subscriber_desc_t) {
+        .event_cb = _on_keydown,
+        .block_cb = event_block_never,
+        .args = &a->ev_args
+    });
+
+    sprite_desc_t hb_desc = {
+        .z_index = 1.0,
+        .pos = BASE_HOTBAR_POS,
+        .size = HOTBAR_CELL_SIZE,
+        .is_char = true,
+    };
+    for (size_t i = 0; i < HOTBAR_SIZE; i++)
+    {
+        hb_desc.bg_col = VEC4(0.0, 0.0, 0.0, 0.4);
+        e->api.place_icon_sprite(e, IID_SLOT, &hb_desc);
+
+        hb_desc.bg_col = VEC4(0.0, 0.0, 0.0, 0.0);
+        e->api.place_icon_sprite(e, a->hotbar.types[i] + CUBETYPE_TO_IID, &hb_desc);
+
+        hb_desc.pos.x += HOTBAR_CELL_SIZE.x;
+    }
+
+    hb_desc.z_index = 2.0;
+    hb_desc.pos.x = BASE_HOTBAR_POS.x + a->hotbar.curr * BASE_HOTBAR_POS.x;
+    hb_desc.bg_col = VEC4(0.0, 0.0, 0.0, 0.0);
+    a->hotbar.selected_sprite = e->api.place_icon_sprite(e, IID_SLOT_SELECTED, &hb_desc);
 }
 
 void app_init(engine_t *e, app_t *a, const app_desc_t *desc)

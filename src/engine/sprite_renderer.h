@@ -59,6 +59,23 @@ typedef struct sprite_desc {
     bool is_char;
 } sprite_desc_t;
 
+#define CUBETYPE_TO_IID 3
+
+typedef enum icon_id {
+    IID_CROSSHAIR,
+    IID_SLOT,
+    IID_SLOT_SELECTED,
+    IID_BLOCK_NONE,
+    IID_BLOCK_GRASS,
+    IID_BLOCK_DIRT,
+    IID_BLOCK_STONE,
+    IID_BLOCK_SAND,
+    IID_BLOCK_LOG,
+    IID_BLOCK_LEAF,
+    IID_BLOCK_LOG_P,
+    IID_BLOCK_LEAF_P,
+} icon_id_e;
+
 extern void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *desc);
 extern void sprite_renderer_load_textures(sprite_renderer_t *sr);
 extern void sprite_renderer_cleanup(sprite_renderer_t *sr);
@@ -69,6 +86,7 @@ extern void sprite_renderer_move_str(sprite_renderer_t *sr, sprite_t **sprites,
 extern void sprite_renderer_change_str(sprite_renderer_t *sr, sprite_t **sprites, 
                                        const char *str);
 extern void sprite_renderer_change_char(sprite_renderer_t *sr, sprite_t *s, char c);
+extern vec2 sprite_icon_uv_offset(sprite_renderer_t *sr, icon_id_e id);
 extern sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str, 
                                            const sprite_desc_t *desc);
 extern sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc);

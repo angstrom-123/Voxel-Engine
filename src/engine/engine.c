@@ -7,14 +7,36 @@ static void _resize(const event_t *ev, engine_t *engine)
                              em_mul_vec2_f(ev->window_size, -0.5));
 }
 
+static sprite_t *_api_place_icon_sprite(engine_t *engine, icon_id_e id, const sprite_desc_t *desc)
+{
+    return sprite_renderer_push(&engine->_render_sys.sprite_renderer, &(sprite_desc_t) {
+        .size = desc->size,
+        .pos = desc->pos,
+        .bg_col = desc->bg_col,
+        .z_index = desc->z_index,
+        .uv_offset = sprite_icon_uv_offset(&engine->_render_sys.sprite_renderer, id)
+    });
+}
+
+static void _api_move_sprite(engine_t *engine, sprite_t *s, vec2 pos)
+{
+    sprite_renderer_move(&engine->_render_sys.sprite_renderer, s, pos);
+}
+
+static sprite_t **_api_place_string_sprites(engine_t *engine, const char *str, 
+                                            const sprite_desc_t *desc)
+{
+    return sprite_renderer_push_str(&engine->_render_sys.sprite_renderer, str, desc);
+}
+
 static void _api_subscribe_to_event(engine_t *engine, event_type_e type,
                                     const event_subscriber_desc_t *desc)
 {
     event_sys_subscribe_to_event(&engine->_event_sys, type, desc);
 }
 
-static void _api_edit_active_block(engine_t *engine, block_action_e action,
-                                   const player_collider_desc_t *desc)
+static void _api_edit_active_block(engine_t *engine, cube_type_e type, 
+                                   block_action_e action, const player_collider_desc_t *desc)
 {
     if (!engine->meta.cursor.active)
         return;
@@ -31,6 +53,9 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action,
     }
     case BLOCK_ACTION_PLACE:
     {
+        if (type == CUBETYPE_AIR || type >= CUBETYPE_NUM)
+            return;
+
         // Find the position to place the block based on cube face under cursor.
         switch (engine->meta.cursor.face) {
         case FACEIDX_LEFT:
@@ -77,7 +102,7 @@ static void _api_edit_active_block(engine_t *engine, block_action_e action,
 
         aabb_t block = aabb_from_voxel_coord(em_add_ivec3(IVEC3(chunk.x, 0, chunk.y), cell));
         if (!aabb_intersecting(block, aabb_with_offset(desc->collider, desc->pos)))
-            CS_REQUEST_PLACE(&engine->_chunk_sys, chunk, cell, CUBETYPE_AIR);
+            CS_REQUEST_PLACE(&engine->_chunk_sys, chunk, cell, type);
         break;
     }
     default:
@@ -228,10 +253,13 @@ void _api_start_running(engine_t *engine, const engine_run_desc_t *desc)
 
 void engine_init(engine_t *engine)
 {
-    engine->api.subscribe_to_event = _api_subscribe_to_event;
-    engine->api.edit_active_block = _api_edit_active_block;
-    engine->api.init_systems = _api_init_systems;
-    engine->api.start_running = _api_start_running;
+    engine->api.place_icon_sprite    = _api_place_icon_sprite;
+    engine->api.place_string_sprites = _api_place_string_sprites;
+    engine->api.move_sprite          = _api_move_sprite;
+    engine->api.subscribe_to_event   = _api_subscribe_to_event;
+    engine->api.edit_active_block    = _api_edit_active_block;
+    engine->api.init_systems         = _api_init_systems;
+    engine->api.start_running        = _api_start_running;
     ENGINE_LOG_OK("Setup engine api.\n", NULL);
 }
 

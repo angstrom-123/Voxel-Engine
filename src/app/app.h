@@ -10,14 +10,27 @@
 
 #include <stdatomic.h>
 
+#define HOTBAR_SIZE 9
+#define HOTBAR_CELL_SIZE VEC2(64.0, 64.0)
+#define BASE_HOTBAR_POS VEC2(-HOTBAR_CELL_SIZE.x * (HOTBAR_SIZE / 2.0), \
+                             -SCREEN_HEIGHT / 2.0 + HOTBAR_CELL_SIZE.y)
+
 typedef struct app {
     ctl_t camera_ctl;
 
-    struct md_args {
+    struct app_event_args {
         engine_t *engine;
         struct app *app;
-    } mousedown_args;
+    } ev_args;
+
+    struct hotbar {
+        cube_type_e types[HOTBAR_SIZE];
+        sprite_t *selected_sprite;
+        size_t curr;
+    } hotbar;
 } app_t;
+
+typedef struct app_event_args app_event_args_t;
 
 typedef struct app_desc {
     args_t args;

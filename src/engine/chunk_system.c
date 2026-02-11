@@ -137,7 +137,7 @@ static void _handle_request(chunk_system_t *cs, update_system_t *us, cs_request_
         INSTRUMENT_SCOPE_BEGIN(req_place);
         mtx_lock(&cs->genned_lock);
         chunk_data_t *c = cs->genned->get_or_default(cs->genned, r->pos, NULL);
-        c->types[r->cell.x][r->cell.y][r->cell.z] = CUBETYPE_SAND;
+        c->types[r->cell.x][r->cell.y][r->cell.z] = r->block;
         c->edited = true;
         mtx_unlock(&cs->genned_lock);
 

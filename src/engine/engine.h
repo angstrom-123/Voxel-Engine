@@ -77,12 +77,17 @@ typedef struct engine {
     event_system_t _event_sys;
 
     struct {
-        void (*subscribe_to_event)(struct engine *engine, event_type_e type,
-                                   const event_subscriber_desc_t *desc);
-        void (*edit_active_block)(struct engine *engine, block_action_e action, 
-                                  const player_collider_desc_t *desc);
-        void (*init_systems)(struct engine *engine, const engine_desc_t *desc);
-        void (*start_running)(struct engine *engine, const engine_run_desc_t *desc);
+        sprite_t *( *place_icon_sprite)(struct engine *engine, icon_id_e id, 
+                                        const sprite_desc_t *desc);
+        sprite_t **( *place_string_sprites)(struct engine *engine, const char *str, 
+                                            const sprite_desc_t *desc);
+        void ( *move_sprite)(struct engine *engine, sprite_t *sprite, vec2 pos);
+        void ( *subscribe_to_event)(struct engine *engine, event_type_e type,
+                                    const event_subscriber_desc_t *desc);
+        void ( *edit_active_block)(struct engine *engine, cube_type_e type, 
+                                   block_action_e action, const player_collider_desc_t *desc);
+        void ( *init_systems)(struct engine *engine, const engine_desc_t *desc);
+        void ( *start_running)(struct engine *engine, const engine_run_desc_t *desc);
     } api;
     engine_meta_t meta;
 } engine_t;
