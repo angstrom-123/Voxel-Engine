@@ -101,9 +101,6 @@ typedef struct ui_sprites_desc {
     bool mini;
 } ui_sprites_desc_t;
 
-// TODO: Make the background colour of sprites a sentinel value to be replaced during 
-//       rendering by the background colour.
-
 extern void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *desc);
 extern void sprite_renderer_load_textures(sprite_renderer_t *sr);
 extern void sprite_renderer_cleanup(sprite_renderer_t *sr);

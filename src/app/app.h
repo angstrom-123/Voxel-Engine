@@ -16,6 +16,13 @@
 #define BASE_HOTBAR_POS VEC2(-HOTBAR_CELL_SIZE.x * (HOTBAR_SIZE / 2.0), \
                              -SCREEN_HEIGHT / 2.0 + HOTBAR_CELL_SIZE.y)
 
+typedef enum {
+    MENUCOMP_LABEL,
+    MENUCOMP_INC,
+    MENUCOMP_DEC,
+    MENUCOMP_NUM
+} menu_component;
+
 typedef struct app {
     ctl_t camera_ctl;
 
@@ -32,7 +39,7 @@ typedef struct app {
 
     struct menu {
         bool active;
-        ui_component_t button_1;
+        ui_component_t comps[MENUCOMP_NUM];
         // TODO: 
         //      - Make UI components for each menu button
         //          - Probably best to make an array with enum indices 

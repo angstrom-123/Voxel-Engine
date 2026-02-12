@@ -54,7 +54,8 @@ static void _on_keydown(const event_t *ev, void *args)
     case KEYCODE_ESCAPE:
         app->menu.active = !app->menu.active;
         sapp_lock_mouse(!app->menu.active);
-        ui_show_component(&app->menu.button_1, app->menu.active);
+        for (size_t i = 0; i < MENUCOMP_NUM; i++)
+            ui_show_component(&app->menu.comps[i], app->menu.active);
         break;
 
     default:
@@ -62,7 +63,7 @@ static void _on_keydown(const event_t *ev, void *args)
     }
 }
 
-static void do_init(engine_t *e, app_t *a)
+static void _do_init(engine_t *e, app_t *a)
 {
     APP_LOG_WARN("Init called.\n", NULL);
     APP_TODO("Make the render distance editable at runtime");
@@ -148,36 +149,66 @@ static void do_init(engine_t *e, app_t *a)
     hb_desc.bg_col = VEC4(0.0, 0.0, 0.0, 0.0);
     a->hotbar.selected_sprite = e->api.place_icon_sprite(e, IID_SLOT_SELECTED, &hb_desc);
 
-    ui_make_button(&a->menu.button_1, &e->_render_sys.sprite_renderer, &(ui_button_desc_t) {
-        .transform = {
-            .pos = VEC2(100.0, 100.0),
-            .dim = UVEC2(4, 2)
+    ui_make_label(&a->menu.comps[MENUCOMP_LABEL], &e->_render_sys.sprite_renderer, &(ui_label_desc_t) {
+        .pos = VEC2(0.0, 200.0),
+        .text_style = {
+            .size = VEC2(16.0, 16.0),
+            .z_index = 4.0,
+            .bg_col = VEC4(0.0, 0.0, 0.0, 0.0)
         },
-        .style = {
-            .body = {
-                .size = VEC2(48.0, 48.0),
-                .rounded = false,
-                .mini = false,
-                .z_index = 3.0,
-                .bg_col = VEC4(1.0, 0.0, 0.0, 1.0),
-            },
-            .text = {
-                .z_index = 4.0,
-                .size = VEC2(16.0, 16.0)
-            },
-            .visible = false
-        },
-        .text = "Test :)"
+        .visible = false,
+        .text = "10"
     });
-    // sprite_t **tmp = sprite_renderer_push_ui(&e->_render_sys.sprite_renderer, &(ui_sprites_desc_t) {
-    //     .rounded = true,
-    //     .z_index = 2.0,
-    //     .size = VEC2(48.0, 48.0),
+
+    ui_make_button(&a->menu.comps[MENUCOMP_INC], &e->_render_sys.sprite_renderer, &(ui_button_desc_t) {
+        .pos = VEC2(100.0, 200.0),
+        .dim = UVEC2(2, 2),
+        .body_style = {
+            .size = VEC2(48.0, 48.0),
+            .z_index = 3.0,
+            .bg_col = VEC4(1.0, 0.0, 0.0, 1.0)
+        },
+        .text_style = {
+            .size = em_mul_vec2_f(VEC2(11.0, 13.0), 3.0),
+            .z_index = 4.0
+        },
+        .text = "+"
+    });
+
+    ui_make_button(&a->menu.comps[MENUCOMP_DEC], &e->_render_sys.sprite_renderer, &(ui_button_desc_t) {
+        .pos = VEC2(-100.0, 200.0),
+        .dim = UVEC2(2, 2),
+        .body_style = {
+            .size = VEC2(48.0, 48.0),
+            .z_index = 3.0,
+            .bg_col = VEC4(1.0, 0.0, 0.0, 1.0)
+        },
+        .text_style = {
+            .size = em_mul_vec2_f(VEC2(11.0, 13.0), 3.0),
+            .z_index = 4.0
+        },
+        .text = "+",
+        .mini = true,
+        .rounded = true
+    });
+
+    // ui_make_button(&a->menu.test, &e->_render_sys.sprite_renderer, &(ui_button_desc_t) {
     //     .pos = VEC2(100.0, 100.0),
-    //     .dim = UVEC2(6, 2),
-    //     .visible = true,
+    //     .dim = UVEC2(4, 2),
+    //     .body_style = {
+    //         .size = VEC2(48.0, 48.0),
+    //         .z_index = 3.0,
+    //         .bg_col = VEC4(1.0, 0.0, 0.0, 1.0)
+    //     },
+    //     .text_style = {
+    //         .size = VEC2(16.0, 16.0),
+    //         .z_index = 4.0,
+    //         .bg_col = VEC4(0.0, 0.0, 0.0, 0.0)
+    //     },
+    //     .rounded = false,
     //     .mini = false,
-    //     .bg_col = VEC4(1.0, 0.0, 0.0, 1.0)
+    //     .visible = false,
+    //     .text = "Test :)"
     // });
 }
 
@@ -200,7 +231,7 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
         APP_LOG_OK("Running in default mode", NULL);
         em_romu_duo_state_t s;
         em_romu_duo_init(&s, time(NULL));
-        do_init(e, a);
+        _do_init(e, a);
         e->api.start_running(e, &(engine_run_desc_t) {
             .world_name = NULL,
             .seed = em_romu_duo_random(&s),
@@ -223,7 +254,7 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
 
         if (args_match(&pargs, ARGTYPE_ACTION, "load"))
         {
-            do_init(e, a);
+            _do_init(e, a);
             world_load(e, name);
         }
         else if (args_match(&pargs, ARGTYPE_ACTION, "delete"))
@@ -252,7 +283,7 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
             RUNTIME_ASSERT((name), "Name incorrectly specified for new");
             RUNTIME_ASSERT((seed), "Seed incorrectly specified for new");
 
-            do_init(e, a);
+            _do_init(e, a);
             world_new(e, name, seed_ui);
         }
         else if (args_match(&pargs, ARGTYPE_ACTION, "rename"))
@@ -276,7 +307,8 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
 void app_cleanup(app_t *app)
 {
     unload_model_files();
-    ui_cleanup_component(&app->menu.button_1);
+    for (size_t i = 0; i < MENUCOMP_NUM; i++)
+        ui_cleanup_component(&app->menu.comps[i]);
     ctl_cleanup(&app->camera_ctl);
 }
 
