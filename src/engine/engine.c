@@ -176,6 +176,7 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
 
     ui_sys_init(&engine->_ui_sys, &(ui_system_desc_t) {
         .es = &engine->_event_sys,
+        .sr = &engine->_render_sys.sprite_renderer,
         .max_comps = 32
     });
     ENGINE_LOG_OK("Setup ui system.\n", NULL);

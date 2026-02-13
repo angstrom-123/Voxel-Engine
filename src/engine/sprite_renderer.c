@@ -225,6 +225,16 @@ void sprite_renderer_render_all(sprite_renderer_t *sr)
     sg_end_pass();
 }
 
+void sprite_renderer_offset(sprite_renderer_t *sr, sprite_t *s, vec2 offset)
+{
+    uint16_t v_ofst = s->offset->v_ofst;
+    sr->vbo[v_ofst].pos = em_add_vec2(sr->vbo[v_ofst].pos, offset);
+    sr->vbo[v_ofst + 1].pos = em_add_vec2(sr->vbo[v_ofst + 1].pos, offset);
+    sr->vbo[v_ofst + 2].pos = em_add_vec2(sr->vbo[v_ofst + 2].pos, offset);
+    sr->vbo[v_ofst + 3].pos = em_add_vec2(sr->vbo[v_ofst + 3].pos, offset);
+    sr->needs_update = true;
+}
+
 void sprite_renderer_move(sprite_renderer_t *sr, sprite_t *s, vec2 pos)
 {
     vec2 d = _sprite_dimensions(sr, s);
@@ -303,6 +313,30 @@ sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str,
         res[i] = sprite_renderer_push(sr, &d);
         d.pos.x += d.size.x;
     }
+
+    return res;
+}
+
+sprite_t **sprite_renderer_push_thumb(sprite_renderer_t *sr, const ui_sprites_desc_t *desc)
+{
+    sprite_t **res = malloc(2 * sizeof(sprite_t *));
+
+    const size_t MINI_OFFSET = IID_S_CORNER_TL_HARD - IID_CORNER_TL_HARD;
+    size_t id_offset = (desc->mini) ? MINI_OFFSET : 0;
+
+    sprite_desc_t spr_desc = {
+        .z_index = desc->z_index,
+        .size = desc->size,
+        .pos = desc->pos,
+        .visible = desc->visible,
+        .bg_col = desc->bg_col,
+        .uv_offset = sprite_icon_uv_offset(sr, IID_THUMB_T + id_offset)
+    };
+    res[0] = sprite_renderer_push(sr, &spr_desc);
+
+    spr_desc.pos.y -= (desc->mini) ? desc->size.y / 2.0 : desc->size.y;
+    spr_desc.uv_offset = sprite_icon_uv_offset(sr, IID_THUMB_B + id_offset);
+    res[1] = sprite_renderer_push(sr, &spr_desc);
 
     return res;
 }

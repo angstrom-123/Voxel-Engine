@@ -166,9 +166,7 @@ static void _do_init(engine_t *e, app_t *a)
     hb_desc.bg_col = VEC4(0.0, 0.0, 0.0, 0.0);
     a->hotbar.selected_sprite = e->api.place_icon_sprite(e, IID_SLOT_SELECTED, &hb_desc);
 
-    a->menu.comps[MENUCOMP_L_TITLE] = ui_sys_make_label(&e->_ui_sys, 
-                                                        &e->_render_sys.sprite_renderer, 
-                                                        &(ui_label_desc_t) {
+    a->menu.comps[MENUCOMP_L_TITLE] = ui_sys_make_label(&e->_ui_sys, &(ui_label_desc_t) {
         .pos = VEC2(-11.0 * 3.0 * 4.0, 300.0),
         .text_style = {
             .size = em_mul_vec2_f(VEC2(11.0, 13.0), 3.0),
@@ -179,9 +177,7 @@ static void _do_init(engine_t *e, app_t *a)
         .text = "Game Menu"
     });
 
-    a->menu.comps[MENUCOMP_B_QUIT] = ui_sys_make_button(&e->_ui_sys, 
-                                                        &e->_render_sys.sprite_renderer, 
-                                                        &(ui_button_desc_t) {
+    a->menu.comps[MENUCOMP_B_QUIT] = ui_sys_make_button(&e->_ui_sys, &(ui_button_desc_t) {
         .pos = VEC2(-48.0 * 5.0, 100.0),
         .dim = UVEC2(10, 2),
         .body_style = {
@@ -198,9 +194,7 @@ static void _do_init(engine_t *e, app_t *a)
         .cb = _quit_button_pressed
     });
 
-    a->menu.comps[MENUCOMP_B_RETURN] = ui_sys_make_button(&e->_ui_sys, 
-                                                          &e->_render_sys.sprite_renderer, 
-                                                          &(ui_button_desc_t) {
+    a->menu.comps[MENUCOMP_B_RETURN] = ui_sys_make_button(&e->_ui_sys, &(ui_button_desc_t) {
         .pos = VEC2(-48.0 * 5.0, 195.0),
         .dim = UVEC2(10, 2),
         .body_style = {
@@ -216,6 +210,22 @@ static void _do_init(engine_t *e, app_t *a)
         .text = "Back to Game",
         .cb = _return_button_pressed,
         .cb_args = &a->ev_args
+    });
+
+    a->menu.comps[MENUCOMP_SLIDER] = ui_sys_make_slider(&e->_ui_sys, &(ui_slider_desc_t) {
+        .pos = VEC2(-48.0 * 5.0, 5.0),
+        .width = 10,
+        .body_style = {
+            .size = VEC2(48.0, 48.0),
+            .z_index = 3.0,
+            .bg_col = VEC4(0.4, 0.4, 0.4, 1.0),
+            .hover_bg_col = VEC4(0.6, 0.6, 0.6, 1.0)
+        },
+        .text_style = {
+            .size = em_mul_vec2_f(VEC2(11.0, 13.0), 1.0),
+            .z_index = 4.0
+        },
+        .text = "Slider: "
     });
 }
 

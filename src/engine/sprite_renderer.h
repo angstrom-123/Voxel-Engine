@@ -11,6 +11,8 @@
 
 #define SPRITE_VERTEX_COUNT 4
 #define SPRITE_INDEX_COUNT 6
+#define THUMB_SIZE VEC2(11, 28)
+#define THUMB_S_SIZE VEC2(7, 12)
 
 typedef enum sprite_texture {
     SPRITETEX_ATLAS,
@@ -89,6 +91,8 @@ typedef enum icon_id {
     IID_CORNER_BL_SOFT,
     IID_CORNER_BR_SOFT,
     IID_BG_TINT,
+    IID_THUMB_T,
+    IID_THUMB_B,
 
     IID_S_CORNER_TL_HARD = 160,
     IID_S_CORNER_TR_HARD,
@@ -103,6 +107,8 @@ typedef enum icon_id {
     IID_S_CORNER_BL_SOFT,
     IID_S_CORNER_BR_SOFT,
     IID_S_BG_TINT,
+    IID_S_THUMB_T,
+    IID_S_THUMB_B
 } icon_id_e;
 
 typedef struct ui_sprites_desc {
@@ -120,15 +126,14 @@ extern void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_de
 extern void sprite_renderer_load_textures(sprite_renderer_t *sr);
 extern void sprite_renderer_cleanup(sprite_renderer_t *sr);
 extern void sprite_renderer_render_all(sprite_renderer_t *sr);
+extern void sprite_renderer_offset(sprite_renderer_t *sr, sprite_t *s, vec2 offset);
 extern void sprite_renderer_move(sprite_renderer_t *sr, sprite_t *s, vec2 pos);
-extern void sprite_renderer_move_str(sprite_renderer_t *sr, sprite_t **sprites, 
-                                     size_t len, vec2 pos);
-extern void sprite_renderer_change_str(sprite_renderer_t *sr, sprite_t **sprites, 
-                                       const char *str);
+extern void sprite_renderer_move_str(sprite_renderer_t *sr, sprite_t **sprites, size_t len, vec2 pos);
+extern void sprite_renderer_change_str(sprite_renderer_t *sr, sprite_t **sprites, const char *str);
 extern void sprite_renderer_change_char(sprite_renderer_t *sr, sprite_t *s, char c);
 extern vec2 sprite_icon_uv_offset(sprite_renderer_t *sr, icon_id_e id);
-extern sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str, 
-                                           const sprite_desc_t *desc);
+extern sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str, const sprite_desc_t *desc);
+extern sprite_t **sprite_renderer_push_thumb(sprite_renderer_t *sr, const ui_sprites_desc_t *desc);
 extern sprite_t **sprite_renderer_push_ui(sprite_renderer_t *sr, const ui_sprites_desc_t *desc);
 extern sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc);
 extern void sprite_renderer_pop(sprite_renderer_t *sr, sprite_t *sprite);

@@ -34,6 +34,7 @@ typedef struct ui_component {
     sprite_t **text_sprites;
     style_t body_style;
     style_t text_style;
+    bool mini;
     // Interactables
     bool visible;
     bool hovered;
@@ -44,9 +45,13 @@ typedef struct ui_component {
     void *cb_args;
     // Slider 
     int32_t value;
-    char value_text[3];
+    char value_text[4]; // Includes null terminator
     sprite_t **thumb_sprites;
     sprite_t **value_sprites;
+    vec2 thumb_origin;
+    float thumb_x;
+    float thumb_max_x;
+    bool dragged;
     // Container
     justify_e justify;
 } ui_component_t;
@@ -89,21 +94,29 @@ typedef struct ui_slider_desc {
     style_t body_style;
     style_t text_style;
     bool mini;
-    bool rounded;
     bool visible;
-    int32_t value;
     const char text[UI_BUFLEN];
 } ui_slider_desc_t;
+
 
 typedef struct ui_system {
     ui_component_t *components;
     size_t max_comps;
     size_t comp_count;
+    sprite_renderer_t *sr;
+
+    struct ui_system_event_args {
+        struct ui_system *uis;
+        sprite_renderer_t *sr;
+    } ev_args;
 } ui_system_t;
+
+typedef struct ui_system_event_args ui_system_event_args_t;
 
 typedef struct ui_system_desc {
     size_t max_comps;
     event_system_t *es;
+    sprite_renderer_t *sr;
 } ui_system_desc_t;
 
 typedef struct ui_handle {
@@ -112,14 +125,10 @@ typedef struct ui_handle {
 
 extern void ui_sys_init(ui_system_t *uis, const ui_system_desc_t *desc);
 extern void ui_sys_cleanup(ui_system_t *uis);
-extern ui_handle_t ui_sys_make_button(ui_system_t *uis, sprite_renderer_t *sr,
-                                      const ui_button_desc_t *desc);
-extern ui_handle_t ui_sys_make_label(ui_system_t *uis, sprite_renderer_t *sr,
-                                     const ui_label_desc_t *desc);
-extern ui_handle_t ui_sys_make_container(ui_system_t *uis, sprite_renderer_t *sr,
-                                         const ui_container_desc_t *desc);
-extern ui_handle_t ui_sys_make_slider(ui_system_t *uis, sprite_renderer_t *sr,
-                                          const ui_slider_desc_t *desc);
+extern ui_handle_t ui_sys_make_button(ui_system_t *uis, const ui_button_desc_t *desc);
+extern ui_handle_t ui_sys_make_label(ui_system_t *uis, const ui_label_desc_t *desc);
+extern ui_handle_t ui_sys_make_container(ui_system_t *uis, const ui_container_desc_t *desc);
+extern ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc);
 extern void ui_sys_show_component(ui_system_t *uis, ui_handle_t comp, bool show);
 
 #endif

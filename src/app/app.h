@@ -21,6 +21,7 @@ typedef enum menu_component {
     MENUCOMP_L_TITLE,
     MENUCOMP_B_RETURN,
     MENUCOMP_B_QUIT,
+    MENUCOMP_SLIDER,
     MENUCOMP_NUM
 } menu_component_e;
 
