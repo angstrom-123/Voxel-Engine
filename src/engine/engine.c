@@ -174,6 +174,12 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
     });
     ENGINE_LOG_OK("Setup tick system.\n", NULL);
 
+    ui_sys_init(&engine->_ui_sys, &(ui_system_desc_t) {
+        .es = &engine->_event_sys,
+        .max_comps = 32
+    });
+    ENGINE_LOG_OK("Setup ui system.\n", NULL);
+
     engine->meta = (engine_meta_t) {
         .cursor = {
             .active = false,
@@ -188,6 +194,7 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
             .max_time = desc->max_time
         },
     };
+
     // Font is 11x13 so this is a pixel perfect scale.
     const vec2 DEBUG_TEXT_SIZE = em_mul_vec2_f(VEC2(11.0, 13.0), 2.0);
     sprite_t **tmp;
@@ -296,6 +303,7 @@ void engine_cleanup(engine_t *engine)
     load_sys_cleanup(&engine->_load_sys);
     chunk_sys_cleanup(&engine->_chunk_sys);
     update_sys_cleanup(&engine->_update_sys);
+    ui_sys_cleanup(&engine->_ui_sys);
 }
 
 void engine_event(engine_t *engine, const event_t *event)

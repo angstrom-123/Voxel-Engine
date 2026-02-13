@@ -100,7 +100,7 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     });
 
     sprite_renderer_init(&rs->sprite_renderer, &(sprite_renderer_desc_t) {
-        .max_sprites = 256,
+        .max_sprites = 512,
         .base_desc = &(renderer_base_desc_t) {
             .dimensions = desc->window_size,
             .cam = &rs->ortho_cam,

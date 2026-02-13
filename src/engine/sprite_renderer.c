@@ -12,7 +12,8 @@ vec2 _uv_lookup(sprite_renderer_t *sr, char c)
     float x = idx - (y * t.subimages_x);
     vec2 d = texture_query_subimage_uv(&t);
 
-    return em_mul_vec2(d, VEC2(x, t.subimages_y - y - 1));
+    const float EPSILON = 0.001; // Float precision makes texture atlas imprecise.
+    return em_mul_vec2(d, VEC2(x, t.subimages_y - y - (1 + EPSILON)));
 }
 
 vec2 _sprite_dimensions(sprite_renderer_t *sr, sprite_t *s)
@@ -318,7 +319,7 @@ sprite_t **sprite_renderer_push_ui(sprite_renderer_t *sr, const ui_sprites_desc_
     icon_id_e bl = (desc->rounded) ? IID_CORNER_BL_SOFT: IID_CORNER_BL_HARD;
     icon_id_e br = (desc->rounded) ? IID_CORNER_BR_SOFT: IID_CORNER_BR_HARD;
 
-    const size_t MINI_OFFSET = 13;
+    const size_t MINI_OFFSET = IID_S_CORNER_TL_HARD - IID_CORNER_TL_HARD;
     size_t id_offset = (desc->mini) ? MINI_OFFSET : 0;
 
     sprite_desc_t spr_desc = {

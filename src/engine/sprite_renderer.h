@@ -62,7 +62,7 @@ typedef struct sprite_desc {
 } sprite_desc_t;
 
 typedef enum icon_id {
-    IID_BLOCK_NONE,
+    IID_BLOCK_NONE = 0,
     IID_BLOCK_GRASS,
     IID_BLOCK_DIRT,
     IID_BLOCK_STONE,
@@ -75,7 +75,8 @@ typedef enum icon_id {
     IID_CROSSHAIR = 128,
     IID_SLOT,
     IID_SLOT_SELECTED,
-    IID_CORNER_TL_HARD,
+
+    IID_CORNER_TL_HARD = 144,
     IID_CORNER_TR_HARD,
     IID_CORNER_BL_HARD,
     IID_CORNER_BR_HARD,
@@ -88,6 +89,20 @@ typedef enum icon_id {
     IID_CORNER_BL_SOFT,
     IID_CORNER_BR_SOFT,
     IID_BG_TINT,
+
+    IID_S_CORNER_TL_HARD = 160,
+    IID_S_CORNER_TR_HARD,
+    IID_S_CORNER_BL_HARD,
+    IID_S_CORNER_BR_HARD,
+    IID_S_EDGE_L,
+    IID_S_EDGE_R,
+    IID_S_EDGE_B,
+    IID_S_EDGE_T,
+    IID_S_CORNER_TL_SOFT,
+    IID_S_CORNER_TR_SOFT,
+    IID_S_CORNER_BL_SOFT,
+    IID_S_CORNER_BR_SOFT,
+    IID_S_BG_TINT,
 } icon_id_e;
 
 typedef struct ui_sprites_desc {

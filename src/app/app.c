@@ -6,26 +6,21 @@ static void _on_mousedown(const event_t *ev, void *args)
     engine_t *engine = ev_args->engine;
     app_t *app = ev_args->app;
 
-    const player_collider_desc_t coll = {
-        .pos = engine->_render_sys.cam.pos,
-        .collider = app->camera_ctl.collider
-    };
+    if (app->menu.active) return;
 
     switch (ev->mouse_button) {
     case MOUSE_BUTTON_LEFT:
-        if (app->menu.active) 
-        {
-        }
-        else 
-        {
-            sapp_lock_mouse(true);
-            engine->api.edit_active_block(engine, app->hotbar.types[app->hotbar.curr], 
-                                          BLOCK_ACTION_BREAK, &coll);
-        }
+        sapp_lock_mouse(true);
+        engine->api.edit_active_block(engine, app->hotbar.types[app->hotbar.curr], 
+                                      BLOCK_ACTION_BREAK, NULL);
         break;
     case MOUSE_BUTTON_RIGHT:
         if (app->menu.active) return;
 
+        const player_collider_desc_t coll = {
+            .pos = engine->_render_sys.cam.pos,
+            .collider = app->camera_ctl.collider
+        };
         engine->api.edit_active_block(engine, app->hotbar.types[app->hotbar.curr], 
                                       BLOCK_ACTION_PLACE, &coll);
         break;
@@ -55,12 +50,32 @@ static void _on_keydown(const event_t *ev, void *args)
         app->menu.active = !app->menu.active;
         sapp_lock_mouse(!app->menu.active);
         for (size_t i = 0; i < MENUCOMP_NUM; i++)
-            ui_show_component(&app->menu.comps[i], app->menu.active);
+            ui_sys_show_component(&engine->_ui_sys, app->menu.comps[i], app->menu.active);
         break;
 
     default:
         break;
     }
+}
+
+static void _quit_button_pressed(ui_component_t *comp, void *args)
+{
+    (void) comp;
+    (void) args;
+    sapp_request_quit();
+}
+
+static void _return_button_pressed(ui_component_t *comp, void *args)
+{
+    (void) comp;
+    app_event_args_t *ev_args = args;
+    app_t *app = ev_args->app;
+    engine_t *engine = ev_args->engine;
+
+    app->menu.active = false;
+    sapp_lock_mouse(true);
+    for (size_t i = 0; i < MENUCOMP_NUM; i++)
+        ui_sys_show_component(&engine->_ui_sys, app->menu.comps[i], false);
 }
 
 static void _do_init(engine_t *e, app_t *a)
@@ -149,67 +164,57 @@ static void _do_init(engine_t *e, app_t *a)
     hb_desc.bg_col = VEC4(0.0, 0.0, 0.0, 0.0);
     a->hotbar.selected_sprite = e->api.place_icon_sprite(e, IID_SLOT_SELECTED, &hb_desc);
 
-    ui_make_label(&a->menu.comps[MENUCOMP_LABEL], &e->_render_sys.sprite_renderer, &(ui_label_desc_t) {
-        .pos = VEC2(0.0, 200.0),
+    a->menu.comps[MENUCOMP_L_TITLE] = ui_sys_make_label(&e->_ui_sys, 
+                                                        &e->_render_sys.sprite_renderer, 
+                                                        &(ui_label_desc_t) {
+        .pos = VEC2(-11.0 * 3.0 * 4.0, 300.0),
         .text_style = {
-            .size = VEC2(16.0, 16.0),
+            .size = em_mul_vec2_f(VEC2(11.0, 13.0), 3.0),
             .z_index = 4.0,
             .bg_col = VEC4(0.0, 0.0, 0.0, 0.0)
         },
         .visible = false,
-        .text = "10"
+        .text = "Game Menu"
     });
 
-    ui_make_button(&a->menu.comps[MENUCOMP_INC], &e->_render_sys.sprite_renderer, &(ui_button_desc_t) {
-        .pos = VEC2(100.0, 200.0),
-        .dim = UVEC2(2, 2),
+    a->menu.comps[MENUCOMP_B_QUIT] = ui_sys_make_button(&e->_ui_sys, 
+                                                        &e->_render_sys.sprite_renderer, 
+                                                        &(ui_button_desc_t) {
+        .pos = VEC2(-48.0 * 5.0, 100.0),
+        .dim = UVEC2(10, 2),
         .body_style = {
             .size = VEC2(48.0, 48.0),
             .z_index = 3.0,
-            .bg_col = VEC4(1.0, 0.0, 0.0, 1.0)
+            .bg_col = VEC4(0.4, 0.4, 0.4, 1.0),
+            .hover_bg_col = VEC4(0.6, 0.6, 0.6, 1.0)
         },
         .text_style = {
-            .size = em_mul_vec2_f(VEC2(11.0, 13.0), 3.0),
+            .size = em_mul_vec2_f(VEC2(11.0, 13.0), 2.0),
             .z_index = 4.0
         },
-        .text = "+"
+        .text = "Save and Quit",
+        .cb = _quit_button_pressed
     });
 
-    ui_make_button(&a->menu.comps[MENUCOMP_DEC], &e->_render_sys.sprite_renderer, &(ui_button_desc_t) {
-        .pos = VEC2(-100.0, 200.0),
-        .dim = UVEC2(2, 2),
+    a->menu.comps[MENUCOMP_B_RETURN] = ui_sys_make_button(&e->_ui_sys, 
+                                                          &e->_render_sys.sprite_renderer, 
+                                                          &(ui_button_desc_t) {
+        .pos = VEC2(-48.0 * 5.0, 195.0),
+        .dim = UVEC2(10, 2),
         .body_style = {
             .size = VEC2(48.0, 48.0),
             .z_index = 3.0,
-            .bg_col = VEC4(1.0, 0.0, 0.0, 1.0)
+            .bg_col = VEC4(0.4, 0.4, 0.4, 1.0),
+            .hover_bg_col = VEC4(0.6, 0.6, 0.6, 1.0)
         },
         .text_style = {
-            .size = em_mul_vec2_f(VEC2(11.0, 13.0), 3.0),
+            .size = em_mul_vec2_f(VEC2(11.0, 13.0), 2.0),
             .z_index = 4.0
         },
-        .text = "+",
-        .mini = true,
-        .rounded = true
+        .text = "Back to Game",
+        .cb = _return_button_pressed,
+        .cb_args = &a->ev_args
     });
-
-    // ui_make_button(&a->menu.test, &e->_render_sys.sprite_renderer, &(ui_button_desc_t) {
-    //     .pos = VEC2(100.0, 100.0),
-    //     .dim = UVEC2(4, 2),
-    //     .body_style = {
-    //         .size = VEC2(48.0, 48.0),
-    //         .z_index = 3.0,
-    //         .bg_col = VEC4(1.0, 0.0, 0.0, 1.0)
-    //     },
-    //     .text_style = {
-    //         .size = VEC2(16.0, 16.0),
-    //         .z_index = 4.0,
-    //         .bg_col = VEC4(0.0, 0.0, 0.0, 0.0)
-    //     },
-    //     .rounded = false,
-    //     .mini = false,
-    //     .visible = false,
-    //     .text = "Test :)"
-    // });
 }
 
 void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
@@ -307,8 +312,6 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
 void app_cleanup(app_t *app)
 {
     unload_model_files();
-    for (size_t i = 0; i < MENUCOMP_NUM; i++)
-        ui_cleanup_component(&app->menu.comps[i]);
     ctl_cleanup(&app->camera_ctl);
 }
 

@@ -7,6 +7,7 @@
 #include "load_system.h"
 #include "render_system.h"
 #include "tick_system.h"
+#include "ui_system.h"
 #include "update_system.h"
 #include "instrumentor.h"
 #include "raycast.h"
@@ -75,6 +76,7 @@ typedef struct engine {
     update_system_t _update_sys;
     tick_system_t _tick_sys;
     event_system_t _event_sys;
+    ui_system_t _ui_sys;
 
     struct {
         sprite_t *( *place_icon_sprite)(struct engine *engine, icon_id_e id, 
