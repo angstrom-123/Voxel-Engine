@@ -32,8 +32,8 @@ void event_sys_get_event(event_system_t *es, const event_t *ev)
             continue;
 
         /* Make callback, only continue handling event if not blocking. */
-        s.event_cb(ev, s.args);
-        if (s.block_cb(ev, s.args))
+        bool consume = s.event_cb(ev, s.args);
+        if (consume || s.block_cb(ev, s.args))
             return;
     }
 

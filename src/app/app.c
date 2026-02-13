@@ -1,12 +1,12 @@
 #include "app.h"
 
-static void _on_mousedown(const event_t *ev, void *args) 
+static bool _on_mousedown(const event_t *ev, void *args) 
 {
     app_event_args_t *ev_args = args;
     engine_t *engine = ev_args->engine;
     app_t *app = ev_args->app;
 
-    if (app->menu.active) return;
+    if (app->menu.active) return false;
 
     switch (ev->mouse_button) {
     case MOUSE_BUTTON_LEFT:
@@ -15,21 +15,20 @@ static void _on_mousedown(const event_t *ev, void *args)
                                       BLOCK_ACTION_BREAK, NULL);
         break;
     case MOUSE_BUTTON_RIGHT:
-        if (app->menu.active) return;
-
-        const player_collider_desc_t coll = {
+        engine->api.edit_active_block(engine, app->hotbar.types[app->hotbar.curr], 
+                                      BLOCK_ACTION_PLACE, &(player_collider_desc_t) {
             .pos = engine->_render_sys.cam.pos,
             .collider = app->camera_ctl.collider
-        };
-        engine->api.edit_active_block(engine, app->hotbar.types[app->hotbar.curr], 
-                                      BLOCK_ACTION_PLACE, &coll);
+        });
         break;
     default:
         break;
     };
+    
+    return false;
 }
 
-static void _on_keydown(const event_t *ev, void *args)
+static bool _on_keydown(const event_t *ev, void *args)
 {
     app_event_args_t *ev_args = args;
     app_t *app = ev_args->app;
@@ -56,6 +55,9 @@ static void _on_keydown(const event_t *ev, void *args)
     default:
         break;
     }
+
+    // TODO: Change this for when handling input fields
+    return false;
 }
 
 static void _quit_button_pressed(ui_component_t *comp, void *args)

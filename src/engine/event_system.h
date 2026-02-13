@@ -180,7 +180,7 @@ typedef struct event {
     bool handled;
 } event_t;
 
-typedef void (*event_func)(const event_t *ev, void *args);
+typedef bool (*event_func)(const event_t *ev, void *args);
 typedef bool (*block_func)(const event_t *ev, void *args);
 
 typedef struct event_subscriber {

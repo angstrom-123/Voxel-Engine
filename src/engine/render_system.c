@@ -1,6 +1,6 @@
 #include "render_system.h"
 
-static void _on_resize(const event_t *ev, void *args)
+static bool _on_resize(const event_t *ev, void *args)
 {
     render_system_t *rs = args;
 
@@ -28,6 +28,8 @@ static void _on_resize(const event_t *ev, void *args)
     rs->cursor_line_renderer.base.dimensions = ev->window_size;
     rs->global_line_renderer.base.dimensions = ev->window_size;
     rs->sprite_renderer.base.dimensions = ev->window_size;
+
+    return false;
 }
 
 void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)

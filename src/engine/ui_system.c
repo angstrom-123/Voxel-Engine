@@ -10,12 +10,18 @@ static bool _mouse_over(vec2 tr, vec2 bl, ivec2 screen_size, vec2 mouse_pos)
     return true;
 }
 
-static void _mouse_move(const event_t *ev, void *args)
+static bool _mouse_move(const event_t *ev, void *args)
 {
     ui_system_t *uis = args;
     for (size_t i = 0; i < uis->comp_count; i++)
     {
         ui_component_t *c = &uis->components[i];
+        if (!c->visible) 
+        {
+            c->hovered = false;
+            continue;
+        }
+
         bool before = c->hovered;
 
         // Only consider hovering for interactable components
@@ -39,9 +45,11 @@ static void _mouse_move(const event_t *ev, void *args)
                                        ? c->body_style.hover_bg_col 
                                        : c->body_style.bg_col;
     }
+
+    return false;
 }
 
-static void _mouse_click(const event_t *ev, void *args)
+static bool _mouse_click(const event_t *ev, void *args)
 {
     (void) ev;
     ui_system_t *uis = args;
@@ -52,7 +60,11 @@ static void _mouse_click(const event_t *ev, void *args)
 
         switch (c->kind) {
         case COMPONENT_BUTTON:
-            if (c->cb != NULL) c->cb(c, c->cb_args);
+            if (c->cb != NULL) 
+            {
+                c->cb(c, c->cb_args);
+                return true;
+            }
             break;
         case COMPONENT_SLIDER:
             ENGINE_LOG_WARN("Slider Clicked, TODO: Implement slider sliding", NULL);
@@ -61,6 +73,8 @@ static void _mouse_click(const event_t *ev, void *args)
             continue;
         };
     }
+
+    return false;
 }
 
 void ui_sys_init(ui_system_t *uis, const ui_system_desc_t *desc)
@@ -106,6 +120,7 @@ ui_handle_t ui_sys_make_button(ui_system_t *uis, sprite_renderer_t *sr,
     comp->text_style   = desc->text_style;
     comp->cb           = desc->cb;
     comp->cb_args      = desc->cb_args;
+    comp->visible      = desc->visible;
     comp->body_sprites = sprite_renderer_push_ui(sr, &(ui_sprites_desc_t) {
         .visible = desc->visible,
         .rounded = desc->rounded,
@@ -164,6 +179,7 @@ ui_handle_t ui_sys_make_label(ui_system_t *uis, sprite_renderer_t *sr, const ui_
     comp->kind       = COMPONENT_LABEL;
     comp->pos        = desc->pos;
     comp->text_style = desc->text_style;
+    comp->visible    = desc->visible;
 
     if (desc->text[0] == '\0')
     {
@@ -199,6 +215,7 @@ ui_handle_t ui_sys_make_container(ui_system_t *uis, sprite_renderer_t *sr,
     comp->body_style   = desc->body_style;
     comp->text_style   = desc->text_style;
     comp->justify      = desc->justify;
+    comp->visible      = desc->visible;
     comp->body_sprites = sprite_renderer_push_ui(sr, &(ui_sprites_desc_t) {
         .visible = desc->visible,
         .rounded = desc->rounded,
@@ -261,6 +278,7 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, sprite_renderer_t *sr,
     comp->body_style   = desc->body_style;
     comp->text_style   = desc->text_style;
     comp->value        = desc->value;
+    comp->visible      = desc->visible;
     // TODO: Put value in string and push as sprites 
     //       Push the thumb sprites 
     //       Get the sliding around working
@@ -315,6 +333,7 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, sprite_renderer_t *sr,
 void ui_sys_show_component(ui_system_t *uis, ui_handle_t handle, bool show)
 {
     ui_component_t *comp = &uis->components[handle.id];
+    comp->visible = show;
 
     switch (comp->kind) {
     case COMPONENT_BUTTON:

@@ -24,7 +24,7 @@
 
 #define STD_BUFLEN 128
 
-#define WORLD_DATA_DIR "app_data" SEP
+#define WORLD_DATA_DIR "world_data" SEP
 #define WORLD_META_FILE "meta"
 #define TEXTURE_DATA_DIR "res" SEP "tex" SEP
 #define MODEL_DATA_DIR "res" SEP "model" SEP

@@ -35,6 +35,7 @@ typedef struct ui_component {
     style_t body_style;
     style_t text_style;
     // Interactables
+    bool visible;
     bool hovered;
     vec2 tr;
     vec2 bl;
