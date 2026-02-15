@@ -21,6 +21,7 @@ static bool _mouse_move(const event_t *ev, void *args)
         if (!c->visible) 
         {
             c->hovered = false;
+            c->dragged = false;
             continue;
         }
 
@@ -29,9 +30,15 @@ static bool _mouse_move(const event_t *ev, void *args)
         // Only consider hovering for interactable components
         switch (c->kind) {
         case COMPONENT_BUTTON:
-            if (_mouse_over(c->tr, c->bl, ev->framebuf_size, ev->mouse_pos))
+            if (uis->mouse_active && 
+                _mouse_over(c->tr, c->bl, ev->framebuf_size, ev->mouse_pos))
+            {
                 c->hovered = true;
-            else c->hovered = false;
+            }
+            else 
+            {
+                c->hovered = false;
+            }
 
             // No state change, no need to iterate the sprites.
             if (c->hovered == before) 
@@ -62,7 +69,8 @@ static bool _mouse_move(const event_t *ev, void *args)
                 c->thumb_x = em_clamp(c->thumb_x, 0.0, c->thumb_max_x);
                 vec2 thumb_pos = VEC2(c->thumb_origin.x + c->thumb_x, c->thumb_origin.y);
                 sprite_renderer_move(sr, c->thumb_sprites[0], thumb_pos);
-                thumb_pos.y -= (c->mini) ? c->body_style.size.y / 2.0 : c->body_style.size.y;
+                thumb_pos.y -= (c->mini ? SPRITE_S_SIZE.y : SPRITE_SIZE.y) 
+                               * c->body_style.scale;
                 sprite_renderer_move(sr, c->thumb_sprites[1], thumb_pos);
 
                 c->bl.x += c->thumb_x - old_pos;
@@ -103,6 +111,7 @@ static bool _mouse_click(const event_t *ev, void *args)
         case COMPONENT_SLIDER:
             sapp_show_mouse(false);
             c->dragged = true;
+            uis->mouse_active = false;
             break;
         default:
             continue;
@@ -126,6 +135,7 @@ static bool _mouse_up(const event_t *ev, void *args)
         case COMPONENT_SLIDER:
             sapp_show_mouse(true);
             c->dragged = false;
+            uis->mouse_active = true;
             break;
         default:
             continue;
@@ -137,6 +147,7 @@ static bool _mouse_up(const event_t *ev, void *args)
 
 void ui_sys_init(ui_system_t *uis, const ui_system_desc_t *desc)
 {
+    uis->mouse_active = true;
     uis->max_comps = desc->max_comps;
     uis->comp_count = 0;
     uis->components = calloc(desc->max_comps, sizeof(ui_component_t));
@@ -178,7 +189,10 @@ void ui_sys_cleanup(ui_system_t *uis)
 
 ui_handle_t ui_sys_make_button(ui_system_t *uis, const ui_button_desc_t *desc)
 {
-    ENGINE_ASSERT(uis->comp_count < uis->max_comps, "Maximum components reached in ui system");
+    ENGINE_ASSERT(uis->comp_count < uis->max_comps, 
+                  "Maximum components reached in ui system");
+
+    const vec2 spr_size = (desc->mini) ? SPRITE_S_SIZE : SPRITE_SIZE;
 
     ui_handle_t res = { .id = uis->comp_count };
     ui_component_t *comp = &uis->components[uis->comp_count++];
@@ -198,18 +212,15 @@ ui_handle_t ui_sys_make_button(ui_system_t *uis, const ui_button_desc_t *desc)
         .mini    = desc->mini,
         .bg_col  = comp->body_style.bg_col,
         .z_index = comp->body_style.z_index,
-        .size    = comp->body_style.size,
+        .scale   = comp->body_style.scale,
         .pos     = comp->pos,
         .dim     = comp->dim
     });
 
-    float body_width = comp->body_style.size.x * comp->dim.x;
-    float body_height = comp->body_style.size.y * comp->dim.y;
-    if (desc->mini)
-    {
-        body_width /= 2.0;
-        body_height /= 2.0;
-    }
+    vec2 body_size = em_mul_vec2_f(em_mul_vec2(spr_size, AS_VEC2(desc->dim)),
+                                   desc->body_style.scale);
+    vec2 text_size = em_mul_vec2_f(CHAR_SIZE, desc->text_style.scale);
+    text_size.x *= strlen(desc->text);
 
     if (desc->text[0] == '\0')
     {
@@ -220,22 +231,31 @@ ui_handle_t ui_sys_make_button(ui_system_t *uis, const ui_button_desc_t *desc)
     {
         strcpy(comp->text, desc->text);
 
-        float text_width = comp->text_style.size.x * strlen(comp->text);
-        float pad_left = (body_width - text_width) / 2.0;
-        float pad_top = ((body_height - 2.0 * comp->body_style.size.y) 
-                      + comp->text_style.size.y) / 2.0;
-        comp->text_sprites = sprite_renderer_push_str(uis->sr, desc->text, &(sprite_desc_t) {
+        float pad_left = (body_size.x - text_size.x) / 2.0;
+        float top_ofst = 2.0 * desc->body_style.scale * spr_size.y;
+        float pad_top = (body_size.y - top_ofst + text_size.y) / 2.0;
+        if (desc->mini) pad_top -= desc->body_style.scale * spr_size.y;
+        comp->text_sprites = sprite_renderer_push_str(uis->sr, desc->text, 
+                                                      &(sprite_desc_t) {
             .visible = desc->visible,
             .bg_col  = comp->text_style.bg_col,
             .z_index = comp->text_style.z_index,
-            .size    = comp->text_style.size,
+            .scale   = comp->text_style.scale,
             .pos     = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
         });
     }
-    comp->tr = VEC2(comp->pos.x + body_width - 1.0, 
-                    comp->pos.y + comp->body_style.size.y - 1.0);
-    comp->bl = VEC2(comp->pos.x + 1.0, 
-                    comp->pos.y - body_height + comp->body_style.size.y + 1.0);
+    vec2 epsilon = VEC2(1.0, 1.0);
+    vec2 tr_ofst = VEC2(body_size.x, desc->body_style.scale * spr_size.y);
+    vec2 bl_ofst = VEC2(0.0, - body_size.y + desc->body_style.scale * spr_size.y);
+
+    comp->tr = em_sub_vec2(em_add_vec2(comp->pos, tr_ofst), epsilon);
+    comp->bl = em_add_vec2(em_add_vec2(comp->pos, bl_ofst), epsilon);
+
+    if (desc->mini)
+    {
+        comp->tr.y += desc->body_style.scale * spr_size.y;
+        comp->bl.y += desc->body_style.scale * spr_size.y;
+    }
 
     return res;
 }
@@ -261,11 +281,13 @@ ui_handle_t ui_sys_make_label(ui_system_t *uis, const ui_label_desc_t *desc)
     else 
     {
         strcpy(comp->text, desc->text);
+
         comp->text_sprites = sprite_renderer_push_str(uis->sr, desc->text, &(sprite_desc_t) {
             .visible = desc->visible,
-            .size    = comp->text_style.size,
+            .scale   = comp->text_style.scale,
             .z_index = comp->text_style.z_index,
-            .pos     = VEC2(comp->pos.x, comp->pos.y - comp->text_style.size.y / 2.0),
+            .pos     = VEC2(comp->pos.x, 
+                            comp->pos.y - (comp->text_style.scale * CHAR_SIZE.y) / 2.0),
             .bg_col  = comp->text_style.bg_col
         });
     }
@@ -277,6 +299,8 @@ ui_handle_t ui_sys_make_container(ui_system_t *uis, const ui_container_desc_t *d
 {
     ENGINE_ASSERT(uis->comp_count < uis->max_comps, 
                   "Maximum components reached in ui system");
+
+    const vec2 spr_size = (desc->mini) ? SPRITE_S_SIZE : SPRITE_SIZE;
 
     ui_handle_t res = { .id = uis->comp_count };
     ui_component_t *comp = &uis->components[uis->comp_count++];
@@ -295,18 +319,15 @@ ui_handle_t ui_sys_make_container(ui_system_t *uis, const ui_container_desc_t *d
         .mini    = desc->mini,
         .bg_col  = comp->body_style.bg_col,
         .z_index = comp->body_style.z_index,
-        .size    = comp->body_style.size,
+        .scale   = comp->body_style.scale,
         .pos     = comp->pos,
         .dim     = comp->dim
     });
 
-    float body_width = comp->body_style.size.x * comp->dim.x;
-    float body_height = comp->body_style.size.y * comp->dim.y;
-    if (desc->mini)
-    {
-        body_width /= 2.0;
-        body_height /= 2.0;
-    }
+    vec2 body_size = em_mul_vec2_f(em_mul_vec2(spr_size, AS_VEC2(desc->dim)),
+                                   desc->body_style.scale);
+    vec2 text_size = em_mul_vec2_f(CHAR_SIZE, desc->text_style.scale);
+    text_size.x *= strlen(desc->text);
 
     if (desc->text[0] == '\0')
     {
@@ -317,19 +338,18 @@ ui_handle_t ui_sys_make_container(ui_system_t *uis, const ui_container_desc_t *d
     {
         strcpy(comp->text, desc->text);
 
-        float text_width = comp->text_style.size.x * strlen(comp->text);
-        float pad_left = (body_width - text_width) / 2.0;
+        float pad_left = (body_size.x - text_size.x) / 2.0;
         float pad_top = 0.0; // JUSTIFY_TOP
         if (comp->justify == JUSTIFY_MIDDLE)
         {
-            pad_top = ((body_height - 2.0 * comp->body_style.size.y) 
-                    + comp->text_style.size.y) / 2.0;
+            float top_ofst = 2.0 * desc->body_style.scale * spr_size.y;
+            pad_top = (body_size.y - top_ofst + text_size.y) / 2.0;
         }
         comp->text_sprites = sprite_renderer_push_str(uis->sr, desc->text, &(sprite_desc_t) {
             .visible = desc->visible,
             .bg_col  = comp->text_style.bg_col,
             .z_index = comp->text_style.z_index,
-            .size    = comp->text_style.size,
+            .scale   = comp->text_style.scale,
             .pos     = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
         });
     }
@@ -342,6 +362,9 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
     ENGINE_ASSERT(uis->comp_count < uis->max_comps, 
                   "Maximum components reached in ui system");
 
+    const vec2 spr_size = (desc->mini) ? SPRITE_S_SIZE : SPRITE_SIZE;
+    const vec2 thumb_size = (desc->mini) ? THUMB_S_SIZE : THUMB_SIZE;
+
     ui_handle_t res = { .id = uis->comp_count };
     ui_component_t *comp = &uis->components[uis->comp_count++];
 
@@ -353,14 +376,14 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
     comp->visible       = desc->visible;
     comp->mini          = desc->mini;
     comp->thumb_x       = 0.0;
-    comp->thumb_max_x   = desc->width * desc->body_style.size.x 
-                        - THUMB_SIZE.x * (desc->body_style.size.x / 16.0);
+    comp->thumb_max_x   = (desc->width * spr_size.x - thumb_size.x) 
+                        * desc->body_style.scale;
     comp->thumb_origin  = desc->pos;
     comp->thumb_sprites = sprite_renderer_push_thumb(uis->sr, &(ui_sprites_desc_t) {
         .visible = desc->visible,
         .bg_col  = desc->body_style.bg_col,
         .pos     = desc->pos,
-        .size    = desc->body_style.size,
+        .scale   = desc->body_style.scale,
         .mini    = desc->mini,
         .z_index = desc->body_style.z_index + 0.1
     });
@@ -370,35 +393,33 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
         .mini    = desc->mini,
         .bg_col  = comp->body_style.bg_col,
         .z_index = comp->body_style.z_index,
-        .size    = comp->body_style.size,
+        .scale   = comp->body_style.scale,
         .pos     = comp->pos,
         .dim     = comp->dim
     });
 
     strncpy(comp->value_text, "  0", 3);
 
-    float body_width = comp->body_style.size.x * comp->dim.x;
-    float body_height = comp->body_style.size.y * comp->dim.y;
-    if (desc->mini)
-    {
-        body_width /= 2.0;
-        body_height /= 2.0;
-    }
+    vec2 body_size = VEC2(spr_size.x * desc->body_style.scale * desc->width,
+                          spr_size.y * desc->body_style.scale * 2.0);
+    vec2 text_size = em_mul_vec2_f(CHAR_SIZE, desc->text_style.scale);
+    text_size.x *= (strlen(desc->text) + 3.0);
 
-    float pad_top = ((body_height - 2.0 * comp->body_style.size.y) 
-                  + comp->text_style.size.y) / 2.0;
+    float pad_left = (body_size.x - text_size.x) / 2.0;
+    float top_ofst = 2.0 * desc->body_style.scale * spr_size.y;
+    float pad_top = (body_size.y - top_ofst + text_size.y) / 2.0;
+    if (desc->mini) pad_top -= desc->body_style.scale * spr_size.y;
 
     if (desc->text[0] == '\0')
     {
         comp->text[0] = '\0';
         comp->text_sprites = NULL;
 
-        float text_width = comp->text_style.size.x * 3;
-        float pad_left = (body_width - text_width) / 2.0;
-        comp->value_sprites = sprite_renderer_push_str(uis->sr, comp->value_text, &(sprite_desc_t) {
+        comp->value_sprites = sprite_renderer_push_str(uis->sr, comp->value_text, 
+                                                       &(sprite_desc_t) {
             .visible = desc->visible,
             .bg_col  = desc->text_style.bg_col,
-            .size    = desc->text_style.size,
+            .scale   = desc->text_style.scale,
             .z_index = desc->text_style.z_index,
             .pos     = VEC2(desc->pos.x + pad_left, desc->pos.y - pad_top)
         });
@@ -407,37 +428,36 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
     {
         strcpy(comp->text, desc->text);
 
-        size_t text_len = strlen(comp->text);
-        float text_width = comp->text_style.size.x * (text_len + 3);
-        float pad_left = (body_width - text_width) / 2.0;
         comp->text_sprites = sprite_renderer_push_str(uis->sr, desc->text, 
                                                       &(sprite_desc_t) {
             .visible = desc->visible,
             .bg_col  = comp->text_style.bg_col,
             .z_index = comp->text_style.z_index,
-            .size    = comp->text_style.size,
+            .scale   = comp->text_style.scale,
             .pos     = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
         });
 
-        pad_left += text_len * comp->text_style.size.x;
+        pad_left += text_size.x - (3.0 * CHAR_SIZE.x * desc->text_style.scale);
         comp->value_sprites = sprite_renderer_push_str(uis->sr, comp->value_text, 
                                                        &(sprite_desc_t) {
             .visible = desc->visible,
             .bg_col  = desc->text_style.bg_col,
-            .size    = desc->text_style.size,
+            .scale   = desc->text_style.scale,
             .z_index = desc->text_style.z_index,
             .pos     = VEC2(desc->pos.x + pad_left, desc->pos.y - pad_top)
         });
     }
 
-    vec2 thumb_size = em_mul_vec2((desc->mini ? THUMB_S_SIZE : THUMB_SIZE), 
-                                  em_div_vec2_f(desc->body_style.size, 16.0));
-    comp->tr = VEC2(comp->pos.x + thumb_size.x, comp->pos.y + thumb_size.y / 2.0);
-    comp->bl = VEC2(comp->pos.x, comp->pos.y - thumb_size.y / 2.0);
-    // TODO
-    // comp->tr = VEC2(comp->pos.x + body_width, comp->pos.y + comp->body_style.size.y);
-    // comp->bl = VEC2(comp->pos.x, comp->pos.y - body_height + comp->body_style.size.y);
-
+    vec2 thumb_scaled = em_mul_vec2_f(thumb_size, desc->body_style.scale);
+    comp->tr = VEC2(comp->pos.x + thumb_scaled.x, 
+                    comp->pos.y + thumb_scaled.y / 2.0);
+    comp->bl = VEC2(comp->pos.x, 
+                    comp->pos.y - thumb_scaled.y / 2.0);
+    if (desc->mini)
+    {
+        comp->tr.y += spr_size.y * desc->body_style.scale;
+        comp->bl.y += spr_size.y * desc->body_style.scale;
+    }
     return res;
 }
 

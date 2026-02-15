@@ -311,7 +311,7 @@ sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str,
     {
         d.uv_offset = _uv_lookup(sr, str[i]);
         res[i] = sprite_renderer_push(sr, &d);
-        d.pos.x += d.size.x;
+        d.pos.x += CHAR_SIZE.x * desc->scale;
     }
 
     return res;
@@ -325,16 +325,16 @@ sprite_t **sprite_renderer_push_thumb(sprite_renderer_t *sr, const ui_sprites_de
     size_t id_offset = (desc->mini) ? MINI_OFFSET : 0;
 
     sprite_desc_t spr_desc = {
-        .z_index = desc->z_index,
-        .size = desc->size,
-        .pos = desc->pos,
-        .visible = desc->visible,
-        .bg_col = desc->bg_col,
+        .z_index   = desc->z_index,
+        .scale     = desc->scale,
+        .pos       = desc->pos,
+        .visible   = desc->visible,
+        .bg_col    = desc->bg_col,
         .uv_offset = sprite_icon_uv_offset(sr, IID_THUMB_T + id_offset)
     };
     res[0] = sprite_renderer_push(sr, &spr_desc);
 
-    spr_desc.pos.y -= (desc->mini) ? desc->size.y / 2.0 : desc->size.y;
+    spr_desc.pos.y -= (desc->mini ? SPRITE_S_SIZE.y : SPRITE_SIZE.y) * desc->scale;
     spr_desc.uv_offset = sprite_icon_uv_offset(sr, IID_THUMB_B + id_offset);
     res[1] = sprite_renderer_push(sr, &spr_desc);
 
@@ -358,10 +358,10 @@ sprite_t **sprite_renderer_push_ui(sprite_renderer_t *sr, const ui_sprites_desc_
 
     sprite_desc_t spr_desc = {
         .z_index = desc->z_index,
-        .size = desc->size,
-        .pos = desc->pos,
+        .scale   = desc->scale,
+        .pos     = desc->pos,
         .visible = desc->visible,
-        .bg_col = desc->bg_col
+        .bg_col  = desc->bg_col
     };
 
     size_t cnt = 0;
@@ -387,10 +387,10 @@ sprite_t **sprite_renderer_push_ui(sprite_renderer_t *sr, const ui_sprites_desc_
 
             spr_desc.uv_offset = sprite_icon_uv_offset(sr, id + id_offset);
             res[cnt++] = sprite_renderer_push(sr, &spr_desc);
-            spr_desc.pos.x += (desc->mini) ? spr_desc.size.x / 2 : spr_desc.size.x;
+            spr_desc.pos.x += (desc->mini ? SPRITE_S_SIZE.x : SPRITE_SIZE.x) * desc->scale;
         }
         spr_desc.pos.x = desc->pos.x;
-        spr_desc.pos.y -= (desc->mini) ? spr_desc.size.y / 2 : spr_desc.size.y;
+        spr_desc.pos.y -= (desc->mini ? SPRITE_S_SIZE.y : SPRITE_SIZE.y) * desc->scale;
     }
 
     return res;
@@ -412,6 +412,8 @@ sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
                   ? texture_query_subimage_uv(&sr->textures[SPRITETEX_FONT])
                   : texture_query_subimage_uv(&sr->textures[SPRITETEX_ATLAS]);
 
+    vec2 size = em_mul_vec2_f(desc->is_char ? CHAR_SIZE : SPRITE_SIZE, desc->scale);
+
     /* Counter clockwise winding. */
     sr->vbo[s->offset->v_ofst] = (sprite_vertex_t) {
         .pos = desc->pos,
@@ -419,17 +421,17 @@ sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
         .z = desc->z_index
     };
     sr->vbo[s->offset->v_ofst + 1] = (sprite_vertex_t) {
-        .pos = em_add_vec2(desc->pos, VEC2(desc->size.x, 0.0)),
+        .pos = em_add_vec2(desc->pos, VEC2(size.x, 0.0)),
         .uv = em_add_vec2(VEC2(uv_scale.x, 0.0), desc->uv_offset),
         .z = desc->z_index
     };
     sr->vbo[s->offset->v_ofst + 2] = (sprite_vertex_t) {
-        .pos = em_add_vec2(desc->pos, desc->size),
+        .pos = em_add_vec2(desc->pos, size),
         .uv = em_add_vec2(uv_scale, desc->uv_offset),
         .z = desc->z_index
     };
     sr->vbo[s->offset->v_ofst + 3] = (sprite_vertex_t) {
-        .pos = em_add_vec2(desc->pos, VEC2(0.0, desc->size.y)),
+        .pos = em_add_vec2(desc->pos, VEC2(0.0, size.y)),
         .uv = em_add_vec2(VEC2(0.0, uv_scale.y), desc->uv_offset),
         .z = desc->z_index
     };

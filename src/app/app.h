@@ -13,9 +13,9 @@
 #define BUTTON_COL VEC4(0.4, 0.4, 0.4, 1.0)
 #define BUTTON_HOVER_COL VEC4(0.5, 0.5, 0.5, 1.0)
 #define HOTBAR_SIZE 9
-#define HOTBAR_CELL_SIZE VEC2(80.0, 80.0)
-#define BASE_HOTBAR_POS VEC2(-HOTBAR_CELL_SIZE.x * (HOTBAR_SIZE / 2.0), \
-                             -SCREEN_HEIGHT / 2.0 + HOTBAR_CELL_SIZE.y)
+// #define HOTBAR_CELL_SCALE VEC2(80.0, 80.0)
+// #define BASE_HOTBAR_POS VEC2(-HOTBAR_CELL_SIZE.x * (HOTBAR_SIZE / 2.0), \
+//                              -SCREEN_HEIGHT / 2.0 + HOTBAR_CELL_SIZE.y)
 
 typedef enum menu_component {
     MENUCOMP_L_TITLE,

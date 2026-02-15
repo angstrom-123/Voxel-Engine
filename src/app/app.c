@@ -1,5 +1,9 @@
 #include "app.h"
 
+static const float HB_SCALE = 5.0;
+static const vec2 HB_ORIGIN = VEC2(-SPRITE_SIZE.x * HB_SCALE * HOTBAR_SIZE / 2.0,
+                -SCREEN_HEIGHT / 2.0 + SPRITE_SIZE.y * HB_SCALE);
+
 static bool _on_mousedown(const event_t *ev, void *args) 
 {
     app_event_args_t *ev_args = args;
@@ -40,8 +44,8 @@ static bool _on_keydown(const event_t *ev, void *args)
             break;
 
         app->hotbar.curr = ev->keycode - KEYCODE_1;
-        vec2 selected_pos = BASE_HOTBAR_POS;
-        selected_pos.x += app->hotbar.curr * HOTBAR_CELL_SIZE.x;
+        vec2 selected_pos = HB_ORIGIN;
+        selected_pos.x += app->hotbar.curr * HB_SCALE * SPRITE_SIZE.x;
         engine->api.move_sprite(engine, app->hotbar.selected_sprite, selected_pos);
         break;
 
@@ -145,10 +149,11 @@ static void _do_init(engine_t *e, app_t *a)
         .args = &a->ev_args
     });
 
+
     sprite_desc_t hb_desc = {
         .z_index = 1.0,
-        .pos = BASE_HOTBAR_POS,
-        .size = HOTBAR_CELL_SIZE,
+        .scale = HB_SCALE,
+        .pos = HB_ORIGIN,
         .is_char = true,
         .visible = true
     };
@@ -158,18 +163,18 @@ static void _do_init(engine_t *e, app_t *a)
         e->api.place_icon_sprite(e, IID_SLOT, &hb_desc);
         e->api.place_icon_sprite(e, (icon_id_e) a->hotbar.types[i], &hb_desc);
 
-        hb_desc.pos.x += HOTBAR_CELL_SIZE.x;
+        hb_desc.pos.x += HB_SCALE * SPRITE_SIZE.x;
     }
 
     hb_desc.z_index = 2.0;
-    hb_desc.pos.x = BASE_HOTBAR_POS.x + a->hotbar.curr * BASE_HOTBAR_POS.x;
+    hb_desc.pos.x = HB_ORIGIN.x + a->hotbar.curr * HB_ORIGIN.x;
     hb_desc.bg_col = VEC4(0.0, 0.0, 0.0, 0.0);
     a->hotbar.selected_sprite = e->api.place_icon_sprite(e, IID_SLOT_SELECTED, &hb_desc);
 
     a->menu.comps[MENUCOMP_L_TITLE] = ui_sys_make_label(&e->_ui_sys, &(ui_label_desc_t) {
         .pos = VEC2(-11.0 * 3.0 * 4.0, 300.0),
         .text_style = {
-            .size = em_mul_vec2_f(VEC2(11.0, 13.0), 3.0),
+            .scale = 3.0,
             .z_index = 4.0,
             .bg_col = VEC4(0.0, 0.0, 0.0, 0.0)
         },
@@ -181,13 +186,13 @@ static void _do_init(engine_t *e, app_t *a)
         .pos = VEC2(-48.0 * 5.0, 100.0),
         .dim = UVEC2(10, 2),
         .body_style = {
-            .size = VEC2(48.0, 48.0),
+            .scale = 3.0,
             .z_index = 3.0,
             .bg_col = VEC4(0.4, 0.4, 0.4, 1.0),
             .hover_bg_col = VEC4(0.6, 0.6, 0.6, 1.0)
         },
         .text_style = {
-            .size = em_mul_vec2_f(VEC2(11.0, 13.0), 2.0),
+            .scale = 2.0,
             .z_index = 4.0
         },
         .text = "Save and Quit",
@@ -198,13 +203,13 @@ static void _do_init(engine_t *e, app_t *a)
         .pos = VEC2(-48.0 * 5.0, 195.0),
         .dim = UVEC2(10, 2),
         .body_style = {
-            .size = VEC2(48.0, 48.0),
+            .scale = 3.0,
             .z_index = 3.0,
             .bg_col = VEC4(0.4, 0.4, 0.4, 1.0),
             .hover_bg_col = VEC4(0.6, 0.6, 0.6, 1.0)
         },
         .text_style = {
-            .size = em_mul_vec2_f(VEC2(11.0, 13.0), 2.0),
+            .scale = 2.0,
             .z_index = 4.0
         },
         .text = "Back to Game",
@@ -216,16 +221,16 @@ static void _do_init(engine_t *e, app_t *a)
         .pos = VEC2(-48.0 * 5.0, 5.0),
         .width = 10,
         .body_style = {
-            .size = VEC2(48.0, 48.0),
-            .z_index = 3.0,
+            .scale = 3.0,
             .bg_col = VEC4(0.4, 0.4, 0.4, 1.0),
-            .hover_bg_col = VEC4(0.6, 0.6, 0.6, 1.0)
+            .hover_bg_col = VEC4(0.6, 0.6, 0.6, 1.0),
+            .z_index = 3.0
         },
         .text_style = {
-            .size = em_mul_vec2_f(VEC2(11.0, 13.0), 1.0),
+            .scale = 2.0,
             .z_index = 4.0
         },
-        .text = "Slider: "
+        .text = "Slider:"
     });
 }
 

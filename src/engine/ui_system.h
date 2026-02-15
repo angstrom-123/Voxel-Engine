@@ -14,7 +14,7 @@ typedef enum ui_component_type {
 } ui_component_type_e;
 
 typedef struct style {
-    vec2 size;
+    float scale;
     float z_index;
     vec4 bg_col;
     vec4 hover_bg_col;
@@ -98,12 +98,12 @@ typedef struct ui_slider_desc {
     const char text[UI_BUFLEN];
 } ui_slider_desc_t;
 
-
 typedef struct ui_system {
     ui_component_t *components;
     size_t max_comps;
     size_t comp_count;
     sprite_renderer_t *sr;
+    bool mouse_active;
 
     struct ui_system_event_args {
         struct ui_system *uis;

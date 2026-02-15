@@ -136,10 +136,9 @@ void render_sys_init(render_system_t *rs, const render_system_desc_t *desc)
     });
 
     /* Crosshair. */
-    const vec2 crosshair_size = VEC2(32.0, 32.0);
     sprite_renderer_push(&rs->sprite_renderer, &(sprite_desc_t) {
-        .pos = em_mul_vec2_f(crosshair_size, -0.5),
-        .size = crosshair_size,
+        .pos = VEC2(-16.0, -16.0),
+        .scale = 2.0,
         .z_index = 1.0,
         .uv_offset = sprite_icon_uv_offset(&rs->sprite_renderer, IID_CROSSHAIR),
         .visible = true

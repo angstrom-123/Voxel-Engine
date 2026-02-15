@@ -10,7 +10,7 @@ static void _resize(const event_t *ev, engine_t *engine)
 static sprite_t *_api_place_icon_sprite(engine_t *engine, icon_id_e id, const sprite_desc_t *desc)
 {
     return sprite_renderer_push(&engine->_render_sys.sprite_renderer, &(sprite_desc_t) {
-        .size = desc->size,
+        .scale = desc->scale,
         .pos = desc->pos,
         .bg_col = desc->bg_col,
         .z_index = desc->z_index,
@@ -196,8 +196,6 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
         },
     };
 
-    // Font is 11x13 so this is a pixel perfect scale.
-    const vec2 DEBUG_TEXT_SIZE = em_mul_vec2_f(VEC2(11.0, 13.0), 2.0);
     sprite_t **tmp;
     char buf[POS_MAX_SPRITES + 1];
     memset(buf, ' ', sizeof(buf) - 1);
@@ -205,7 +203,7 @@ void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
                                    buf, &(sprite_desc_t) {
         .bg_col = VEC4(0.0, 0.0, 0.0, 0.5),
         .pos = em_mul_vec2_f(engine->_render_sys.sprite_renderer.base.dimensions, -0.5),
-        .size = DEBUG_TEXT_SIZE,
+        .scale = 2.0,
         .z_index = 1.0,
         .is_char = true,
         .visible = true

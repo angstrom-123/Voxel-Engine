@@ -11,8 +11,11 @@
 
 #define SPRITE_VERTEX_COUNT 4
 #define SPRITE_INDEX_COUNT 6
-#define THUMB_SIZE VEC2(11, 28)
-#define THUMB_S_SIZE VEC2(7, 12)
+#define THUMB_SIZE VEC2(11.0, 28.0)
+#define THUMB_S_SIZE VEC2(7.0, 12.0)
+#define SPRITE_SIZE VEC2(16.0, 16.0)
+#define SPRITE_S_SIZE VEC2(8.0, 8.0)
+#define CHAR_SIZE VEC2(11.0, 13.0)
 
 typedef enum sprite_texture {
     SPRITETEX_ATLAS,
@@ -56,9 +59,9 @@ typedef struct sprite_renderer_desc {
 typedef struct sprite_desc {
     vec4 bg_col;
     vec2 pos;
-    vec2 size;
-    float z_index;
     vec2 uv_offset;
+    float scale;
+    float z_index;
     bool is_char;
     bool visible;
 } sprite_desc_t;
@@ -113,11 +116,11 @@ typedef enum icon_id {
 
 typedef struct ui_sprites_desc {
     vec2 pos;
-    vec2 size;
     uvec2 dim;
+    vec4 bg_col;
+    float scale;
     float z_index;
     bool visible;
-    vec4 bg_col;
     bool rounded;
     bool mini;
 } ui_sprites_desc_t;
