@@ -197,9 +197,9 @@ void ctl_init(ctl_t *cc, camera_t *cam, const ctl_desc_t *desc)
     cc->gravity        = desc->gravity;
     cc->velocity       = VEC3(0.0, 0.0, 0.0);
     cc->collider_size  = desc->collider_size;
-    cc->collider.x     = interval_around(0.0, desc->collider_size.x);
-    cc->collider.y     = (interval_t) { -desc->collider_size.y + EPSILON, EPSILON };
-    cc->collider.z     = interval_around(0.0, desc->collider_size.z);
+    cc->collider.x     = em_interval_around(0.0, desc->collider_size.x);
+    cc->collider.y     = (itvl) { -desc->collider_size.y + EPSILON, EPSILON };
+    cc->collider.z     = em_interval_around(0.0, desc->collider_size.z);
     cc->max_fall_velo  = desc->max_fall_velo;
 }
 

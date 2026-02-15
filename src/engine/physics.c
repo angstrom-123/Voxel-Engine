@@ -4,10 +4,10 @@ static const float INF = 10000000000.0;
 
 bool aabb_ray_intersecting(aabb_t a, ray_t r)
 {
-    interval_t t_interval = { -INF, INF };
+    itvl t_interval = { -INF, INF };
     for (size_t i = 0; i < 3; i++)
     {
-        interval_t axis = a.axis[i];
+        itvl axis = a.axis[i];
         float axis_dir_inv = 1.0 / r.direction.elements[i];
         float t0 = (axis.min - r.origin.elements[i]) * axis_dir_inv;
         float t1 = (axis.max - r.origin.elements[i]) * axis_dir_inv;
@@ -100,24 +100,4 @@ aabb_t aabb_with_offset(aabb_t a, vec3 o)
         .y = { a.y.min + o.y, a.y.max + o.y },
         .z = { a.z.min + o.z, a.z.max + o.z }
     };
-}
-
-float interval_size(interval_t interval)
-{
-    return interval.max - interval.min;
-}
-
-interval_t interval_around(float val, float size)
-{
-    return (interval_t) { val - size / 2.0, val + size / 2.0 };
-}
-
-bool interval_contains(interval_t interval, float val)
-{
-    return (interval.min <= val && interval.max >= val);
-}
-
-bool interval_contains_i(i_interval_t interval, int32_t val)
-{
-    return (interval.min <= val && interval.max >= val);
 }

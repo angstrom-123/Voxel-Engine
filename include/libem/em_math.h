@@ -108,6 +108,21 @@ typedef union em_mat4 {
 
 typedef em_vec4 em_quaternion;
 
+typedef struct em_interval {
+    FLOAT min;
+    FLOAT max;
+} em_interval;
+
+typedef struct em_iinterval {
+    INT min;
+    INT max;
+} em_iinterval;
+
+typedef struct em_uinterval {
+    UINT min;
+    UINT max;
+} em_uinterval;
+
 #if ALIAS
     typedef em_quaternion quat;
     
@@ -125,6 +140,10 @@ typedef em_vec4 em_quaternion;
     
     typedef em_mat3 mat3;
     typedef em_mat4 mat4;
+
+    typedef em_interval itvl;
+    typedef em_iinterval iitvl;
+    typedef em_uinterval uitvl;
 #endif
 
 #define NEGATE_VEC2(v) (em_vec2) { -v.x, -v.y }
@@ -334,6 +353,15 @@ em_quaternion em_div_quaternion(em_quaternion a, em_quaternion b);
 em_quaternion em_div_quaternion_f(em_quaternion a, FLOAT b);
 em_quaternion em_normalize_quaternion(em_quaternion a);
 FLOAT em_dot_quaternion(em_quaternion a, em_quaternion b);
+
+FLOAT em_interval_size(em_interval i);
+INT em_iinterval_size(em_iinterval i);
+em_interval em_interval_around(FLOAT val, FLOAT size);
+em_iinterval em_iinterval_around(INT val, INT size);
+bool em_interval_contains(em_interval i, FLOAT val);
+bool em_iinterval_contains(em_iinterval i, INT val);
+bool em_interval_surrounds(em_interval i, FLOAT val);
+bool em_iinterval_surrounds(em_iinterval i, INT val);
 
 #endif // EM_MATH_INCLUDED
 
@@ -1507,6 +1535,47 @@ FLOAT em_dot_quaternion(em_quaternion a, em_quaternion b)
 {
     return em_dot_vec4(a, b);
 }
+
+FLOAT em_interval_size(em_interval i)
+{
+    return i.max - i.min;
+}
+
+INT em_iinterval_size(em_iinterval i)
+{
+    return i.max - i.min;
+}
+
+itvl em_interval_around(FLOAT value, FLOAT size)
+{
+    return (em_interval) { .min = value - size / 2.0, .max = value + size / 2.0 };
+}
+
+iitvl em_iinterval_around(INT value, INT size)
+{
+    return (em_iinterval) { .min = value - size / 2, .max = value + size / 2 };
+}
+
+bool em_interval_contains(em_interval i, FLOAT value)
+{
+    return value >= i.min && value <= i.max;
+}
+
+bool em_iinterval_contains(em_iinterval i, INT value)
+{
+    return value >= i.min && value <= i.max;
+}
+
+bool em_interval_surrounds(em_interval i, FLOAT value)
+{
+    return value > i.min && value < i.max;
+}
+
+bool em_iinterval_surrounds(em_iinterval i, INT value)
+{
+    return value > i.min && value < i.max;
+}
+
 #endif // EM_MATH_IMPL
 
 #endif

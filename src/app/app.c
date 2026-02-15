@@ -232,6 +232,22 @@ static void _do_init(engine_t *e, app_t *a)
         },
         .text = "Slider:"
     });
+
+    a->menu.comps[MENUCOMP_INPUT] = ui_sys_make_input(&e->_ui_sys, &(ui_input_desc_t) {
+        .pos = VEC2(-48.0 * 5.0, -90.0),
+        .width = 10,
+        .body_style = {
+            .scale = 3.0,
+            .bg_col = VEC4(0.25, 0.25, 0.25, 1.0),
+            .hover_bg_col = VEC4(0.25, 0.25, 0.25, 1.0),
+            .z_index = 3.0
+        },
+        .text_style = {
+            .scale = 2.0,
+            .z_index = 4.0
+        },
+        .max_len = 20,
+    });
 }
 
 void app_init(engine_t *e, app_t *a, const app_desc_t *desc)

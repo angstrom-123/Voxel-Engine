@@ -1,6 +1,8 @@
 #ifndef UI_SYSTEM_H
 #define UI_SYSTEM_H
 
+#include <uchar.h>
+
 #include "sprite_renderer.h"
 #include "event_system.h"
 
@@ -10,7 +12,8 @@ typedef enum ui_component_type {
     COMPONENT_BUTTON,
     COMPONENT_LABEL,
     COMPONENT_CONTAINER,
-    COMPONENT_SLIDER
+    COMPONENT_SLIDER,
+    COMPONENT_INPUT
 } ui_component_type_e;
 
 typedef struct style {
@@ -54,6 +57,10 @@ typedef struct ui_component {
     bool dragged;
     // Container
     justify_e justify;
+    // Input 
+    bool typing;
+    size_t cursor;
+    size_t max_len;
 } ui_component_t;
 
 typedef struct ui_button_desc {
@@ -98,6 +105,17 @@ typedef struct ui_slider_desc {
     const char text[UI_BUFLEN];
 } ui_slider_desc_t;
 
+typedef struct ui_input_desc {
+    vec2 pos;
+    uint32_t width;
+    style_t body_style;
+    style_t text_style;
+    bool mini;
+    bool rounded;
+    bool visible;
+    size_t max_len;
+} ui_input_desc_t;
+
 typedef struct ui_system {
     ui_component_t *components;
     size_t max_comps;
@@ -129,6 +147,7 @@ extern ui_handle_t ui_sys_make_button(ui_system_t *uis, const ui_button_desc_t *
 extern ui_handle_t ui_sys_make_label(ui_system_t *uis, const ui_label_desc_t *desc);
 extern ui_handle_t ui_sys_make_container(ui_system_t *uis, const ui_container_desc_t *desc);
 extern ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc);
+extern ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc);
 extern void ui_sys_show_component(ui_system_t *uis, ui_handle_t comp, bool show);
 
 #endif

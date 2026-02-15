@@ -1,6 +1,6 @@
 #include "world_gen.h"
 
-static const i_interval_t ALLOWED_CRD = { 0, CHUNK_SIZE - 1 };
+static const iitvl ALLOWED_CRD = { 0, CHUNK_SIZE - 1 };
 
 bool _is_tree(ivec3 pos, uint32_t seed)
 {
@@ -23,9 +23,9 @@ uint8_t _get_height(ivec2 pos, uint32_t seed)
 void _place_tree(ivec3 pos, ivec2 chunk_pos, chunk_data_t *data, gen_tree_t tree)
 {
     INSTRUMENT_FUNC_BEGIN();
-    const interval_t ALLOWED_Y = { CHUNK_HEIGHT * 0.2, CHUNK_HEIGHT * 0.75 };
+    const itvl ALLOWED_Y = { CHUNK_HEIGHT * 0.2, CHUNK_HEIGHT * 0.75 };
 
-    if (!interval_contains(ALLOWED_Y, pos.y)) return;
+    if (!em_interval_contains(ALLOWED_Y, pos.y)) return;
 
     pos.y += 1;
     ivec2 p = em_sub_ivec2(IVEC2(pos.x, pos.z), chunk_pos);
@@ -43,8 +43,8 @@ void _place_tree(ivec3 pos, ivec2 chunk_pos, chunk_data_t *data, gen_tree_t tree
                                 y + pos.y,
                                 z + p.y - (tree.size_z / 2));
 
-        if (!interval_contains_i(ALLOWED_CRD, block_crd.x)) continue;
-        if (!interval_contains_i(ALLOWED_CRD, block_crd.z)) continue;
+        if (!em_iinterval_contains(ALLOWED_CRD, block_crd.x)) continue;
+        if (!em_iinterval_contains(ALLOWED_CRD, block_crd.z)) continue;
 
         data->types[INDEX_3(block_crd)] = type;
     }
@@ -167,8 +167,7 @@ chunk_data_t *generate_chunk_data(ivec2 pos, uint32_t seed)
             uint8_t h = _get_height(xz, seed);
             ivec3 block_pos = IVEC3(xz.x, h, xz.y);
 
-            if (interval_contains_i(ALLOWED_CRD, xx) && 
-                interval_contains_i(ALLOWED_CRD, zz))
+            if (em_iinterval_contains(ALLOWED_CRD, xx) && em_iinterval_contains(ALLOWED_CRD, zz))
             {
                 data->types[xx][h][zz] = CUBETYPE_GRASS;
 

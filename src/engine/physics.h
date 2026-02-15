@@ -10,21 +10,11 @@
 
 #include "logger.h"
 
-typedef struct interval {
-    float min;
-    float max;
-} interval_t;
-
-typedef struct i_interval {
-    int32_t min;
-    int32_t max;
-} i_interval_t;
-
 typedef union aabb {
     struct {
-        interval_t x, y, z;
+        itvl x, y, z;
     };
-    interval_t axis[3];
+    itvl axis[3];
 } aabb_t;
 
 typedef struct ray {
@@ -40,9 +30,5 @@ extern bool aabb_axis_overlap(vec3 axis, float min_1, float max_1, float min_2, 
                               vec3 *min_axis, float *overlap, bool *negative);
 extern aabb_t aabb_from_voxel_coord(ivec3 coord);
 extern aabb_t aabb_with_offset(aabb_t box, vec3 offset);
-extern float interval_size(interval_t interval);
-extern interval_t interval_around(float value, float size);
-extern bool interval_contains(interval_t interval, float value);
-extern bool interval_contains_i(i_interval_t interval, int32_t value);
 
 #endif

@@ -1,5 +1,58 @@
 #include "ui_system.h"
 
+static char _get_char(keycode_e kc, bool shift)
+{
+    RUNTIME_ASSERT(kc <= KEYCODE_GRAVE_ACCENT, "Invalid keycode for character conversion");
+
+    iitvl alpha = { .min = KEYCODE_A, .max = KEYCODE_Z };
+    iitvl numer = { .min = KEYCODE_0, .max = KEYCODE_9 };
+    if (em_iinterval_contains(alpha, kc))
+    {
+        if (shift) return (char) kc;
+        return (char) (kc + 32);
+    }
+    else if (!shift)
+    {
+        return (char) kc;
+    }
+    else if (em_iinterval_contains(numer, kc))
+    {
+        switch (kc) {
+        case KEYCODE_0: return ')';
+        case KEYCODE_1: return '!';
+        case KEYCODE_2: return '"';
+        case KEYCODE_3: return '#';
+        case KEYCODE_4: return '$';
+        case KEYCODE_5: return '%';
+        case KEYCODE_6: return '^';
+        case KEYCODE_7: return '&';
+        case KEYCODE_8: return '*';
+        case KEYCODE_9: return '(';
+        default:        RUNTIME_ASSERT(false, "Unreachable");
+        };
+    }
+    else 
+    {
+        switch (kc) {
+        case KEYCODE_SPACE:         return ' ';
+        case KEYCODE_APOSTROPHE:    return '@';
+        case KEYCODE_COMMA:         return '<';
+        case KEYCODE_MINUS:         return '_';
+        case KEYCODE_PERIOD:        return '>';
+        case KEYCODE_SLASH:         return '?';
+        case KEYCODE_SEMICOLON:     return ':';
+        case KEYCODE_EQUAL:         return '+';
+        case KEYCODE_LEFT_BRACKET:  return '{';
+        case KEYCODE_BACKSLASH:     return '|';
+        case KEYCODE_RIGHT_BRACKET: return '}';
+        default:
+            return (char) kc;
+        };
+    }
+
+    return (char) kc;
+}
+
 static bool _mouse_over(vec2 tr, vec2 bl, ivec2 screen_size, vec2 mouse_pos)
 {
     vec2 m_pos = VEC2(mouse_pos.x - screen_size.x / 2.0, screen_size.y / 2.0 - mouse_pos.y);
@@ -30,15 +83,8 @@ static bool _mouse_move(const event_t *ev, void *args)
         // Only consider hovering for interactable components
         switch (c->kind) {
         case COMPONENT_BUTTON:
-            if (uis->mouse_active && 
-                _mouse_over(c->tr, c->bl, ev->framebuf_size, ev->mouse_pos))
-            {
-                c->hovered = true;
-            }
-            else 
-            {
-                c->hovered = false;
-            }
+            c->hovered = uis->mouse_active &&
+                         _mouse_over(c->tr, c->bl, ev->framebuf_size, ev->mouse_pos);
 
             // No state change, no need to iterate the sprites.
             if (c->hovered == before) 
@@ -81,8 +127,16 @@ static bool _mouse_move(const event_t *ev, void *args)
                 sprite_renderer_change_str(sr, c->value_sprites, c->value_text);
             }
             break;
+        case COMPONENT_INPUT:
+            c->hovered = uis->mouse_active &&
+                         _mouse_over(c->tr, c->bl, ev->framebuf_size, ev->mouse_pos);
+            for (size_t j = 0; j < c->dim.x * c->dim.y; j++)
+                c->body_sprites[j]->bg_col = (c->hovered) 
+                                           ? c->body_style.hover_bg_col 
+                                           : c->body_style.bg_col;
+            break;
         default:
-            continue;
+            break;
         };
         
     }
@@ -98,7 +152,11 @@ static bool _mouse_click(const event_t *ev, void *args)
     for (size_t i = 0; i < uis->comp_count; i++)
     {
         ui_component_t *c = &uis->components[i];
-        if (!c->hovered) continue;
+        if (!c->hovered) 
+        {
+            c->typing = false;
+            continue;
+        }
 
         switch (c->kind) {
         case COMPONENT_BUTTON:
@@ -113,8 +171,11 @@ static bool _mouse_click(const event_t *ev, void *args)
             c->dragged = true;
             uis->mouse_active = false;
             break;
+        case COMPONENT_INPUT:
+            c->typing = true;
+            break;
         default:
-            continue;
+            break;
         };
     }
 
@@ -138,10 +199,57 @@ static bool _mouse_up(const event_t *ev, void *args)
             uis->mouse_active = true;
             break;
         default:
-            continue;
+            break;
         };
     }
 
+    return false;
+}
+
+bool _key_down(const event_t *ev, void *args)
+{
+    ui_system_event_args_t *ev_args = args;
+    ui_system_t *uis = ev_args->uis;
+    sprite_renderer_t *sr = ev_args->sr;
+    for (size_t i = 0; i < uis->comp_count; i++)
+    {
+        ui_component_t *c = &uis->components[i];
+        if (!c->typing || !c->visible) continue;
+
+        switch (c->kind) {
+        case COMPONENT_INPUT:
+        {
+            // ev->modifiers
+            switch (ev->keycode) {
+            case KEYCODE_LEFT:
+                ENGINE_TODO("Add support for left move in text input");
+                break;
+            case KEYCODE_RIGHT:
+                ENGINE_TODO("Add support for right move in text input");
+                break;
+            case KEYCODE_BACKSPACE:
+                if (c->cursor > 0)
+                {
+                    c->text[--c->cursor] = ' ';
+                    sprite_renderer_change_str(sr, c->text_sprites, c->text);
+                }
+                break;
+            default:
+                if (ev->keycode <= KEYCODE_GRAVE_ACCENT && 
+                    c->cursor < em_min(UI_BUFLEN, c->max_len)) 
+                {
+                    char key = _get_char(ev->keycode, (ev->modifiers & MODIFIER_SHIFT));
+                    c->text[c->cursor++] = key;
+                    sprite_renderer_change_str(sr, c->text_sprites, c->text);
+                }
+                break;
+            };
+            break;
+        }
+        default:
+            break;
+        };
+    }
     return false;
 }
 
@@ -170,6 +278,11 @@ void ui_sys_init(ui_system_t *uis, const ui_system_desc_t *desc)
     event_sys_subscribe_to_event(desc->es, EVENT_MOUSEUP, &(event_subscriber_desc_t) {
         .block_cb = event_block_never,
         .event_cb = _mouse_up,
+        .args = &uis->ev_args
+    });
+    event_sys_subscribe_to_event(desc->es, EVENT_KEYDOWN, &(event_subscriber_desc_t) {
+        .block_cb = event_block_never,
+        .event_cb = _key_down,
         .args = &uis->ev_args
     });
 }
@@ -461,6 +574,74 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
     return res;
 }
 
+ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc)
+{
+    ENGINE_ASSERT(uis->comp_count < uis->max_comps, 
+                  "Maximum components reached in ui system");
+
+    const vec2 spr_size = (desc->mini) ? SPRITE_S_SIZE : SPRITE_SIZE;
+
+    ui_handle_t res = { .id = uis->comp_count };
+    ui_component_t *comp = &uis->components[uis->comp_count++];
+
+    comp->kind         = COMPONENT_INPUT;
+    comp->pos          = desc->pos;
+    comp->dim          = UVEC2(desc->width, 2);
+    comp->body_style   = desc->body_style;
+    comp->text_style   = desc->text_style;
+    comp->visible      = desc->visible;
+    comp->mini         = desc->mini;
+    comp->max_len      = desc->max_len;
+    comp->body_sprites = sprite_renderer_push_ui(uis->sr, &(ui_sprites_desc_t) {
+        .visible = desc->visible,
+        .mini    = desc->mini,
+        .rounded = desc->rounded,
+        .bg_col  = comp->body_style.bg_col,
+        .z_index = comp->body_style.z_index,
+        .scale   = comp->body_style.scale,
+        .pos     = comp->pos,
+        .dim     = comp->dim
+    });
+
+    vec2 body_size = em_mul_vec2_f(em_mul_vec2(spr_size, AS_VEC2(comp->dim)),
+                                   desc->body_style.scale);
+    vec2 text_size = em_mul_vec2_f(CHAR_SIZE, desc->text_style.scale);
+    text_size.x *= desc->max_len;
+
+    float pad_left = (body_size.x - text_size.x) / 2.0;
+    float top_ofst = 2.0 * desc->body_style.scale * spr_size.y;
+    float pad_top = (body_size.y - top_ofst + text_size.y) / 2.0;
+    if (desc->mini) pad_top -= desc->body_style.scale * spr_size.y;
+
+    char tmp[desc->max_len + 1] = {};
+    memset(tmp, '?', desc->max_len);
+    comp->text_sprites = sprite_renderer_push_str(uis->sr, tmp, &(sprite_desc_t) {
+        .visible = desc->visible,
+        .bg_col  = comp->text_style.bg_col,
+        .z_index = comp->text_style.z_index,
+        .scale   = comp->text_style.scale,
+        .pos     = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
+    });
+    memset(tmp, ' ', sizeof(tmp) - 1);
+    strcpy(comp->text, tmp);
+    sprite_renderer_change_str(uis->sr, comp->text_sprites, tmp);
+
+    vec2 epsilon = VEC2(1.0, 1.0);
+    vec2 tr_ofst = VEC2(body_size.x, desc->body_style.scale * spr_size.y);
+    vec2 bl_ofst = VEC2(0.0, - body_size.y + desc->body_style.scale * spr_size.y);
+
+    comp->tr = em_sub_vec2(em_add_vec2(comp->pos, tr_ofst), epsilon);
+    comp->bl = em_add_vec2(em_add_vec2(comp->pos, bl_ofst), epsilon);
+
+    if (desc->mini)
+    {
+        comp->tr.y += desc->body_style.scale * spr_size.y;
+        comp->bl.y += desc->body_style.scale * spr_size.y;
+    }
+
+    return res;
+}
+
 void ui_sys_show_component(ui_system_t *uis, ui_handle_t handle, bool show)
 {
     ui_component_t *comp = &uis->components[handle.id];
@@ -469,6 +650,7 @@ void ui_sys_show_component(ui_system_t *uis, ui_handle_t handle, bool show)
     switch (comp->kind) {
     case COMPONENT_BUTTON:
     case COMPONENT_CONTAINER:
+    case COMPONENT_INPUT:
         for (size_t i = 0; i < comp->dim.x * comp->dim.y; i++)
             comp->body_sprites[i]->visible = show;
         for (size_t i = 0; i < strlen(comp->text); i++)

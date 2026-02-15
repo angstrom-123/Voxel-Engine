@@ -312,6 +312,7 @@ sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str,
         d.uv_offset = _uv_lookup(sr, str[i]);
         res[i] = sprite_renderer_push(sr, &d);
         d.pos.x += CHAR_SIZE.x * desc->scale;
+        ENGINE_LOG_WARN("Pushed: %c", str[i]);
     }
 
     return res;
