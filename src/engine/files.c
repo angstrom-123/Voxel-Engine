@@ -1,5 +1,11 @@
 #include "files.h"
 
+static int filter_no_upward(const struct dirent *d)
+{
+    if (d->d_name[0] == '.') return 0;
+    return 1;
+}
+
 static uint8_t *rle(uint8_t *data, uint16_t *len)
 {
     uint16_t buf_size = 2048;
@@ -123,6 +129,28 @@ bool file_dir_exists(file_t *file)
     return false;
 }
 
+bool file_list_dir(file_t *file, size_t *num_names, char res[*num_names][STD_BUFLEN])
+{
+    if (!(file->flags & FILEFLAG_DIR)) return false;
+
+    struct dirent **dirs;
+    int32_t n = scandir(file->path, &dirs, filter_no_upward, NULL);
+    if (n == -1) return false;
+
+    size_t i;
+    for (i = 0; i < (size_t) n; i++)
+    {
+        if (i < *num_names)
+            strncpy(res[i], dirs[i]->d_name, STD_BUFLEN);
+
+        free(dirs[i]);
+    }
+    free(dirs);
+
+    *num_names = i;
+    return true;
+}
+
 bool file_create(file_t *file)
 {
     if (file->flags & FILEFLAG_DIR)
@@ -198,13 +226,6 @@ bool file_delete(file_t *file)
     file->flags = 0;
 
     return true;
-}
-
-static int filter_no_upward(const struct dirent *d)
-{
-    if (strcmp(d->d_name, ".") == 0) return 0;
-    if (strcmp(d->d_name, "..") == 0) return 0;
-    return 1;
 }
 
 bool file_dir_delete(file_t *file)

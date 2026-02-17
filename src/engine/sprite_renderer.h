@@ -31,6 +31,7 @@ typedef struct sprite_vertex {
 
 typedef struct sprite {
     offset_t *offset;
+    vec4 tint_col;
     vec4 bg_col;
     bool visible;
     bool removed;
@@ -49,6 +50,7 @@ typedef struct sprite_renderer {
     sprite_vertex_t *vbo;
     uint16_t *ibo;
     texture_t textures[SPRITETEX_NUM];
+    bool initialized;
 } sprite_renderer_t;
 
 typedef struct sprite_renderer_desc {
@@ -58,6 +60,7 @@ typedef struct sprite_renderer_desc {
 
 typedef struct sprite_desc {
     vec4 bg_col;
+    vec4 tint_col;
     vec2 pos;
     vec2 uv_offset;
     float scale;
@@ -118,6 +121,7 @@ typedef struct ui_sprites_desc {
     vec2 pos;
     uvec2 dim;
     vec4 bg_col;
+    vec4 tint_col;
     float scale;
     float z_index;
     bool visible;

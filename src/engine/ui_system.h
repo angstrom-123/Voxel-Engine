@@ -20,6 +20,7 @@ typedef struct style {
     float scale;
     float z_index;
     vec4 bg_col;
+    vec4 tint_col;
     vec4 hover_bg_col;
 } style_t;
 
@@ -27,6 +28,12 @@ typedef enum justify {
     JUSTIFY_TOP,
     JUSTIFY_MIDDLE
 } justify_e;
+
+typedef enum input_filter {
+    FILTER_NONE,
+    FILTER_ALPHA,
+    FILTER_NUMER
+} input_filter_e;
 
 typedef struct ui_component {
     ui_component_type_e kind;
@@ -59,8 +66,10 @@ typedef struct ui_component {
     justify_e justify;
     // Input 
     bool typing;
+    size_t text_end;
     size_t cursor;
     size_t max_len;
+    input_filter_e filter;
 } ui_component_t;
 
 typedef struct ui_button_desc {
@@ -71,7 +80,7 @@ typedef struct ui_button_desc {
     bool mini;
     bool rounded;
     bool visible;
-    const char text[UI_BUFLEN];
+    char text[UI_BUFLEN];
     void ( *cb)(struct ui_component *, void *);
     void *cb_args;
 } ui_button_desc_t;
@@ -114,12 +123,13 @@ typedef struct ui_input_desc {
     bool rounded;
     bool visible;
     size_t max_len;
+    input_filter_e filter;
 } ui_input_desc_t;
 
 typedef struct ui_system {
     ui_component_t *components;
-    size_t max_comps;
-    size_t comp_count;
+    int32_t max_comps;
+    int32_t comp_count;
     sprite_renderer_t *sr;
     bool mouse_active;
 
@@ -132,14 +142,16 @@ typedef struct ui_system {
 typedef struct ui_system_event_args ui_system_event_args_t;
 
 typedef struct ui_system_desc {
-    size_t max_comps;
+    int32_t max_comps;
     event_system_t *es;
     sprite_renderer_t *sr;
 } ui_system_desc_t;
 
 typedef struct ui_handle {
-    size_t id;
+    int32_t id;
 } ui_handle_t;
+
+#define UI_INVALID_HANDLE_ID -1
 
 extern void ui_sys_init(ui_system_t *uis, const ui_system_desc_t *desc);
 extern void ui_sys_cleanup(ui_system_t *uis);
@@ -149,5 +161,6 @@ extern ui_handle_t ui_sys_make_container(ui_system_t *uis, const ui_container_de
 extern ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc);
 extern ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc);
 extern void ui_sys_show_component(ui_system_t *uis, ui_handle_t comp, bool show);
+extern void ui_sys_init_handle_buffer(size_t count, ui_handle_t *buffer);
 
 #endif

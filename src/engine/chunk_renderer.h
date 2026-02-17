@@ -63,6 +63,7 @@ typedef struct chunk_renderer {
         sg_image ssao_noise_image;
         float view_distance;
     } info;
+    bool initialized;
 } chunk_renderer_t;
 
 typedef struct chunk_renderer_desc {

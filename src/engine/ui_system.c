@@ -1,5 +1,18 @@
 #include "ui_system.h"
 
+static void _shift_left_after(size_t length, char text[length], size_t ix)
+{
+    for (size_t i = ix; i < length - 1; i++)
+        text[i] = text[i + 1];
+}
+
+static void _shift_right_after(size_t length, char text[length], size_t ix)
+{
+    if (ix > length - 1) return;
+    for (size_t i = length - 1; i > ix; i--)
+        text[i] = text[i - 1];
+}
+
 static char _get_char(keycode_e kc, bool shift)
 {
     RUNTIME_ASSERT(kc <= KEYCODE_GRAVE_ACCENT, "Invalid keycode for character conversion");
@@ -68,7 +81,7 @@ static bool _mouse_move(const event_t *ev, void *args)
     ui_system_event_args_t *ev_args = args;
     ui_system_t *uis = ev_args->uis;
     sprite_renderer_t *sr = ev_args->sr;
-    for (size_t i = 0; i < uis->comp_count; i++)
+    for (int32_t i = 0; i < uis->comp_count; i++)
     {
         ui_component_t *c = &uis->components[i];
         if (!c->visible) 
@@ -149,12 +162,17 @@ static bool _mouse_click(const event_t *ev, void *args)
     (void) ev;
     ui_system_event_args_t *ev_args = args;
     ui_system_t *uis = ev_args->uis;
-    for (size_t i = 0; i < uis->comp_count; i++)
+    for (int32_t i = 0; i < uis->comp_count; i++)
     {
         ui_component_t *c = &uis->components[i];
         if (!c->hovered) 
         {
-            c->typing = false;
+            if (c->kind == COMPONENT_INPUT)
+            {
+                c->text_sprites[c->cursor]->bg_col = c->text_style.bg_col;
+                c->text_sprites[c->cursor]->tint_col = c->text_style.tint_col;
+                c->typing = false;
+            }
             continue;
         }
 
@@ -173,6 +191,13 @@ static bool _mouse_click(const event_t *ev, void *args)
             break;
         case COMPONENT_INPUT:
             c->typing = true;
+            c->text_sprites[c->cursor]->bg_col = c->text_style.hover_bg_col;
+            c->text_sprites[c->cursor]->tint_col = VEC4(
+                1.0 - c->text_style.hover_bg_col.x,
+                1.0 - c->text_style.hover_bg_col.y,
+                1.0 - c->text_style.hover_bg_col.z,
+                c->text_style.hover_bg_col.w
+            );
             break;
         default:
             break;
@@ -187,7 +212,7 @@ static bool _mouse_up(const event_t *ev, void *args)
     (void) ev;
     ui_system_event_args_t *ev_args = args;
     ui_system_t *uis = ev_args->uis;
-    for (size_t i = 0; i < uis->comp_count; i++)
+    for (int32_t i = 0; i < uis->comp_count; i++)
     {
         ui_component_t *c = &uis->components[i];
         if (!c->dragged) continue;
@@ -211,7 +236,7 @@ bool _key_down(const event_t *ev, void *args)
     ui_system_event_args_t *ev_args = args;
     ui_system_t *uis = ev_args->uis;
     sprite_renderer_t *sr = ev_args->sr;
-    for (size_t i = 0; i < uis->comp_count; i++)
+    for (int32_t i = 0; i < uis->comp_count; i++)
     {
         ui_component_t *c = &uis->components[i];
         if (!c->typing || !c->visible) continue;
@@ -219,28 +244,101 @@ bool _key_down(const event_t *ev, void *args)
         switch (c->kind) {
         case COMPONENT_INPUT:
         {
-            // ev->modifiers
             switch (ev->keycode) {
             case KEYCODE_LEFT:
-                ENGINE_TODO("Add support for left move in text input");
+                if (c->cursor <= 0) break;
+
+                c->text_sprites[c->cursor]->bg_col = c->text_style.bg_col;
+                c->text_sprites[c->cursor]->tint_col = c->text_style.tint_col;
+
+                c->cursor--;
+
+                c->text_sprites[c->cursor]->bg_col = c->text_style.hover_bg_col;
+                c->text_sprites[c->cursor]->tint_col = VEC4(
+                    1.0 - c->text_style.hover_bg_col.x,
+                    1.0 - c->text_style.hover_bg_col.y,
+                    1.0 - c->text_style.hover_bg_col.z,
+                    c->text_style.hover_bg_col.w
+                );
                 break;
             case KEYCODE_RIGHT:
-                ENGINE_TODO("Add support for right move in text input");
+                if (c->cursor >= c->max_len || c->cursor == c->text_end) break;
+
+                c->text_sprites[c->cursor]->bg_col = c->text_style.bg_col;
+                c->text_sprites[c->cursor]->tint_col = c->text_style.tint_col;
+
+                c->cursor++;
+
+                c->text_sprites[c->cursor]->bg_col = c->text_style.hover_bg_col;
+                c->text_sprites[c->cursor]->tint_col = VEC4(
+                    1.0 - c->text_style.hover_bg_col.x,
+                    1.0 - c->text_style.hover_bg_col.y,
+                    1.0 - c->text_style.hover_bg_col.z,
+                    c->text_style.hover_bg_col.w
+                );
                 break;
             case KEYCODE_BACKSPACE:
                 if (c->cursor > 0)
                 {
+                    if (c->cursor < c->max_len)
+                    {
+                        c->text_sprites[c->cursor]->bg_col = c->text_style.bg_col;
+                        c->text_sprites[c->cursor]->tint_col = c->text_style.tint_col;
+                    }
+
                     c->text[--c->cursor] = ' ';
+                    c->text_end--;
+                    _shift_left_after(c->max_len, c->text, c->cursor);
+                    sprite_renderer_change_str(sr, c->text_sprites, c->text);
+
+                    c->text_sprites[c->cursor]->bg_col = c->text_style.hover_bg_col;
+                    c->text_sprites[c->cursor]->tint_col = VEC4(
+                        1.0 - c->text_style.hover_bg_col.x,
+                        1.0 - c->text_style.hover_bg_col.y,
+                        1.0 - c->text_style.hover_bg_col.z,
+                        c->text_style.hover_bg_col.w
+                    );
+                }
+                break;
+            case KEYCODE_DELETE:
+                if (c->cursor < c->text_end && c->text_end > 0)
+                {
+                    c->text_end--;
+                    _shift_left_after(c->max_len, c->text, c->cursor);
                     sprite_renderer_change_str(sr, c->text_sprites, c->text);
                 }
                 break;
             default:
-                if (ev->keycode <= KEYCODE_GRAVE_ACCENT && 
-                    c->cursor < em_min(UI_BUFLEN, c->max_len)) 
+                if (ev->keycode > KEYCODE_GRAVE_ACCENT || c->cursor >= c->max_len || c->text_end >= c->max_len - 1)
+
+                    break;
+
+                char key = _get_char(ev->keycode, (ev->modifiers & MODIFIER_SHIFT));
+                if (c->filter == FILTER_ALPHA && (key < 'A' || key > 'z'))
+                    break;
+
+                if (c->filter == FILTER_NUMER && (key < '0' || key > '9'))
+                    break;
+
+                _shift_right_after(c->max_len, c->text, c->cursor);
+                c->text[c->cursor] = key;
+                c->text_end++;
+                sprite_renderer_change_str(sr, c->text_sprites, c->text);
+
+                c->text_sprites[c->cursor]->bg_col = c->text_style.bg_col;
+                c->text_sprites[c->cursor]->tint_col = c->text_style.tint_col;
+
+                c->cursor++;
+
+                if (c->cursor < c->max_len)
                 {
-                    char key = _get_char(ev->keycode, (ev->modifiers & MODIFIER_SHIFT));
-                    c->text[c->cursor++] = key;
-                    sprite_renderer_change_str(sr, c->text_sprites, c->text);
+                    c->text_sprites[c->cursor]->bg_col = c->text_style.hover_bg_col;
+                    c->text_sprites[c->cursor]->tint_col = VEC4(
+                        1.0 - c->text_style.hover_bg_col.x,
+                        1.0 - c->text_style.hover_bg_col.y,
+                        1.0 - c->text_style.hover_bg_col.z,
+                        c->text_style.hover_bg_col.w
+                    );
                 }
                 break;
             };
@@ -255,6 +353,8 @@ bool _key_down(const event_t *ev, void *args)
 
 void ui_sys_init(ui_system_t *uis, const ui_system_desc_t *desc)
 {
+    ENGINE_ASSERT(desc->max_comps > 0, "Invalid maximum ui component count");
+
     uis->mouse_active = true;
     uis->max_comps = desc->max_comps;
     uis->comp_count = 0;
@@ -289,7 +389,7 @@ void ui_sys_init(ui_system_t *uis, const ui_system_desc_t *desc)
 
 void ui_sys_cleanup(ui_system_t *uis)
 {
-    for (size_t i = 0; i < uis->comp_count; i++)
+    for (int32_t i = 0; i < uis->comp_count; i++)
     {
         ui_component_t *c = &uis->components[i];
         if (c->body_sprites) free(uis->components[i].body_sprites);
@@ -320,14 +420,15 @@ ui_handle_t ui_sys_make_button(ui_system_t *uis, const ui_button_desc_t *desc)
     comp->visible      = desc->visible;
     comp->mini         = desc->mini;
     comp->body_sprites = sprite_renderer_push_ui(uis->sr, &(ui_sprites_desc_t) {
-        .visible = desc->visible,
-        .rounded = desc->rounded,
-        .mini    = desc->mini,
-        .bg_col  = comp->body_style.bg_col,
-        .z_index = comp->body_style.z_index,
-        .scale   = comp->body_style.scale,
-        .pos     = comp->pos,
-        .dim     = comp->dim
+        .visible  = desc->visible,
+        .rounded  = desc->rounded,
+        .mini     = desc->mini,
+        .bg_col   = comp->body_style.bg_col,
+        .z_index  = comp->body_style.z_index,
+        .scale    = comp->body_style.scale,
+        .tint_col = comp->body_style.tint_col,
+        .pos      = comp->pos,
+        .dim      = comp->dim
     });
 
     vec2 body_size = em_mul_vec2_f(em_mul_vec2(spr_size, AS_VEC2(desc->dim)),
@@ -350,11 +451,12 @@ ui_handle_t ui_sys_make_button(ui_system_t *uis, const ui_button_desc_t *desc)
         if (desc->mini) pad_top -= desc->body_style.scale * spr_size.y;
         comp->text_sprites = sprite_renderer_push_str(uis->sr, desc->text, 
                                                       &(sprite_desc_t) {
-            .visible = desc->visible,
-            .bg_col  = comp->text_style.bg_col,
-            .z_index = comp->text_style.z_index,
-            .scale   = comp->text_style.scale,
-            .pos     = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
+            .visible  = desc->visible,
+            .bg_col   = comp->text_style.bg_col,
+            .z_index  = comp->text_style.z_index,
+            .scale    = comp->text_style.scale,
+            .tint_col = comp->text_style.tint_col,
+            .pos      = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
         });
     }
     vec2 epsilon = VEC2(1.0, 1.0);
@@ -401,7 +503,8 @@ ui_handle_t ui_sys_make_label(ui_system_t *uis, const ui_label_desc_t *desc)
             .z_index = comp->text_style.z_index,
             .pos     = VEC2(comp->pos.x, 
                             comp->pos.y - (comp->text_style.scale * CHAR_SIZE.y) / 2.0),
-            .bg_col  = comp->text_style.bg_col
+            .bg_col  = comp->text_style.bg_col,
+            .tint_col  = comp->text_style.tint_col
         });
     }
 
@@ -427,14 +530,15 @@ ui_handle_t ui_sys_make_container(ui_system_t *uis, const ui_container_desc_t *d
     comp->visible      = desc->visible;
     comp->mini         = desc->mini;
     comp->body_sprites = sprite_renderer_push_ui(uis->sr, &(ui_sprites_desc_t) {
-        .visible = desc->visible,
-        .rounded = desc->rounded,
-        .mini    = desc->mini,
-        .bg_col  = comp->body_style.bg_col,
-        .z_index = comp->body_style.z_index,
-        .scale   = comp->body_style.scale,
-        .pos     = comp->pos,
-        .dim     = comp->dim
+        .visible  = desc->visible,
+        .rounded  = desc->rounded,
+        .mini     = desc->mini,
+        .bg_col   = comp->body_style.bg_col,
+        .z_index  = comp->body_style.z_index,
+        .scale    = comp->body_style.scale,
+        .pos      = comp->pos,
+        .tint_col = comp->body_style.tint_col,
+        .dim      = comp->dim
     });
 
     vec2 body_size = em_mul_vec2_f(em_mul_vec2(spr_size, AS_VEC2(desc->dim)),
@@ -463,7 +567,8 @@ ui_handle_t ui_sys_make_container(ui_system_t *uis, const ui_container_desc_t *d
             .bg_col  = comp->text_style.bg_col,
             .z_index = comp->text_style.z_index,
             .scale   = comp->text_style.scale,
-            .pos     = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
+            .pos     = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top),
+            .tint_col = comp->text_style.tint_col
         });
     }
 
@@ -493,22 +598,24 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
                         * desc->body_style.scale;
     comp->thumb_origin  = desc->pos;
     comp->thumb_sprites = sprite_renderer_push_thumb(uis->sr, &(ui_sprites_desc_t) {
-        .visible = desc->visible,
-        .bg_col  = desc->body_style.bg_col,
-        .pos     = desc->pos,
-        .scale   = desc->body_style.scale,
-        .mini    = desc->mini,
-        .z_index = desc->body_style.z_index + 0.1
+        .visible  = desc->visible,
+        .bg_col   = desc->body_style.bg_col,
+        .pos      = desc->pos,
+        .scale    = desc->body_style.scale,
+        .mini     = desc->mini,
+        .z_index  = desc->body_style.z_index + 0.1,
+        .tint_col = desc->body_style.tint_col
     });
     comp->body_sprites  = sprite_renderer_push_ui(uis->sr, &(ui_sprites_desc_t) {
-        .visible = desc->visible,
-        .rounded = false,
-        .mini    = desc->mini,
-        .bg_col  = comp->body_style.bg_col,
-        .z_index = comp->body_style.z_index,
-        .scale   = comp->body_style.scale,
-        .pos     = comp->pos,
-        .dim     = comp->dim
+        .visible  = desc->visible,
+        .rounded  = false,
+        .mini     = desc->mini,
+        .bg_col   = comp->body_style.bg_col,
+        .z_index  = comp->body_style.z_index,
+        .scale    = comp->body_style.scale,
+        .pos      = comp->pos,
+        .dim      = comp->dim,
+        .tint_col = desc->body_style.tint_col
     });
 
     strncpy(comp->value_text, "  0", 3);
@@ -530,11 +637,12 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
 
         comp->value_sprites = sprite_renderer_push_str(uis->sr, comp->value_text, 
                                                        &(sprite_desc_t) {
-            .visible = desc->visible,
-            .bg_col  = desc->text_style.bg_col,
-            .scale   = desc->text_style.scale,
-            .z_index = desc->text_style.z_index,
-            .pos     = VEC2(desc->pos.x + pad_left, desc->pos.y - pad_top)
+            .visible  = desc->visible,
+            .bg_col   = desc->text_style.bg_col,
+            .scale    = desc->text_style.scale,
+            .z_index  = desc->text_style.z_index,
+            .pos      = VEC2(desc->pos.x + pad_left, desc->pos.y - pad_top),
+            .tint_col = desc->text_style.tint_col
         });
     }
     else
@@ -543,21 +651,23 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
 
         comp->text_sprites = sprite_renderer_push_str(uis->sr, desc->text, 
                                                       &(sprite_desc_t) {
-            .visible = desc->visible,
-            .bg_col  = comp->text_style.bg_col,
-            .z_index = comp->text_style.z_index,
-            .scale   = comp->text_style.scale,
-            .pos     = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
+            .visible  = desc->visible,
+            .bg_col   = comp->text_style.bg_col,
+            .z_index  = comp->text_style.z_index,
+            .scale    = comp->text_style.scale,
+            .pos      = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top),
+            .tint_col = desc->text_style.tint_col
         });
 
         pad_left += text_size.x - (3.0 * CHAR_SIZE.x * desc->text_style.scale);
         comp->value_sprites = sprite_renderer_push_str(uis->sr, comp->value_text, 
                                                        &(sprite_desc_t) {
-            .visible = desc->visible,
-            .bg_col  = desc->text_style.bg_col,
-            .scale   = desc->text_style.scale,
-            .z_index = desc->text_style.z_index,
-            .pos     = VEC2(desc->pos.x + pad_left, desc->pos.y - pad_top)
+            .visible  = desc->visible,
+            .bg_col   = desc->text_style.bg_col,
+            .scale    = desc->text_style.scale,
+            .z_index  = desc->text_style.z_index,
+            .pos      = VEC2(desc->pos.x + pad_left, desc->pos.y - pad_top),
+            .tint_col = desc->text_style.tint_col
         });
     }
 
@@ -592,15 +702,17 @@ ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc)
     comp->visible      = desc->visible;
     comp->mini         = desc->mini;
     comp->max_len      = desc->max_len;
+    comp->filter       = desc->filter;
     comp->body_sprites = sprite_renderer_push_ui(uis->sr, &(ui_sprites_desc_t) {
-        .visible = desc->visible,
-        .mini    = desc->mini,
-        .rounded = desc->rounded,
-        .bg_col  = comp->body_style.bg_col,
-        .z_index = comp->body_style.z_index,
-        .scale   = comp->body_style.scale,
-        .pos     = comp->pos,
-        .dim     = comp->dim
+        .visible  = desc->visible,
+        .mini     = desc->mini,
+        .rounded  = desc->rounded,
+        .bg_col   = comp->body_style.bg_col,
+        .z_index  = comp->body_style.z_index,
+        .scale    = comp->body_style.scale,
+        .tint_col = comp->body_style.tint_col,
+        .pos      = comp->pos,
+        .dim      = comp->dim
     });
 
     vec2 body_size = em_mul_vec2_f(em_mul_vec2(spr_size, AS_VEC2(comp->dim)),
@@ -613,18 +725,15 @@ ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc)
     float pad_top = (body_size.y - top_ofst + text_size.y) / 2.0;
     if (desc->mini) pad_top -= desc->body_style.scale * spr_size.y;
 
-    char tmp[desc->max_len + 1] = {};
-    memset(tmp, '?', desc->max_len);
-    comp->text_sprites = sprite_renderer_push_str(uis->sr, tmp, &(sprite_desc_t) {
-        .visible = desc->visible,
-        .bg_col  = comp->text_style.bg_col,
-        .z_index = comp->text_style.z_index,
-        .scale   = comp->text_style.scale,
-        .pos     = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
+    memset(comp->text, ' ', desc->max_len);
+    comp->text_sprites = sprite_renderer_push_str(uis->sr, comp->text, &(sprite_desc_t) {
+        .visible  = desc->visible,
+        .bg_col   = comp->text_style.bg_col,
+        .z_index  = comp->text_style.z_index,
+        .scale    = comp->text_style.scale,
+        .tint_col = comp->text_style.tint_col,
+        .pos      = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
     });
-    memset(tmp, ' ', sizeof(tmp) - 1);
-    strcpy(comp->text, tmp);
-    sprite_renderer_change_str(uis->sr, comp->text_sprites, tmp);
 
     vec2 epsilon = VEC2(1.0, 1.0);
     vec2 tr_ofst = VEC2(body_size.x, desc->body_style.scale * spr_size.y);
@@ -644,6 +753,12 @@ ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc)
 
 void ui_sys_show_component(ui_system_t *uis, ui_handle_t handle, bool show)
 {
+    if (handle.id == UI_INVALID_HANDLE_ID) 
+    {
+        ENGINE_LOG_WARN("Attempting to show component with invalid handle", NULL);
+        return;
+    }
+
     ui_component_t *comp = &uis->components[handle.id];
     comp->visible = show;
 
@@ -671,4 +786,10 @@ void ui_sys_show_component(ui_system_t *uis, ui_handle_t handle, bool show)
             comp->value_sprites[i]->visible = show;
         break;
     };
+}
+
+void ui_sys_init_handle_buffer(size_t count, ui_handle_t *buffer)
+{
+    for (size_t i = 0; i < count; i++)
+        buffer[i] = (ui_handle_t) { .id = UI_INVALID_HANDLE_ID };
 }

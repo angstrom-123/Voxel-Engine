@@ -1,43 +1,7 @@
 #include "engine.h"
 
-static void _resize(const event_t *ev, engine_t *engine)
-{
-    sprite_renderer_move_str(&engine->_render_sys.sprite_renderer,
-                             engine->meta.debug.pos_sprites, POS_MAX_SPRITES,
-                             em_mul_vec2_f(ev->window_size, -0.5));
-}
-
-static sprite_t *_api_place_icon_sprite(engine_t *engine, icon_id_e id, const sprite_desc_t *desc)
-{
-    return sprite_renderer_push(&engine->_render_sys.sprite_renderer, &(sprite_desc_t) {
-        .scale = desc->scale,
-        .pos = desc->pos,
-        .bg_col = desc->bg_col,
-        .z_index = desc->z_index,
-        .visible = desc->visible,
-        .uv_offset = sprite_icon_uv_offset(&engine->_render_sys.sprite_renderer, id)
-    });
-}
-
-static void _api_move_sprite(engine_t *engine, sprite_t *s, vec2 pos)
-{
-    sprite_renderer_move(&engine->_render_sys.sprite_renderer, s, pos);
-}
-
-static sprite_t **_api_place_string_sprites(engine_t *engine, const char *str, 
-                                            const sprite_desc_t *desc)
-{
-    return sprite_renderer_push_str(&engine->_render_sys.sprite_renderer, str, desc);
-}
-
-static void _api_subscribe_to_event(engine_t *engine, event_type_e type,
-                                    const event_subscriber_desc_t *desc)
-{
-    event_sys_subscribe_to_event(&engine->_event_sys, type, desc);
-}
-
-static void _api_edit_active_block(engine_t *engine, cube_type_e type, 
-                                   block_action_e action, const player_collider_desc_t *desc)
+void engine_edit_active_block(engine_t *engine, cube_type_e type, 
+                                     block_action_e action, aabb_t *player_collider)
 {
     if (!engine->meta.cursor.active)
         return;
@@ -102,7 +66,7 @@ static void _api_edit_active_block(engine_t *engine, cube_type_e type,
         };
 
         aabb_t block = aabb_from_voxel_coord(em_add_ivec3(IVEC3(chunk.x, 0, chunk.y), cell));
-        if (!aabb_intersecting(block, aabb_with_offset(desc->collider, desc->pos)))
+        if (!aabb_intersecting(block, *player_collider))
             CS_REQUEST_PLACE(&engine->_chunk_sys, chunk, cell, type);
         break;
     }
@@ -111,110 +75,12 @@ static void _api_edit_active_block(engine_t *engine, cube_type_e type,
     };
 }
 
-void _api_init_systems(engine_t *engine, const engine_desc_t *desc)
+void engine_do_render(engine_t *engine)
 {
-    ENGINE_LOG_OK("Initializing systems", NULL);
-    RUNTIME_ASSERT(desc->render_distance >= 3, "Render distance too low");
-    const size_t MAX_ACTIVE = (2 * em_sqr(desc->render_distance + 1)) + 
-                              (2 * (desc->render_distance + 1)) + 1;
-    const size_t QUEUE_SIZE = MAX_ACTIVE * 2;
-    const size_t BUF_POOL_SIZE = MAX_ACTIVE * 2 + 40;
-
-    sg_setup(&(sg_desc) {
-        .buffer_pool_size = BUF_POOL_SIZE,
-        .environment = sglue_environment(),
-        .logger.func = slog_func,
-    });
-    ENGINE_LOG_OK("Setup sokol gfx.\n", NULL);
-
-    stm_setup();
-    ENGINE_LOG_OK("Setup sokol time.\n", NULL);
-
-    event_sys_init(&engine->_event_sys);
-    event_sys_subscribe_to_event(&engine->_event_sys, EVENT_RESIZED, 
-                                 &(event_subscriber_desc_t) {
-        .event_cb = (event_func) _resize,
-        .args = engine,
-        .block_cb = event_block_never
-    });
-    ENGINE_LOG_OK("Setup event system.\n", NULL);
-
-    update_sys_init(&engine->_update_sys, &(update_system_desc_t) {
-        .chunk_capacity = MAX_ACTIVE,
-        .free_capacity = MAX_ACTIVE + 10,
-        .request_capacity = QUEUE_SIZE
-    });
-    ENGINE_LOG_OK("Setup update system.\n", NULL);
-
-    chunk_sys_init(&engine->_chunk_sys, &(chunk_system_desc_t) {
-        .chunk_data_capacity = MAX_ACTIVE,
-        .request_capacity = QUEUE_SIZE,
-        .gen_func = desc->gen_func
-    });
-    ENGINE_LOG_OK("Setup chunk system.\n", NULL);
-
-    render_sys_init(&engine->_render_sys, &(render_system_desc_t) {
-        .es = &engine->_event_sys,
-        .window_size = VEC2(sapp_width(), sapp_height()),
-        .view_distance = desc->render_distance * 10.0,
-        .max_distance = desc->render_distance * 100.0,
-        .shadow_scale = 4.0,
-        .inv_sun_dir = em_mul_vec3_f(desc->base_sun_dir, -1.0)
-    });
-    ENGINE_LOG_OK("Setup render system.\n", NULL);
-
-    load_sys_init(&engine->_load_sys, &(load_system_desc_t) {
-        .render_dist = desc->render_distance,
-        .start_pos = IVEC2(0, 0)
-    });
-    ENGINE_LOG_OK("Setup load system.\n", NULL);
-
-    tick_sys_init(&engine->_tick_sys, &(tick_system_desc_t) {
-        .tps = desc->ticks_per_second
-    });
-    ENGINE_LOG_OK("Setup tick system.\n", NULL);
-
-    ui_sys_init(&engine->_ui_sys, &(ui_system_desc_t) {
-        .es = &engine->_event_sys,
-        .sr = &engine->_render_sys.sprite_renderer,
-        .max_comps = 32
-    });
-    ENGINE_LOG_OK("Setup ui system.\n", NULL);
-
-    engine->meta = (engine_meta_t) {
-        .cursor = {
-            .active = false,
-            .cell = IVEC3(-1, -1, -1),
-            .chunk = IVEC2(0, 0),
-            .face = -1,
-            .range = -1
-        },
-        .world = {
-            .base_sun_dir = desc->base_sun_dir,
-            .time = 0,
-            .max_time = desc->max_time
-        },
-    };
-
-    sprite_t **tmp;
-    char buf[POS_MAX_SPRITES + 1];
-    memset(buf, ' ', sizeof(buf) - 1);
-    tmp = sprite_renderer_push_str(&engine->_render_sys.sprite_renderer, 
-                                   buf, &(sprite_desc_t) {
-        .bg_col = VEC4(0.0, 0.0, 0.0, 0.5),
-        .pos = em_mul_vec2_f(engine->_render_sys.sprite_renderer.base.dimensions, -0.5),
-        .scale = 2.0,
-        .z_index = 1.0,
-        .is_char = true,
-        .visible = true
-    });
-    memcpy(engine->meta.debug.pos_sprites, tmp, POS_MAX_SPRITES * sizeof(sprite_t *));
-    free(tmp);
- 
-    ENGINE_LOG_OK("Setup engine metadata.\n", NULL);
+    atomic_store(&engine->_do_render, true);
 }
 
-void _api_start_running(engine_t *engine, const engine_run_desc_t *desc)
+void engine_run(engine_t *engine, const engine_run_desc_t *desc)
 {
     ENGINE_LOG_OK("Starting to Run", NULL);
     engine->meta.world.seed = desc->seed;
@@ -259,16 +125,88 @@ void _api_start_running(engine_t *engine, const engine_run_desc_t *desc)
     atomic_store(&engine->_running, true);
 }
 
-void engine_init(engine_t *engine)
+void engine_init(engine_t *engine, const engine_desc_t *desc)
 {
-    engine->api.place_icon_sprite    = _api_place_icon_sprite;
-    engine->api.place_string_sprites = _api_place_string_sprites;
-    engine->api.move_sprite          = _api_move_sprite;
-    engine->api.subscribe_to_event   = _api_subscribe_to_event;
-    engine->api.edit_active_block    = _api_edit_active_block;
-    engine->api.init_systems         = _api_init_systems;
-    engine->api.start_running        = _api_start_running;
-    ENGINE_LOG_OK("Setup engine api.\n", NULL);
+    ENGINE_LOG_OK("Initializing systems", NULL);
+    RUNTIME_ASSERT(desc->render_distance >= 3, "Render distance too low");
+    const size_t MAX_ACTIVE = (2 * em_sqr(desc->render_distance + 1)) + 
+                              (2 * (desc->render_distance + 1)) + 1;
+    const size_t QUEUE_SIZE = MAX_ACTIVE * 2;
+    const size_t BUF_POOL_SIZE = MAX_ACTIVE * 2 + 40;
+
+    sg_setup(&(sg_desc) {
+        .buffer_pool_size = BUF_POOL_SIZE,
+        .environment = sglue_environment(),
+        .logger.func = slog_func,
+    });
+    ENGINE_LOG_OK("Setup sokol gfx.\n", NULL);
+
+    stm_setup();
+    ENGINE_LOG_OK("Setup sokol time.\n", NULL);
+
+    event_sys_init(&engine->_event_sys);
+    ENGINE_LOG_OK("Setup event system.\n", NULL);
+
+    update_sys_init(&engine->_update_sys, &(update_system_desc_t) {
+        .chunk_capacity = MAX_ACTIVE,
+        .free_capacity = MAX_ACTIVE + 10,
+        .request_capacity = QUEUE_SIZE
+    });
+    ENGINE_LOG_OK("Setup update system.\n", NULL);
+
+    chunk_sys_init(&engine->_chunk_sys, &(chunk_system_desc_t) {
+        .chunk_data_capacity = MAX_ACTIVE,
+        .request_capacity = QUEUE_SIZE,
+        .gen_func = desc->gen_func
+    });
+    ENGINE_LOG_OK("Setup chunk system.\n", NULL);
+
+    render_sys_init_cameras(&engine->_render_sys, &engine->_event_sys, desc->base_sun_dir, 
+                            VEC2(sapp_width(), sapp_height()));
+    if (desc->init_chunk_renderer)
+        render_sys_init_chunk_renderer(&engine->_render_sys, desc->render_distance * 10.0, desc->base_sun_dir, VEC2(sapp_width(), sapp_height()));
+
+    if (desc->init_cursor_line_renderer)
+        render_sys_init_cursor_renderer(&engine->_render_sys, VEC2(sapp_width(), sapp_height()));
+
+    if (desc->init_sprite_renderer)
+        render_sys_init_sprite_renderer(&engine->_render_sys, VEC2(sapp_width(), sapp_height()));
+    ENGINE_LOG_OK("Setup render system.\n", NULL);
+
+    load_sys_init(&engine->_load_sys, &(load_system_desc_t) {
+        .render_dist = desc->render_distance,
+        .start_pos = IVEC2(0, 0)
+    });
+    ENGINE_LOG_OK("Setup load system.\n", NULL);
+
+    tick_sys_init(&engine->_tick_sys, &(tick_system_desc_t) {
+        .tps = desc->ticks_per_second
+    });
+    ENGINE_LOG_OK("Setup tick system.\n", NULL);
+
+    ui_sys_init(&engine->_ui_sys, &(ui_system_desc_t) {
+        .es = &engine->_event_sys,
+        .sr = &engine->_render_sys.sprite_renderer,
+        .max_comps = 64
+    });
+    ENGINE_LOG_OK("Setup ui system.\n", NULL);
+
+    engine->meta = (engine_meta_t) {
+        .cursor = {
+            .active = false,
+            .cell = IVEC3(-1, -1, -1),
+            .chunk = IVEC2(0, 0),
+            .face = -1,
+            .range = -1
+        },
+        .world = {
+            .base_sun_dir = desc->base_sun_dir,
+            .time = 0,
+            .max_time = desc->max_time
+        },
+    };
+
+    ENGINE_LOG_OK("Setup engine metadata.\n", NULL);
 }
 
 void engine_cleanup(engine_t *engine)
@@ -312,7 +250,8 @@ void engine_event(engine_t *engine, const event_t *event)
 
 void engine_frame(engine_t *engine, double dt)
 {
-    render_sys_render(&engine->_render_sys, &engine->_update_sys, &engine->_load_sys);
+    render_sys_render(&engine->_render_sys, &engine->_update_sys, 
+                      &engine->_load_sys, engine->meta.cursor.active);
 
     atomic_fetch_add(&engine->_tick_sys.cum_dt, dt);
 
@@ -351,11 +290,11 @@ void engine_tick(engine_t *engine)
         };
 
         engine->_render_sys.cursor_line_renderer.origin = global_pos;
-        engine->_render_sys.cursor_active = true;
+        engine->meta.cursor.active = true;
     } 
     else 
     {
-        engine->_render_sys.cursor_active = false;
+        engine->meta.cursor.active = false;
     }
 
     // Set tick duration and reset count.
@@ -367,10 +306,4 @@ void engine_tick(engine_t *engine)
     float t = (float) (time % max) / max;
     vec3 sun_dir = em_rotate_vec3(engine->meta.world.base_sun_dir, t * 360.0, VEC3(1.0, 0.1, 0.2));
     engine->_render_sys.chunk_renderer.info.sun_dir = sun_dir;
-
-    // Update position display
-    char buf[POS_MAX_SPRITES + 1]; // Leave space for sprintf to add null terminator.
-    snprintf(buf, sizeof(buf), "%09.3f %09.3f %09.3f", cam_pos.x, cam_pos.y, cam_pos.z);
-    sprite_renderer_change_str(&engine->_render_sys.sprite_renderer,
-                               engine->meta.debug.pos_sprites, buf);
 }

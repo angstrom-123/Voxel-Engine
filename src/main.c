@@ -24,17 +24,20 @@ static app_t *app;
 static void frame(void)
 {
     INSTRUMENT_FUNC_BEGIN();
-    if (!atomic_load(&engine->_running)) 
+    if (atomic_load(&engine->_do_render)) 
+    {
+        if (atomic_load(&engine->_running))
+            app_frame(engine, app, sapp_frame_duration());
+
+        engine_frame(engine, sapp_frame_duration());
+    }
+    else 
     {
         thrd_sleep(&(struct timespec) {
             .tv_nsec = THREAD_AWAIT_NS
         }, NULL);
         return;
     }
-
-    app_frame(engine, app, sapp_frame_duration());
-    engine_frame(engine, sapp_frame_duration());
-
     INSTRUMENT_FUNC_END();
 }
 
@@ -98,13 +101,19 @@ static void init(void *user_data)
     memset(app, 0, sizeof(app_t));
 
     struct user_data *ud = user_data;
-    engine_init(engine);
     app_init(engine, app, &(app_desc_t) {
         .args = {
             .argc = ud->argc,
             .argv = ud->argv
         },
     });
+    // No main menu, use subcommands to load / rename / delete / create worlds.
+    // app_init_cmdline(engine, app, &(app_desc_t) {
+    //     .args = {
+    //         .argc = ud->argc,
+    //         .argv = ud->argv
+    //     },
+    // });
 }
 
 sapp_desc sokol_main(int argc, char* argv[])

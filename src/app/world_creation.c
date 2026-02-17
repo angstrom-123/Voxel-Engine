@@ -31,7 +31,7 @@ void world_new(engine_t *e, const char *name, const uint32_t seed)
     RUNTIME_ASSERT(file_write_lines(&mf, 4, STD_BUFLEN, meta), "Failed to write to meta file");
     RUNTIME_ASSERT(file_close(&mf), "Failed to close meta file");
 
-    e->api.start_running(e, &(engine_run_desc_t) {
+    engine_run(e, &(engine_run_desc_t) {
         .world_name = name,
         .seed = seed,
         .time = 0,
@@ -102,7 +102,7 @@ void world_load(engine_t *e, const char *name)
     seed = (uint32_t) strtoul(lines[4], NULL, 10);
     time = strtoul(lines[5], NULL, 10);
 
-    e->api.start_running(e, &(engine_run_desc_t) {
+    engine_run(e, &(engine_run_desc_t) {
         .world_name = name,
         .seed = seed,
         .time = time,

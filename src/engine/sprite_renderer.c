@@ -114,15 +114,11 @@ void sprite_renderer_init(sprite_renderer_t *sr, const sprite_renderer_desc_t *d
         .label = "sprite-pipeline"
     });
 
+    sr->initialized = true;
 }
 
 void sprite_renderer_load_textures(sprite_renderer_t *sr)
 {
-    // bool res;
-    // res = texture_load(&sr->textures[SPRITETEX_ATLAS], &(texture_desc_t) {
-    //     .path = "res/tex/sprite/crosshair"
-    // });
-    // ENGINE_ASSERT(res, "Failed to load sprite atlas texture");
     bool res;
 
     res = texture_load(&sr->textures[SPRITETEX_ATLAS], &(texture_desc_t) {
@@ -209,7 +205,8 @@ void sprite_renderer_render_all(sprite_renderer_t *sr)
 
         fs_params_sprite_t fs_params = {
             .u_is_char = s->is_char,
-            .u_bg = s->bg_col
+            .u_bg = s->bg_col,
+            .u_tint = s->tint_col
         };
 
         sg_apply_uniforms(UB_vs_params_sprite, &SG_RANGE(vs_params));
@@ -312,7 +309,6 @@ sprite_t **sprite_renderer_push_str(sprite_renderer_t *sr, const char *str,
         d.uv_offset = _uv_lookup(sr, str[i]);
         res[i] = sprite_renderer_push(sr, &d);
         d.pos.x += CHAR_SIZE.x * desc->scale;
-        ENGINE_LOG_WARN("Pushed: %c", str[i]);
     }
 
     return res;
@@ -331,6 +327,7 @@ sprite_t **sprite_renderer_push_thumb(sprite_renderer_t *sr, const ui_sprites_de
         .pos       = desc->pos,
         .visible   = desc->visible,
         .bg_col    = desc->bg_col,
+        .tint_col  = desc->tint_col,
         .uv_offset = sprite_icon_uv_offset(sr, IID_THUMB_T + id_offset)
     };
     res[0] = sprite_renderer_push(sr, &spr_desc);
@@ -408,6 +405,7 @@ sprite_t *sprite_renderer_push(sprite_renderer_t *sr, const sprite_desc_t *desc)
     s->visible = desc->visible;
     s->removed = false;
     s->is_char = desc->is_char;
+    s->tint_col = desc->tint_col;
 
     vec2 uv_scale = (desc->is_char)
                   ? texture_query_subimage_uv(&sr->textures[SPRITETEX_FONT])

@@ -70,6 +70,8 @@ void line_renderer_init(line_renderer_t *lr, const line_renderer_desc_t *desc)
     lr->needs_update = false;
     lr->max_lines = desc->max_lines;
     lr->lines = calloc(desc->max_lines, sizeof(line_t *));
+
+    lr->initialized = true;
 }
 
 void line_renderer_cleanup(line_renderer_t *lr)

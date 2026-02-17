@@ -483,6 +483,8 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         .wrap_u = SG_WRAP_REPEAT,
         .wrap_v = SG_WRAP_REPEAT
     });
+
+    cr->initialized = true;
 }
 
 void chunk_renderer_load_textures(chunk_renderer_t *cr)

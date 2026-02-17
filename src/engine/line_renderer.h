@@ -37,6 +37,7 @@ typedef struct line_renderer {
     sg_buffer i_buf;
     line_vertex_t *vbo;
     uint16_t *ibo;
+    bool initialized;
 } line_renderer_t;
 
 typedef struct line_renderer_desc {

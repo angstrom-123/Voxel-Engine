@@ -25,9 +25,17 @@ typedef struct engine_desc {
     vec3 base_sun_dir;
     uint64_t max_time;
     chunk_data_t *( *gen_func)(ivec2, uint32_t);
+    bool init_chunk_renderer;
+    bool init_sprite_renderer;
+    bool init_cursor_line_renderer;
 } engine_desc_t;
 
 typedef struct engine_meta {
+    struct {
+        size_t max_active_chunks;
+        size_t request_queue_size;
+        size_t chunk_buffer_pool_size;
+    } data;
     struct {
         bool active;
         float range;
@@ -42,9 +50,6 @@ typedef struct engine_meta {
         uint32_t seed;
         char name[STD_BUFLEN];
     } world;
-    struct {
-        sprite_t *pos_sprites[POS_MAX_SPRITES];
-    } debug;
 } engine_meta_t;
 
 typedef enum block_action {
@@ -58,7 +63,7 @@ typedef struct player_collider_desc {
     aabb_t collider;
 } player_collider_desc_t;
 
-typedef struct engine_run_desc {
+typedef struct engine__desc {
     uint32_t seed;
     const char *world_name;
     uint64_t time;
@@ -70,6 +75,7 @@ typedef struct engine_run_desc {
 
 typedef struct engine {
     atomic_bool _running;
+    atomic_bool _do_render;
     load_system_t _load_sys;
     chunk_system_t _chunk_sys;
     render_system_t _render_sys;
@@ -77,24 +83,14 @@ typedef struct engine {
     tick_system_t _tick_sys;
     event_system_t _event_sys;
     ui_system_t _ui_sys;
-
-    struct {
-        sprite_t *( *place_icon_sprite)(struct engine *engine, icon_id_e id, 
-                                        const sprite_desc_t *desc);
-        sprite_t **( *place_string_sprites)(struct engine *engine, const char *str, 
-                                            const sprite_desc_t *desc);
-        void ( *move_sprite)(struct engine *engine, sprite_t *sprite, vec2 pos);
-        void ( *subscribe_to_event)(struct engine *engine, event_type_e type,
-                                    const event_subscriber_desc_t *desc);
-        void ( *edit_active_block)(struct engine *engine, cube_type_e type, 
-                                   block_action_e action, const player_collider_desc_t *desc);
-        void ( *init_systems)(struct engine *engine, const engine_desc_t *desc);
-        void ( *start_running)(struct engine *engine, const engine_run_desc_t *desc);
-    } api;
     engine_meta_t meta;
 } engine_t;
 
-extern void engine_init(engine_t *engine);
+extern void engine_edit_active_block(engine_t *engine, cube_type_e type, block_action_e action, 
+                                     aabb_t *player_collider);
+extern void engine_init(engine_t *engine, const engine_desc_t *desc);
+extern void engine_do_render(engine_t *engine);
+extern void engine_run(engine_t *engine, const engine_run_desc_t *desc);
 extern void engine_cleanup(engine_t *engine);
 extern void engine_event(engine_t *engine, const event_t *event);
 extern void engine_frame(engine_t *engine, double dt);
