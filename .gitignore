@@ -4,5 +4,5 @@ compile_commands.json
 *.o
 *.a
 *.tracing.json
-bin/linux/output/*
-app_data/*/
+bin/output/*
+world_data/*/
