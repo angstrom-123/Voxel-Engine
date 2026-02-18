@@ -35,6 +35,10 @@ typedef enum input_filter {
     FILTER_NUMER
 } input_filter_e;
 
+typedef struct ui_handle {
+    int32_t id;
+} ui_handle_t;
+
 typedef struct ui_component {
     ui_component_type_e kind;
     vec2 pos;
@@ -51,7 +55,7 @@ typedef struct ui_component {
     vec2 tr;
     vec2 bl;
     // Button
-    void ( *cb)(struct ui_component *, void *);
+    void ( *cb)(ui_handle_t, void *);
     void *cb_args;
     // Slider 
     int32_t value;
@@ -81,7 +85,7 @@ typedef struct ui_button_desc {
     bool rounded;
     bool visible;
     char text[UI_BUFLEN];
-    void ( *cb)(struct ui_component *, void *);
+    void ( *cb)(ui_handle_t, void *);
     void *cb_args;
 } ui_button_desc_t;
 
@@ -147,10 +151,6 @@ typedef struct ui_system_desc {
     sprite_renderer_t *sr;
 } ui_system_desc_t;
 
-typedef struct ui_handle {
-    int32_t id;
-} ui_handle_t;
-
 #define UI_INVALID_HANDLE_ID -1
 
 extern void ui_sys_init(ui_system_t *uis, const ui_system_desc_t *desc);
@@ -162,5 +162,6 @@ extern ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *
 extern ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc);
 extern void ui_sys_show_component(ui_system_t *uis, ui_handle_t comp, bool show);
 extern void ui_sys_init_handle_buffer(size_t count, ui_handle_t *buffer);
+extern void ui_sys_query_text(ui_system_t *uis, ui_handle_t comp, char res[UI_BUFLEN]);
 
 #endif

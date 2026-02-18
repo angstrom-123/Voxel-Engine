@@ -94,10 +94,10 @@ static bool _on_keydown(const event_t *ev, void *args)
     return false;
 }
 
-static void _return_button_clicked(ui_component_t *comp, void *args)
+static void _return_button_clicked(ui_handle_t handle, void *args)
 {
     APP_LOG_OK("Return clicked", NULL);
-    (void) comp;
+    (void) handle;
     app_event_args_t *ev_args = args;
     app_t *app = ev_args->app;
     engine_t *engine = ev_args->engine;
@@ -109,10 +109,10 @@ static void _return_button_clicked(ui_component_t *comp, void *args)
     _show_menu(app, &engine->_ui_sys, MENU_OPT, false);
 }
 
-static void _main_menu_worlds_clicked(ui_component_t *uic, void *args)
+static void _main_menu_worlds_clicked(ui_handle_t handle, void *args)
 {
     APP_LOG_OK("Worlds clicked", NULL);
-    (void) uic;
+    (void) handle;
     app_event_args_t *ev_args = args;
     app_t *a = ev_args->app;
     engine_t *e = ev_args->engine;
@@ -122,26 +122,26 @@ static void _main_menu_worlds_clicked(ui_component_t *uic, void *args)
     _show_menu(a, &e->_ui_sys, MENU_WORLD, true);
 }
 
-static void _main_menu_quit_clicked(ui_component_t *uic, void *args)
+static void _quit_clicked(ui_handle_t handle, void *args)
 {
-    APP_LOG_OK("Menu quit clicked", NULL);
-    (void) uic;
+    APP_LOG_OK("Quit clicked", NULL);
+    (void) handle;
     (void) args;
     sapp_request_quit();
 }
 
-static void _world_menu_new_clicked(ui_component_t *uic, void *args)
+static void _world_menu_new_clicked(ui_handle_t handle, void *args)
 {
     APP_LOG_OK("New clicked", NULL);
-    (void) uic;
+    (void) handle;
     app_event_args_t *ev_args = args;
     app_t *a = ev_args->app;
     engine_t *e = ev_args->engine;
 
-    if (a->world_menu.new_clicked)
+    if (a->world_menu.starting_game)
         return;
 
-    a->world_menu.new_clicked = true;
+    a->world_menu.starting_game = true;
 
     a->state = APP_IN_GAME;
     for (size_t i = 0; i < HOTBAR_SIZE * 2; i++)
@@ -154,20 +154,52 @@ static void _world_menu_new_clicked(ui_component_t *uic, void *args)
 
     em_romu_duo_state_t s;
     em_romu_duo_init(&s, time(NULL));
-    engine_run(e, &(engine_run_desc_t) {
-        .world_name = NULL,
-        .seed = em_romu_duo_random(&s),
+    engine_run_desc_t run_desc = {
         .time = 0,
-        .cam_pos = VEC3(0.0, 128.0, 0.0),
-        .cam_rot = QUAT(0.0, 0.0, 0.0, 1.0)
-    });
+        .cam_pos = VEC3(8.5, 128.0, 8.5),
+        .cam_rot = QUAT(0.0, 0.0, 0.0, 1.0),
+        .run_mode = ENGINE_RUN_NEW
+    };
+
+    ui_sys_query_text(&e->_ui_sys, a->world_menu.comps[WORLDMENUCOMP_I_NAME], run_desc.world_name);
+
+    char seed_str[UI_BUFLEN];
+    ui_sys_query_text(&e->_ui_sys, a->world_menu.comps[WORLDMENUCOMP_I_SEED], seed_str);
+    run_desc.seed = strtoul(seed_str, NULL, 10);
+
+    engine_run(e, &run_desc);
 }
 
-void _world_menu_load_clicked(ui_component_t *uic, void *args)
+// TODO: Figure out the limit of 5 worlds visible in the load menu.
+void _world_menu_load_clicked(ui_handle_t handle, void *args)
 {
     APP_LOG_OK("Load clicked", NULL);
-    (void) uic;
-    (void) args;
+    app_event_args_t *ev_args = args;
+    app_t *a = ev_args->app;
+    engine_t *e = ev_args->engine;
+
+    if (a->world_menu.starting_game)
+        return;
+
+    a->world_menu.starting_game = true;
+
+    a->state = APP_IN_GAME;
+    for (size_t i = 0; i < HOTBAR_SIZE * 2; i++)
+        a->hotbar.sprites[i]->visible = true;
+    a->hotbar.selected_sprite->visible = true;
+
+    _show_menu(a, &e->_ui_sys, MENU_WORLD, false);
+
+    sapp_lock_mouse(true);
+
+    em_romu_duo_state_t s;
+    em_romu_duo_init(&s, time(NULL));
+    engine_run_desc_t run_desc = {
+        .run_mode = ENGINE_RUN_LOAD
+    };
+    ui_sys_query_text(&e->_ui_sys, handle, run_desc.world_name);
+
+    engine_run(e, &run_desc);
 }
 
 void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
@@ -273,6 +305,8 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
     const vec2 ui_size = VEC2(UI_DIM.x * SPRITE_SIZE.x * UI_SCALE, 
                               UI_DIM.y * SPRITE_SIZE.y * UI_SCALE);
 
+    const vec2 text_size = VEC2(CHAR_SIZE.x * TEXT_SCALE, CHAR_SIZE.y * TEXT_SCALE);
+
     // Initialize options menu sprites
     a->options_menu.comps[OPTMENUCOMP_L_TITLE] = ui_sys_make_label(&e->_ui_sys, &(ui_label_desc_t) {
         .pos = VEC2(-11.0 * 3.0 * 4.0, TITLE_HEIGHT),
@@ -299,7 +333,8 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
             .z_index = 4.0
         },
         .text = "Save and Quit",
-        .cb = _return_button_clicked
+        .cb = _quit_clicked,
+        .cb_args = &a->ev_args
     });
 
     a->options_menu.comps[OPTMENUCOMP_B_RETURN] = ui_sys_make_button(&e->_ui_sys, &(ui_button_desc_t) {
@@ -347,7 +382,8 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
         },
         .text_style = {
             .scale = TEXT_SCALE,
-            .z_index = 4.0
+            .z_index = 4.0,
+            .hover_bg_col = VEC4(1.0, 1.0, 1.0, 1.0)
         },
         .max_len = 20,
     });
@@ -398,7 +434,7 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
         },
         .visible = true,
         .text = "Exit to Desktop",
-        .cb = _main_menu_quit_clicked,
+        .cb = _quit_clicked,
         .cb_args = &a->ev_args
     });
 
@@ -413,8 +449,18 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
         .text = "New World       Load World"
     });
 
+    a->world_menu.comps[WORLDMENUCOMP_L_NAME] = ui_sys_make_label(&e->_ui_sys, &(ui_label_desc_t) {
+        .pos = VEC2(-ui_size.x - UI_SPACING.x, TITLE_HEIGHT - (ui_size.y + UI_SPACING.y) + text_size.y),
+        .text_style = {
+            .scale = TEXT_SCALE,
+            .z_index = 4.0,
+            .bg_col = VEC4(0.0, 0.0, 0.0, 0.0)
+        },
+        .text = "World Name"
+    });
+
     a->world_menu.comps[WORLDMENUCOMP_I_NAME] = ui_sys_make_input(&e->_ui_sys, &(ui_input_desc_t) {
-        .pos = VEC2(-ui_size.x - UI_SPACING.x, TITLE_HEIGHT - (ui_size.y + UI_SPACING.y)),
+        .pos = VEC2(-ui_size.x - UI_SPACING.x, TITLE_HEIGHT - ui_size.y - UI_SPACING.y * 2.0),
         .width = UI_DIM.x,
         .body_style = {
             .scale = UI_SCALE,
@@ -430,8 +476,18 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
         .max_len = 20
     });
 
+    a->world_menu.comps[WORLDMENUCOMP_L_SEED] = ui_sys_make_label(&e->_ui_sys, &(ui_label_desc_t) {
+        .pos = VEC2(-ui_size.x - UI_SPACING.x, TITLE_HEIGHT - (ui_size.y + UI_SPACING.y) * 2.0 + text_size.y),
+        .text_style = {
+            .scale = TEXT_SCALE,
+            .z_index = 4.0,
+            .bg_col = VEC4(0.0, 0.0, 0.0, 0.0)
+        },
+        .text = "World Seed"
+    });
+
     a->world_menu.comps[WORLDMENUCOMP_I_SEED] = ui_sys_make_input(&e->_ui_sys, &(ui_input_desc_t) {
-        .pos = VEC2(-ui_size.x - UI_SPACING.x, TITLE_HEIGHT - (ui_size.y + UI_SPACING.y) * 2.0),
+        .pos = VEC2(-ui_size.x - UI_SPACING.x, TITLE_HEIGHT - ui_size.y - UI_SPACING.y * 2.0 - (ui_size.y + UI_SPACING.y)),
         .width = UI_DIM.x,
         .body_style = {
             .scale = UI_SCALE,
@@ -444,12 +500,12 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
             .z_index = 4.0,
             .hover_bg_col = VEC4(1.0, 1.0, 1.0, 1.0),
         },
-        .max_len = 20,
+        .max_len = 11,
         .filter = FILTER_NUMER
     });
 
     a->world_menu.comps[WORLDMENUCOMP_B_CREATE] = ui_sys_make_button(&e->_ui_sys, &(ui_button_desc_t) {
-        .pos = VEC2(-ui_size.x - UI_SPACING.x, TITLE_HEIGHT - (ui_size.y + UI_SPACING.y) * 3.0),
+        .pos = VEC2(-ui_size.x - UI_SPACING.x, TITLE_HEIGHT - ui_size.y - UI_SPACING.y * 2.0 - (ui_size.y + UI_SPACING.y) * 2.0),
         .dim = UI_DIM,
         .body_style = {
             .scale = UI_SCALE,
@@ -461,7 +517,7 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
             .scale = TEXT_SCALE,
             .z_index = 4.0
         },
-        .text = "New World",
+        .text = "Create World",
         .cb = _world_menu_new_clicked,
         .cb_args = &a->ev_args
     });

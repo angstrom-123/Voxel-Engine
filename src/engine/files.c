@@ -147,7 +147,7 @@ bool file_list_dir(file_t *file, size_t *num_names, char res[*num_names][STD_BUF
     }
     free(dirs);
 
-    *num_names = i;
+    *num_names = em_min(i, *num_names);
     return true;
 }
 

@@ -180,7 +180,7 @@ static bool _mouse_click(const event_t *ev, void *args)
         case COMPONENT_BUTTON:
             if (c->cb != NULL) 
             {
-                c->cb(c, c->cb_args);
+                c->cb((ui_handle_t) { .id = i }, c->cb_args);
                 return true;
             }
             break;
@@ -792,4 +792,19 @@ void ui_sys_init_handle_buffer(size_t count, ui_handle_t *buffer)
 {
     for (size_t i = 0; i < count; i++)
         buffer[i] = (ui_handle_t) { .id = UI_INVALID_HANDLE_ID };
+}
+
+void ui_sys_query_text(ui_system_t *uis, ui_handle_t comp, char res[UI_BUFLEN])
+{
+    ui_component_t uic = uis->components[comp.id];
+    switch (uic.kind) {
+    case COMPONENT_INPUT:
+        for (size_t i = 0; i < uic.text_end; i++)
+            res[i] = uic.text[i];
+        res[uic.text_end] = '\0';
+        break;
+    default:
+        strncpy(res, uic.text, UI_BUFLEN);
+        break;
+    };
 }

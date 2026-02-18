@@ -63,14 +63,18 @@ typedef struct player_collider_desc {
     aabb_t collider;
 } player_collider_desc_t;
 
-typedef struct engine__desc {
+typedef struct engine_run_desc {
     uint32_t seed;
-    const char *world_name;
+    char world_name[STD_BUFLEN];
     uint64_t time;
     vec3 cam_pos;
     quat cam_rot;
     float cam_pitch;
     float cam_yaw;
+    enum {
+        ENGINE_RUN_NEW,
+        ENGINE_RUN_LOAD
+    } run_mode;
 } engine_run_desc_t;
 
 typedef struct engine {

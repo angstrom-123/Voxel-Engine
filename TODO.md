@@ -6,7 +6,6 @@
 - Add Windows Support
 
 ## Graphics
-- Remove transparency from leaves for now
 - Radial blur god rays (Volumetric lighting)
 - Screen Space Ambient Occlusion
 - Add translucency support to deferred pipeline (need a new forward pass)

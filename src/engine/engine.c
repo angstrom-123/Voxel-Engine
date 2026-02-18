@@ -83,19 +83,89 @@ void engine_do_render(engine_t *engine)
 void engine_run(engine_t *engine, const engine_run_desc_t *desc)
 {
     ENGINE_LOG_OK("Starting to Run", NULL);
-    engine->meta.world.seed = desc->seed;
-    if (desc->world_name)
-        strncpy(engine->meta.world.name, desc->world_name, STD_BUFLEN);
-    engine->meta.world.time = desc->time;
+    strncpy(engine->meta.world.name, desc->world_name, STD_BUFLEN);
+    multicat(engine->_chunk_sys.world_dir_path, 2, WORLD_DATA_DIR, desc->world_name);
 
-    if (desc->world_name)
-        multicat(engine->_chunk_sys.world_dir_path, 2, WORLD_DATA_DIR, desc->world_name);
+    ENGINE_LOG_WARN("World name is: %s", desc->world_name);
+    char mf_path[STD_BUFLEN];
+    multicat(mf_path, 4, WORLD_DATA_DIR, desc->world_name, SEP, WORLD_META_FILE);
+    file_t mf = {
+        .base = WORLD_DATA_DIR,
+        .path = mf_path,
+        .name = WORLD_META_FILE
+    };
+    file_t wd = {
+        .flags = FILEFLAG_DIR,
+        .base  = WORLD_DATA_DIR,
+        .path  = engine->_chunk_sys.world_dir_path,
+        .name  = desc->world_name
+    };
 
-    engine->_chunk_sys.seed = desc->seed;
-    engine->_render_sys.cam.pos = desc->cam_pos;
-    engine->_render_sys.cam.rot = desc->cam_rot;
-    engine->_render_sys.cam.pitch = desc->cam_pitch;
-    engine->_render_sys.cam.yaw = desc->cam_yaw;
+    ENGINE_LOG_WARN("Meta file path: %s", mf.path);
+
+    switch (desc->run_mode) {
+    case ENGINE_RUN_NEW:
+    {
+        RUNTIME_ASSERT(!file_exists(&wd), "World already exists with this name");
+        RUNTIME_ASSERT(file_create(&wd), "Failed to create world dir"); // Implicitly closed
+
+        RUNTIME_ASSERT(file_create(&mf), "Failed to create meta file");
+        RUNTIME_ASSERT(file_close(&mf), "Failed to close meta file");
+
+        engine->meta.world.time = desc->time;
+        engine->meta.world.seed = desc->seed;
+
+        engine->_chunk_sys.seed       = desc->seed;
+        engine->_render_sys.cam.pos   = desc->cam_pos;
+        engine->_render_sys.cam.rot   = desc->cam_rot;
+        engine->_render_sys.cam.pitch = desc->cam_pitch;
+        engine->_render_sys.cam.yaw   = desc->cam_yaw;
+        break;
+    }
+    case ENGINE_RUN_LOAD:
+    {
+        RUNTIME_ASSERT(file_exists(&wd), "World dir not found");
+        RUNTIME_ASSERT(file_exists(&mf), "Meta file not found");
+        RUNTIME_ASSERT(file_open(&mf, USAGE_READ), "Failed to open meta file");
+
+        const size_t NUM_LINES = 6;
+        size_t cnt = NUM_LINES;
+        char lines[NUM_LINES][STD_BUFLEN];
+        RUNTIME_ASSERT(file_read_lines(&mf, &cnt, STD_BUFLEN, lines), "Failed to read from meta file");
+        RUNTIME_ASSERT(file_close(&mf), "Failed to close meta file");
+        RUNTIME_ASSERT(cnt == NUM_LINES, "World meta file must contain all fields");
+
+        // Read in values from the strings extracted from the meta file.
+        char *tok;
+        tok = strtok(lines[0], ",");
+        for (size_t i = 0; i < 3; i++)
+        {
+            RUNTIME_ASSERT(tok != NULL, "Player position must contain all components");
+            engine->_render_sys.cam.pos.elements[i] = strtof(tok, NULL);
+            tok = strtok(NULL, ",");
+        }
+
+        tok = strtok(lines[1], ",");
+        for (size_t i = 0; i < 4; i++)
+        {
+            RUNTIME_ASSERT(tok != NULL, "Player rotation must contain all components");
+            engine->_render_sys.cam.rot.elements[i] = strtof(tok, NULL);
+            tok = strtok(NULL, ",");
+        }
+
+        engine->meta.world.time = strtoul(lines[5], NULL, 10);
+        engine->meta.world.seed = (uint32_t) strtoul(lines[4], NULL, 10);
+
+        engine->_chunk_sys.seed       = engine->meta.world.seed;
+        engine->_render_sys.cam.pitch = strtof(lines[2], NULL);
+        engine->_render_sys.cam.yaw   = strtof(lines[3], NULL);
+        break;
+    }
+    default:
+        RUNTIME_ASSERT(false, "Unreachable");
+        break;
+    };
+
     engine->_load_sys.curr_pos = IVEC2(
         floorf(engine->_render_sys.cam.pos.x / (float) CHUNK_SIZE) * CHUNK_SIZE, 
         floorf(engine->_render_sys.cam.pos.z / (float) CHUNK_SIZE) * CHUNK_SIZE

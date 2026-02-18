@@ -13,24 +13,6 @@
 
 #include <libem/em_bmp.h>
 
-// TODO:
-//      Really think about breaking up all of the sub-renderers
-//      Render system is a thin wrapper around all renderers, just unnecessary indirection.
-//      Could just do all of this stuff inside of the engine 
-//          All engine needs to do is maintain cameras for initing renderers 
-//              And keep track of if the cursor is active
-//                  Which honestly should go in the event system imo.
-//      Allow each renderer to be initialized separately
-//      Could split up the callbacks for resize per renderer 
-//          Or just add a flag "inited" or something to each and ignore them if not ready
-//
-//      Add more sane defaults to every system.
-//      Descs are much too large for most things. 
-//      Move constants like buffer size to inside the system itself instead of passing it.
-//       
-//      Rethink / REMOVE engine api
-//              Probably better to just directly interface with the engine.
-
 typedef struct render_system {
     camera_t cam;
     camera_t ortho_cam;
@@ -38,18 +20,8 @@ typedef struct render_system {
     bool cams_initialized;
     chunk_renderer_t chunk_renderer;
     line_renderer_t cursor_line_renderer;
-    // line_renderer_t global_line_renderer;
     sprite_renderer_t sprite_renderer;
 } render_system_t;
-
-// typedef struct render_system_desc {
-//     event_system_t *es;
-//     vec2 window_size;
-//     vec3 inv_sun_dir;
-//     float view_distance;
-//     float max_distance;
-//     float shadow_scale;
-// } render_system_desc_t;
 
 extern void render_sys_init_cameras(render_system_t *rs, event_system_t *es, 
                                     vec3 sun_dir, vec2 window_size);
@@ -57,13 +29,8 @@ extern void render_sys_init_chunk_renderer(render_system_t *rs, float view_dista
                                            vec3 sun_dir, vec2 window_size);
 extern void render_sys_init_sprite_renderer(render_system_t *rs, vec2 window_size);
 extern void render_sys_init_cursor_renderer(render_system_t *rs, vec2 window_size);
-// extern void render_sys_init_line_renderer(render_system_t *rs, vec2 window_size);
 extern void render_sys_cleanup(render_system_t *rs);
 extern void render_sys_render(render_system_t *rs, update_system_t *us, 
                               load_system_t *ls, bool show_cursor);
-
-// extern void render_sys_init(render_system_t *rs, const render_system_desc_t *desc);
-// extern void render_sys_cleanup(render_system_t *rs);
-// extern void render_sys_render(render_system_t *rs, update_system_t *us, load_system_t *ls);
 
 #endif

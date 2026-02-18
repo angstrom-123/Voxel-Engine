@@ -4,7 +4,7 @@
 #include "camera_controller.h"
 #include "instrumentor.h"
 #include "engine.h"
-#include "world_creation.h"
+// #include "world_creation.h"
 #include "arg_parser.h"
 #include "world_gen.h"
 
@@ -18,6 +18,7 @@
 #define TITLE_SCALE 3.0
 #define UI_SCALE 3.0
 #define TEXT_SCALE 2.0
+#define SUBTEXT_SCALE 1.0
 #define UI_DIM UVEC2(10, 2)
 #define UI_SPACING VEC2(40.0, 40.0)
 #define BG_COL VEC4(0.4, 0.4, 0.4, 1.0)
@@ -47,7 +48,9 @@ typedef enum world_menu_component {
     WORLDMENUCOMP_B_LOAD4 = 3,
     WORLDMENUCOMP_B_LOAD5 = 4,
     WORLDMENUCOMP_L_TITLE,
+    WORLDMENUCOMP_L_NAME,
     WORLDMENUCOMP_I_NAME,
+    WORLDMENUCOMP_L_SEED,
     WORLDMENUCOMP_I_SEED,
     WORLDMENUCOMP_B_CREATE,
     WORLDMENUCOMP_NUM
@@ -92,7 +95,7 @@ typedef struct app {
 
     struct world_menu {
         ui_handle_t comps[WORLDMENUCOMP_NUM];
-        bool new_clicked;
+        bool starting_game;
     } world_menu;
 } app_t;
 
