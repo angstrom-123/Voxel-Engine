@@ -27,15 +27,6 @@ make profiling
 ./bin/output/Voxel-Engine-[platform]
 ```
 
-## Subcommands
-|Subcommand|Params|Example Usage|
-|---|---|---|
-|new|-n (--name), -s (--seed)|```./bin/output/Voxel-Engine-[platform] new -n my_name -s 12345```|
-|load|-n (--name)|```./bin/output/Voxel-Engine-[platform] load -n my_name```|
-|delete|-n (--name)|```./bin/output/Voxel-Engine-[platform] delete -n my_name```|
-|rename|-n (--name), -nn (--newname)|```./bin/output/Voxel-Engine-[platform] rename -n my_name -nn my_new_name```|
-
-
 # Checklist
 - [x] Infinite Worlds
 - [x] Physics-based Movement and Colissions
