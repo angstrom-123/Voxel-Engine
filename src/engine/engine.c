@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "files.h"
 
 void engine_edit_active_block(engine_t *engine, cube_type_e type, 
                                      block_action_e action, aabb_t *player_collider)
@@ -101,15 +102,18 @@ void engine_run(engine_t *engine, const engine_run_desc_t *desc)
         .name  = desc->world_name
     };
 
-    ENGINE_LOG_WARN("Meta file path: %s", mf.path);
-
     switch (desc->run_mode) {
     case ENGINE_RUN_NEW:
     {
         RUNTIME_ASSERT(!file_exists(&wd), "World already exists with this name");
         RUNTIME_ASSERT(file_create(&wd), "Failed to create world dir"); // Implicitly closed
 
-        RUNTIME_ASSERT(file_create(&mf), "Failed to create meta file");
+        if (!file_create(&mf))
+        {
+            file_dir_delete(&wd);
+            ENGINE_LOG_ERROR("Failed to create meta file at %s", mf.path);
+            RUNTIME_ASSERT(false, "Failed to create meta file, so world dir has been removed");
+        }
         RUNTIME_ASSERT(file_close(&mf), "Failed to close meta file");
 
         engine->meta.world.time = desc->time;

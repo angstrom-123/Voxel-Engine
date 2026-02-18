@@ -1,8 +1,6 @@
 #ifndef UI_SYSTEM_H
 #define UI_SYSTEM_H
 
-#include <uchar.h>
-
 #include "sprite_renderer.h"
 #include "event_system.h"
 
@@ -22,6 +20,7 @@ typedef struct style {
     vec4 bg_col;
     vec4 tint_col;
     vec4 hover_bg_col;
+    vec4 disabled_bg_col;
 } style_t;
 
 typedef enum justify {
@@ -57,6 +56,7 @@ typedef struct ui_component {
     // Button
     void ( *cb)(ui_handle_t, void *);
     void *cb_args;
+    bool disabled;
     // Slider 
     int32_t value;
     char value_text[4]; // Includes null terminator
@@ -84,6 +84,7 @@ typedef struct ui_button_desc {
     bool mini;
     bool rounded;
     bool visible;
+    bool disabled;
     char text[UI_BUFLEN];
     void ( *cb)(ui_handle_t, void *);
     void *cb_args;
@@ -93,7 +94,7 @@ typedef struct ui_label_desc {
     vec2 pos;
     style_t text_style;
     bool visible;
-    const char text[UI_BUFLEN];
+    char text[UI_BUFLEN];
 } ui_label_desc_t;
 
 typedef struct ui_container_desc {
@@ -104,7 +105,7 @@ typedef struct ui_container_desc {
     bool mini;
     bool rounded;
     bool visible;
-    const char text[UI_BUFLEN];
+    char text[UI_BUFLEN];
     justify_e justify;
 } ui_container_desc_t;
 
@@ -115,7 +116,7 @@ typedef struct ui_slider_desc {
     style_t text_style;
     bool mini;
     bool visible;
-    const char text[UI_BUFLEN];
+    char text[UI_BUFLEN];
 } ui_slider_desc_t;
 
 typedef struct ui_input_desc {
@@ -141,6 +142,8 @@ typedef struct ui_system {
         struct ui_system *uis;
         sprite_renderer_t *sr;
     } ev_args;
+
+    char _init_buffer[UI_BUFLEN];
 } ui_system_t;
 
 typedef struct ui_system_event_args ui_system_event_args_t;
@@ -160,8 +163,10 @@ extern ui_handle_t ui_sys_make_label(ui_system_t *uis, const ui_label_desc_t *de
 extern ui_handle_t ui_sys_make_container(ui_system_t *uis, const ui_container_desc_t *desc);
 extern ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc);
 extern ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc);
-extern void ui_sys_show_component(ui_system_t *uis, ui_handle_t comp, bool show);
+extern void ui_sys_show_component(ui_system_t *uis, ui_handle_t handle, bool show);
 extern void ui_sys_init_handle_buffer(size_t count, ui_handle_t *buffer);
-extern void ui_sys_query_text(ui_system_t *uis, ui_handle_t comp, char res[UI_BUFLEN]);
+extern void ui_sys_query_text(ui_system_t *uis, ui_handle_t handle, char res[UI_BUFLEN]);
+extern void ui_sys_enable_component(ui_system_t *uis, ui_handle_t handle, bool enable);
+extern void ui_sys_set_component_text(ui_system_t *uis, ui_handle_t handle, char *text);
 
 #endif

@@ -4,11 +4,12 @@
 #include "camera_controller.h"
 #include "instrumentor.h"
 #include "engine.h"
-// #include "world_creation.h"
 #include "arg_parser.h"
 #include "world_gen.h"
 
 #include <stdatomic.h>
+
+#define MAX_WORLDS 5
 
 #define BUTTON_COL VEC4(0.4, 0.4, 0.4, 1.0)
 #define BUTTON_HOVER_COL VEC4(0.5, 0.5, 0.5, 1.0)
@@ -53,6 +54,7 @@ typedef enum world_menu_component {
     WORLDMENUCOMP_L_SEED,
     WORLDMENUCOMP_I_SEED,
     WORLDMENUCOMP_B_CREATE,
+    WORLDMENUCOMP_L_ERROR,
     WORLDMENUCOMP_NUM
 } world_menu_component_e;
 
@@ -71,6 +73,7 @@ typedef struct app {
         APP_GAME_OPTIONS,
         APP_STATE_NUM
     } state;
+
     ctl_t camera_ctl;
 
     struct app_event_args {
@@ -96,8 +99,12 @@ typedef struct app {
     struct world_menu {
         ui_handle_t comps[WORLDMENUCOMP_NUM];
         bool starting_game;
+        size_t world_num;
+        char world_names[MAX_WORLDS][UI_BUFLEN];
     } world_menu;
 } app_t;
+
+// TODO: Figure out how to do the paging for the worlds.
 
 typedef struct app_event_args app_event_args_t;
 

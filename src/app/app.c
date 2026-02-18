@@ -1,4 +1,5 @@
 #include "app.h"
+#include "ui_system.h"
 
 static const float HB_SCALE = 5.0;
 static const vec2 HB_ORIGIN = VEC2(-SPRITE_SIZE.x * HB_SCALE * HOTBAR_SIZE / 2.0,
@@ -91,6 +92,45 @@ static bool _on_keydown(const event_t *ev, void *args)
         break;
     }
 
+    if (app->state == APP_WORLDS_MENU)
+    {
+        char name_buf[UI_BUFLEN];
+        ui_sys_query_text(&engine->_ui_sys, app->world_menu.comps[WORLDMENUCOMP_I_NAME], name_buf);
+        bool has_name = name_buf[0] != '\0';
+
+        char seed_buf[UI_BUFLEN];
+        ui_sys_query_text(&engine->_ui_sys, app->world_menu.comps[WORLDMENUCOMP_I_SEED], seed_buf);
+        bool has_seed = seed_buf[0] != '\0';
+
+        bool not_too_many = app->world_menu.world_num < MAX_WORLDS;
+
+        bool unique = true;
+        for (size_t i = 0; i < app->world_menu.world_num && unique; i++)
+        {
+            if (strncmp(name_buf, app->world_menu.world_names[i], UI_BUFLEN) == 0)
+                unique = false;
+        }
+
+        bool enable = has_name && has_seed && not_too_many && unique;
+        char *error = "";
+        if (!enable) 
+        {
+            if (!not_too_many)
+                error = "Too Many Worlds";
+            else if (!unique)
+                error = "Name Must be Unique";
+            else if (!has_name && !has_seed)
+                error = "Specify Name and Seed";
+            else if (!has_seed)
+                error = "Specify Seed";
+            else 
+                error = "Specify Name";
+        }
+
+        ui_sys_enable_component(&engine->_ui_sys, app->world_menu.comps[WORLDMENUCOMP_B_CREATE], enable);
+        ui_sys_set_component_text(&engine->_ui_sys, app->world_menu.comps[WORLDMENUCOMP_L_ERROR], error);
+    }
+
     return false;
 }
 
@@ -139,6 +179,29 @@ static void _world_menu_new_clicked(ui_handle_t handle, void *args)
     engine_t *e = ev_args->engine;
 
     if (a->world_menu.starting_game)
+    {
+        APP_LOG_ERROR("Already attempting to create a world", NULL);
+        return;
+    }
+
+    if (a->world_menu.world_num >= MAX_WORLDS)
+    {
+        APP_LOG_ERROR("Maximum saved worlds reached (%zu)", (size_t) MAX_WORLDS);
+        return;
+    }
+
+    engine_run_desc_t run_desc = {
+        .time = 0,
+        .cam_pos = VEC3(8.5, 128.0, 8.5),
+        .cam_rot = QUAT(0.0, 0.0, 0.0, 1.0),
+        .run_mode = ENGINE_RUN_NEW
+    };
+    ui_sys_query_text(&e->_ui_sys, a->world_menu.comps[WORLDMENUCOMP_I_NAME], run_desc.world_name);
+    char seed_str[UI_BUFLEN];
+    ui_sys_query_text(&e->_ui_sys, a->world_menu.comps[WORLDMENUCOMP_I_SEED], seed_str);
+    run_desc.seed = strtoul(seed_str, NULL, 10);
+
+    if (run_desc.world_name[0] == '\0')
         return;
 
     a->world_menu.starting_game = true;
@@ -154,23 +217,9 @@ static void _world_menu_new_clicked(ui_handle_t handle, void *args)
 
     em_romu_duo_state_t s;
     em_romu_duo_init(&s, time(NULL));
-    engine_run_desc_t run_desc = {
-        .time = 0,
-        .cam_pos = VEC3(8.5, 128.0, 8.5),
-        .cam_rot = QUAT(0.0, 0.0, 0.0, 1.0),
-        .run_mode = ENGINE_RUN_NEW
-    };
-
-    ui_sys_query_text(&e->_ui_sys, a->world_menu.comps[WORLDMENUCOMP_I_NAME], run_desc.world_name);
-
-    char seed_str[UI_BUFLEN];
-    ui_sys_query_text(&e->_ui_sys, a->world_menu.comps[WORLDMENUCOMP_I_SEED], seed_str);
-    run_desc.seed = strtoul(seed_str, NULL, 10);
-
     engine_run(e, &run_desc);
 }
 
-// TODO: Figure out the limit of 5 worlds visible in the load menu.
 void _world_menu_load_clicked(ui_handle_t handle, void *args)
 {
     APP_LOG_OK("Load clicked", NULL);
@@ -179,6 +228,16 @@ void _world_menu_load_clicked(ui_handle_t handle, void *args)
     engine_t *e = ev_args->engine;
 
     if (a->world_menu.starting_game)
+    {
+        APP_LOG_ERROR("Already attempting to load a world", NULL);
+        return;
+    }
+
+    engine_run_desc_t run_desc = {
+        .run_mode = ENGINE_RUN_LOAD
+    };
+    ui_sys_query_text(&e->_ui_sys, handle, run_desc.world_name);
+    if (run_desc.world_name[0] == '\0')
         return;
 
     a->world_menu.starting_game = true;
@@ -194,11 +253,6 @@ void _world_menu_load_clicked(ui_handle_t handle, void *args)
 
     em_romu_duo_state_t s;
     em_romu_duo_init(&s, time(NULL));
-    engine_run_desc_t run_desc = {
-        .run_mode = ENGINE_RUN_LOAD
-    };
-    ui_sys_query_text(&e->_ui_sys, handle, run_desc.world_name);
-
     engine_run(e, &run_desc);
 }
 
@@ -512,11 +566,13 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
             .z_index = 3.0,
             .bg_col = BG_COL,
             .hover_bg_col = HOVER_COL,
+            .disabled_bg_col = HOVER_COL
         },
         .text_style = {
             .scale = TEXT_SCALE,
             .z_index = 4.0
         },
+        .disabled = true,
         .text = "Create World",
         .cb = _world_menu_new_clicked,
         .cb_args = &a->ev_args
@@ -526,10 +582,11 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
         .path = WORLD_DATA_DIR,
         .flags = FILEFLAG_DIR,
     };
-    size_t max_names = 5;
-    char names[max_names][STD_BUFLEN];
-    file_list_dir(&world_dir, &max_names, names);
-    for (size_t i = 0; i < max_names; i++)
+
+    a->world_menu.world_num = MAX_WORLDS;
+    char names[a->world_menu.world_num][STD_BUFLEN];
+    file_list_dir(&world_dir, &a->world_menu.world_num, names);
+    for (size_t i = 0; i < a->world_menu.world_num; i++)
     {
         ui_button_desc_t desc = {
             .pos = VEC2(UI_SPACING.x, TITLE_HEIGHT - (ui_size.y + UI_SPACING.y) * (i + 1)),
@@ -549,8 +606,21 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
         };
 
         strncpy(desc.text, names[i], UI_BUFLEN);
+        strncpy(a->world_menu.world_names[i], names[i], UI_BUFLEN);
         a->world_menu.comps[WORLDMENUCOMP_B_LOAD1 + i] = ui_sys_make_button(&e->_ui_sys, &desc);
     }
+
+    ui_label_desc_t error_label_desc = {
+        .pos = VEC2(-ui_size.x - UI_SPACING.x, TITLE_HEIGHT - (ui_size.y + UI_SPACING.y) * 4.0 + text_size.y),
+        .text_style = {
+            .tint_col = VEC4(0.9, 0.0, 0.0, 1.0),
+            .scale = TEXT_SCALE,
+            .z_index = 4.0
+        },
+    };
+    if (a->world_menu.world_num < MAX_WORLDS) strcpy(error_label_desc.text, "Specify Name and Seed");
+    else strcpy(error_label_desc.text, "Too Many Worlds");
+    a->world_menu.comps[WORLDMENUCOMP_L_ERROR] = ui_sys_make_label(&e->_ui_sys, &error_label_desc);
 
     engine_do_render(e);
 }
@@ -564,6 +634,7 @@ void app_cleanup(app_t *app)
 
 void app_frame(engine_t *engine, app_t *app, double dt) 
 {
+    APP_LOG_WARN("Frame", NULL);
     INSTRUMENT_FUNC_BEGIN();
 
     ctl_update_surrounding(&app->camera_ctl, &engine->_render_sys.cam, &engine->_chunk_sys);
