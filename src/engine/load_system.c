@@ -140,6 +140,18 @@ void load_sys_cleanup(load_system_t *ls)
         free(ls->shells[i].crds);
 }
 
+void load_sys_set_render_distance(load_system_t *ls, chunk_system_t *cs, size_t render_distance)
+{
+    ivec2 pos = ls->curr_pos;
+    load_sys_cleanup(ls);
+    load_sys_init(ls, &(load_system_desc_t) {
+        .render_dist = render_distance,
+        .start_pos = pos
+    });
+    load_sys_load_initial(ls, cs);
+    CS_REQUEST(cs, CSREQ_INITIAL_LOAD_COMPLETE, 0);
+}
+
 render_coords_t load_sys_get_render_coords(load_system_t *ls)
 {
     return (render_coords_t) {

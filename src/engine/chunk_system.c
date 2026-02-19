@@ -238,18 +238,20 @@ static void _await_requests_complete(chunk_system_t *cs)
     while (!finished)
     {
         mtx_lock(&cs->requests_lock);
+
         if (cs->requests->count == 0 && !atomic_load(&cs->processing))
-        {
             finished = true;
-        }
+
         mtx_unlock(&cs->requests_lock);
 
         if (!finished)
         {
             thrd_sleep(&(struct timespec) {
+                .tv_sec = THREAD_AWAIT_S,
                 .tv_nsec = THREAD_AWAIT_NS
             }, NULL);
         }
+
     }
 }
 
@@ -260,6 +262,7 @@ void chunk_sys_cleanup(chunk_system_t *cs)
     _await_requests_complete(cs);
 
     // Request every loaded chunk to be unloaded directly (bypassing request denial).
+    cs->receiving = false;
     mtx_lock(&cs->genned_lock);
     mtx_lock(&cs->requests_lock);
     em_hashmap_iter_t *it = cs->genned->iterator(cs->genned);
@@ -280,6 +283,7 @@ void chunk_sys_cleanup(chunk_system_t *cs)
     // Wait for all unload requests to be complete.
     cnd_signal(&cs->needs_update);
     _await_requests_complete(cs);
+    cs->receiving = true;
 
     // Kill the worker.
     atomic_store(&cs->running, false);
@@ -292,6 +296,38 @@ void chunk_sys_cleanup(chunk_system_t *cs)
     cnd_destroy(&cs->needs_update);
     mtx_destroy(&cs->requests_lock);
     mtx_destroy(&cs->genned_lock);
+}
+
+void chunk_sys_unload_all(chunk_system_t *cs)
+{
+    mtx_lock(&cs->requests_lock);
+    
+    // Remove all pending requests
+    cs->requests->clear(cs->requests);
+
+    mtx_lock(&cs->genned_lock);
+
+    // Request all chunks to be unloaded
+    em_hashmap_iter_t *it = cs->genned->iterator(cs->genned);
+    while (it->has_next)
+    {
+        em_hashmap_entry_t *e = it->get(it);
+        ivec2 *pos = e->key;
+        cs->requests->enqueue(cs->requests, (cs_request_t) {
+            .type = CSREQ_UNLOAD,
+            .pos = *pos
+        });
+        it->next(it);
+    }
+    free(it);
+
+    atomic_store(&cs->initial_load_complete, false);
+
+    mtx_unlock(&cs->genned_lock);
+    mtx_unlock(&cs->requests_lock);
+
+    // Wait for all unload requests to be complete.
+    cnd_signal(&cs->needs_update);
 }
 
 void chunk_sys_make_request(chunk_system_t *cs, cs_request_t r)

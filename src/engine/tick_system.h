@@ -17,6 +17,7 @@ typedef struct tick_system {
     thrd_t worker;
     atomic_bool running;
     atomic_bool thread_ready;
+    atomic_bool paused;
     atomic_double cum_dt;
     double dt;
     double tps;

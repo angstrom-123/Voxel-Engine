@@ -1,5 +1,4 @@
 #include "app.h"
-#include "ui_system.h"
 
 static const float HB_SCALE = 5.0;
 static const vec2 HB_ORIGIN = VEC2(-SPRITE_SIZE.x * HB_SCALE * HOTBAR_SIZE / 2.0,
@@ -147,6 +146,10 @@ static void _return_button_clicked(ui_handle_t handle, void *args)
     app->state = APP_IN_GAME;
     sapp_lock_mouse(true);
     _show_menu(app, &engine->_ui_sys, MENU_OPT, false);
+
+    size_t rd = engine->_ui_sys.components[app->options_menu.comps[OPTMENUCOMP_S_RENDER_DIST].id].value;
+    if (rd != engine->meta.world.render_dist)
+        engine_set_render_distance(engine, rd);
 }
 
 static void _main_menu_worlds_clicked(ui_handle_t handle, void *args)
@@ -259,12 +262,6 @@ void _world_menu_load_clicked(ui_handle_t handle, void *args)
 void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
 {
     (void) desc;
-    #if defined(RELEASE) || defined(PROFILING)
-        const size_t RENDER_DISTANCE = 24;
-    #elif defined(DEBUG)
-        const size_t RENDER_DISTANCE = 12;
-    #endif
-
     load_model_files();
 
     ui_sys_init_handle_buffer(OPTMENUCOMP_NUM, &a->options_menu.comps[0]);
@@ -289,7 +286,7 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
     };
 
     engine_init(e, &(engine_desc_t) {
-        .render_distance = RENDER_DISTANCE,
+        .render_distance = 12,
         .ticks_per_second = 20.0,
         .max_time = 24000, // 10 minute cycle @ 20tps
         .base_sun_dir = em_normalize_vec3(VEC3(0.0, 1.0, 0.1)),
@@ -373,26 +370,8 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
         .text = "Game Menu"
     });
 
-    a->options_menu.comps[OPTMENUCOMP_B_QUIT] = ui_sys_make_button(&e->_ui_sys, &(ui_button_desc_t) {
-        .pos = VEC2(-ui_size.x / 2.0, TITLE_HEIGHT - ui_size.y - UI_SPACING.y),
-        .dim = UI_DIM,
-        .body_style = {
-            .scale = UI_SCALE,
-            .z_index = 3.0,
-            .bg_col = BG_COL,
-            .hover_bg_col = HOVER_COL,
-        },
-        .text_style = {
-            .scale = TEXT_SCALE,
-            .z_index = 4.0
-        },
-        .text = "Save and Quit",
-        .cb = _quit_clicked,
-        .cb_args = &a->ev_args
-    });
-
     a->options_menu.comps[OPTMENUCOMP_B_RETURN] = ui_sys_make_button(&e->_ui_sys, &(ui_button_desc_t) {
-        .pos = VEC2(-ui_size.x / 2.0, TITLE_HEIGHT - (ui_size.y + UI_SPACING.y) * 2.0),
+        .pos = VEC2(-ui_size.x / 2.0, TITLE_HEIGHT - ui_size.y - UI_SPACING.y),
         .dim = UI_DIM,
         .body_style = {
             .scale = UI_SCALE,
@@ -409,37 +388,42 @@ void app_init(engine_t *e, app_t *a, const app_desc_t *desc)
         .cb_args = &a->ev_args
     });
 
-    a->options_menu.comps[OPTMENUCOMP_SLIDER] = ui_sys_make_slider(&e->_ui_sys, &(ui_slider_desc_t) {
-        .pos = VEC2(-ui_size.x / 2.0, TITLE_HEIGHT - (ui_size.y + UI_SPACING.y) * 3.0),
+    a->options_menu.comps[OPTMENUCOMP_S_RENDER_DIST] = ui_sys_make_slider(&e->_ui_sys, &(ui_slider_desc_t) {
+        .pos = VEC2(-ui_size.x / 2.0, TITLE_HEIGHT - (ui_size.y + UI_SPACING.y) * 2.0),
         .width = UI_DIM.x,
         .body_style = {
             .scale = UI_SCALE,
-            .bg_col = BG_COL,
-            .hover_bg_col = HOVER_COL,
-            .z_index = 3.0
+            .z_index = 3.0,
+            .bg_col = INPUT_BG_COL,
+            .thumb_bg_col = BG_COL,
+            .hover_bg_col = HOVER_COL
         },
         .text_style = {
             .scale = TEXT_SCALE,
             .z_index = 4.0
         },
-        .text = "Slider:"
+        .min_value = 3,
+        .max_value = 32,
+        .value = e->_load_sys.load_dist,
+        .text = "Render Distance:",
     });
 
-    a->options_menu.comps[OPTMENUCOMP_INPUT] = ui_sys_make_input(&e->_ui_sys, &(ui_input_desc_t) {
-        .pos = VEC2(-ui_size.x / 2.0, TITLE_HEIGHT - (ui_size.y + UI_SPACING.y) * 4.0),
-        .width = UI_DIM.x,
+    a->options_menu.comps[OPTMENUCOMP_B_QUIT] = ui_sys_make_button(&e->_ui_sys, &(ui_button_desc_t) {
+        .pos = VEC2(-ui_size.x / 2.0, TITLE_HEIGHT - (ui_size.y + UI_SPACING.y) * 3.0),
+        .dim = UI_DIM,
         .body_style = {
             .scale = UI_SCALE,
-            .bg_col = INPUT_BG_COL,
-            .hover_bg_col = INPUT_BG_COL,
-            .z_index = 3.0
+            .z_index = 3.0,
+            .bg_col = BG_COL,
+            .hover_bg_col = HOVER_COL,
         },
         .text_style = {
             .scale = TEXT_SCALE,
-            .z_index = 4.0,
-            .hover_bg_col = VEC4(1.0, 1.0, 1.0, 1.0)
+            .z_index = 4.0
         },
-        .max_len = 20,
+        .text = "Save and Quit",
+        .cb = _quit_clicked,
+        .cb_args = &a->ev_args
     });
 
     // Init main menu sprites
@@ -634,7 +618,6 @@ void app_cleanup(app_t *app)
 
 void app_frame(engine_t *engine, app_t *app, double dt) 
 {
-    APP_LOG_WARN("Frame", NULL);
     INSTRUMENT_FUNC_BEGIN();
 
     ctl_update_surrounding(&app->camera_ctl, &engine->_render_sys.cam, &engine->_chunk_sys);

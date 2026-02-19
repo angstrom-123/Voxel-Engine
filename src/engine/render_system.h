@@ -21,6 +21,7 @@ typedef struct render_system {
     chunk_renderer_t chunk_renderer;
     line_renderer_t cursor_line_renderer;
     sprite_renderer_t sprite_renderer;
+    atomic_bool rendering_frame;
 } render_system_t;
 
 extern void render_sys_init_cameras(render_system_t *rs, event_system_t *es, 
@@ -32,5 +33,6 @@ extern void render_sys_init_cursor_renderer(render_system_t *rs, vec2 window_siz
 extern void render_sys_cleanup(render_system_t *rs);
 extern void render_sys_render(render_system_t *rs, update_system_t *us, 
                               load_system_t *ls, bool show_cursor);
+extern void render_sys_set_view_distance(render_system_t *rs, float view_distance);
 
 #endif

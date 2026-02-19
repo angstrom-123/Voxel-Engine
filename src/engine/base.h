@@ -32,7 +32,8 @@
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
 
-#define THREAD_AWAIT_NS 100000000
+#define THREAD_AWAIT_S 1
+#define THREAD_AWAIT_NS 10000000
 
 typedef enum directions {
     DIR_NORTH = 1,

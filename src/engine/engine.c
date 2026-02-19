@@ -1,5 +1,4 @@
 #include "engine.h"
-#include "files.h"
 
 void engine_edit_active_block(engine_t *engine, cube_type_e type, 
                                      block_action_e action, aabb_t *player_collider)
@@ -87,8 +86,8 @@ void engine_run(engine_t *engine, const engine_run_desc_t *desc)
     strncpy(engine->meta.world.name, desc->world_name, STD_BUFLEN);
     multicat(engine->_chunk_sys.world_dir_path, 2, WORLD_DATA_DIR, desc->world_name);
 
-    ENGINE_LOG_WARN("World name is: %s", desc->world_name);
-    char mf_path[STD_BUFLEN];
+    ENGINE_LOG_WARN("World name is: \"%s\"", desc->world_name);
+    char mf_path[STD_BUFLEN] = {0};
     multicat(mf_path, 4, WORLD_DATA_DIR, desc->world_name, SEP, WORLD_META_FILE);
     file_t mf = {
         .base = WORLD_DATA_DIR,
@@ -199,12 +198,27 @@ void engine_run(engine_t *engine, const engine_run_desc_t *desc)
     atomic_store(&engine->_running, true);
 }
 
+void engine_set_render_distance(engine_t *engine, size_t render_distance)
+{
+    ENGINE_ASSERT(render_distance <= MAX_RENDER_DISTANCE, "Render distance too high");
+    ENGINE_ASSERT(render_distance >= MIN_RENDER_DISTANCE, "Render distance too low");
+
+    atomic_store(&engine->_tick_sys.paused, true);
+    chunk_sys_unload_all(&engine->_chunk_sys);
+    update_sys_unstage_all(&engine->_update_sys);
+    load_sys_set_render_distance(&engine->_load_sys, &engine->_chunk_sys, render_distance);
+    chunk_sys_await_initial_load_complete(&engine->_chunk_sys);
+    render_sys_set_view_distance(&engine->_render_sys, (float) render_distance * 10.0);
+    engine->meta.world.render_dist = render_distance;
+    atomic_store(&engine->_tick_sys.paused, false);
+}
+
 void engine_init(engine_t *engine, const engine_desc_t *desc)
 {
     ENGINE_LOG_OK("Initializing systems", NULL);
     RUNTIME_ASSERT(desc->render_distance >= 3, "Render distance too low");
-    const size_t MAX_ACTIVE = (2 * em_sqr(desc->render_distance + 1)) + 
-                              (2 * (desc->render_distance + 1)) + 1;
+    const size_t MAX_ACTIVE = (2 * em_sqr(MAX_RENDER_DISTANCE + 1)) + 
+                              (2 * (MAX_RENDER_DISTANCE + 1)) + 1;
     const size_t QUEUE_SIZE = MAX_ACTIVE * 2;
     const size_t BUF_POOL_SIZE = MAX_ACTIVE * 2 + 40;
 
@@ -275,8 +289,8 @@ void engine_init(engine_t *engine, const engine_desc_t *desc)
         },
         .world = {
             .base_sun_dir = desc->base_sun_dir,
-            .time = 0,
-            .max_time = desc->max_time
+            .max_time     = desc->max_time,
+            .render_dist  = desc->render_distance,
         },
     };
 

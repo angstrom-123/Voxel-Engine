@@ -20,6 +20,7 @@ typedef struct style {
     vec4 bg_col;
     vec4 tint_col;
     vec4 hover_bg_col;
+    vec4 thumb_bg_col;
     vec4 disabled_bg_col;
 } style_t;
 
@@ -58,7 +59,9 @@ typedef struct ui_component {
     void *cb_args;
     bool disabled;
     // Slider 
+    int32_t min_value;
     int32_t value;
+    int32_t max_value;
     char value_text[4]; // Includes null terminator
     sprite_t **thumb_sprites;
     sprite_t **value_sprites;
@@ -117,6 +120,9 @@ typedef struct ui_slider_desc {
     bool mini;
     bool visible;
     char text[UI_BUFLEN];
+    int32_t min_value;
+    int32_t value;
+    int32_t max_value;
 } ui_slider_desc_t;
 
 typedef struct ui_input_desc {

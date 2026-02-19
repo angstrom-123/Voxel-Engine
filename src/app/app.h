@@ -29,9 +29,8 @@
 typedef enum opt_menu_component {
     OPTMENUCOMP_L_TITLE,
     OPTMENUCOMP_B_RETURN,
+    OPTMENUCOMP_S_RENDER_DIST,
     OPTMENUCOMP_B_QUIT,
-    OPTMENUCOMP_SLIDER,
-    OPTMENUCOMP_INPUT,
     OPTMENUCOMP_NUM
 } opt_menu_component_e;
 
@@ -103,8 +102,6 @@ typedef struct app {
         char world_names[MAX_WORLDS][UI_BUFLEN];
     } world_menu;
 } app_t;
-
-// TODO: Figure out how to do the paging for the worlds.
 
 typedef struct app_event_args app_event_args_t;
 

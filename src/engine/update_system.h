@@ -27,8 +27,9 @@ typedef struct update_system {
     thrd_t worker;
     atomic_bool running;
     atomic_bool thread_ready;
+    atomic_bool processing;
 
-    mtx_t request_lock;
+    mtx_t requests_lock;
     mtx_t chunks_lock;
     cnd_t needs_update;
 } update_system_t;
@@ -46,6 +47,7 @@ typedef struct update_system_thread_args {
 extern void update_sys_init(update_system_t *us, const update_system_desc_t *desc);
 extern void update_sys_init_thread(update_system_t *us, update_system_thread_args_t *targs);
 extern void update_sys_cleanup(update_system_t *us);
+extern void update_sys_unstage_all(update_system_t *us);
 extern void update_sys_make_request(update_system_t *us, us_request_t request);
 extern render_data_t update_sys_borrow_render_data(update_system_t *us);
 extern void update_sys_return_render_data(update_system_t *us, render_data_t *data);

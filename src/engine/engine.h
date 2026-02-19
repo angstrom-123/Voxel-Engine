@@ -17,7 +17,8 @@
 
 #include <stdatomic.h>
 
-#define POS_MAX_SPRITES 29
+#define MAX_RENDER_DISTANCE 32
+#define MIN_RENDER_DISTANCE 3
 
 typedef struct engine_desc {
     uint8_t render_distance;
@@ -48,6 +49,7 @@ typedef struct engine_meta {
         atomic_uint_least64_t time;
         uint64_t max_time;
         uint32_t seed;
+        uint8_t render_dist;
         char name[STD_BUFLEN];
     } world;
 } engine_meta_t;
@@ -95,6 +97,7 @@ extern void engine_edit_active_block(engine_t *engine, cube_type_e type, block_a
 extern void engine_init(engine_t *engine, const engine_desc_t *desc);
 extern void engine_do_render(engine_t *engine);
 extern void engine_run(engine_t *engine, const engine_run_desc_t *desc);
+extern void engine_set_render_distance(engine_t *engine, size_t render_distance);
 extern void engine_cleanup(engine_t *engine);
 extern void engine_event(engine_t *engine, const event_t *event);
 extern void engine_frame(engine_t *engine, double dt);

@@ -66,23 +66,46 @@ static int _thread_func(void *args)
 
     while (atomic_load(&us->running))
     {
-        mtx_lock(&us->request_lock);
+        mtx_lock(&us->requests_lock);
         atomic_store(&us->thread_ready, true);
-        cnd_wait(&us->needs_update, &us->request_lock);
+        cnd_wait(&us->needs_update, &us->requests_lock);
 
         while (us->requests->count > 0)
         {
+            atomic_store(&us->processing, true);
             us_request_t *r = us->requests->dequeue_ptr(us->requests);
             _handle_request(us, r);
             free(r);
+            atomic_store(&us->processing, false);
         }
 
-        mtx_unlock(&us->request_lock);
+        mtx_unlock(&us->requests_lock);
     }
 
     ENGINE_LOG_WARN("Update thread terminating.\n", NULL);
 
     return 0;
+}
+
+static void _await_requests_complete(update_system_t *us)
+{
+    bool finished = false;
+    while (!finished)
+    {
+        mtx_lock(&us->requests_lock);
+        if (us->requests->count == 0 && !atomic_load(&us->processing))
+            finished = true;
+
+        mtx_unlock(&us->requests_lock);
+
+        if (!finished)
+        {
+            ENGINE_LOG_WARN("Awaiting US requests", NULL);
+            thrd_sleep(&(struct timespec) {
+                .tv_nsec = THREAD_AWAIT_NS
+            }, NULL);
+        }
+    }
 }
 
 void update_sys_init(update_system_t *us, const update_system_desc_t *desc)
@@ -126,7 +149,7 @@ void update_sys_init(update_system_t *us, const update_system_desc_t *desc)
         us->buffer_pool->enqueue(us->buffer_pool, (buffer_pair_t) { vbuf, ibuf });
     }
 
-    mtx_init(&us->request_lock, mtx_plain);
+    mtx_init(&us->requests_lock, mtx_plain);
     mtx_init(&us->chunks_lock, mtx_plain);
     cnd_init(&us->needs_update);
 
@@ -160,18 +183,48 @@ void update_sys_cleanup(update_system_t *us)
     us->buffer_pool->destroy(us->buffer_pool);
 
     mtx_destroy(&us->chunks_lock);
-    mtx_destroy(&us->request_lock);
+    mtx_destroy(&us->requests_lock);
     cnd_destroy(&us->needs_update);
+}
+
+void update_sys_unstage_all(update_system_t *us)
+{
+    mtx_lock(&us->requests_lock);
+    
+    // Remove all pending requests
+    us->requests->clear(us->requests);
+
+    mtx_lock(&us->chunks_lock);
+
+    // Request all chunks to be unloaded
+    em_hashmap_iter_t *it = us->chunks->iterator(us->chunks);
+    while (it->has_next)
+    {
+        em_hashmap_entry_t *e = it->get(it);
+        ivec2 *pos = e->key;
+        us->requests->enqueue(us->requests, (us_request_t) {
+            .type = USREQ_UNSTAGE,
+            .pos = *pos
+        });
+        it->next(it);
+    }
+    free(it);
+    mtx_unlock(&us->requests_lock);
+    mtx_unlock(&us->chunks_lock);
+
+    // Wait for all unstage requests to be complete.
+    cnd_signal(&us->needs_update);
+    _await_requests_complete(us);
 }
 
 void update_sys_make_request(update_system_t *us, us_request_t r)
 {
-    mtx_lock(&us->request_lock);
+    mtx_lock(&us->requests_lock);
 
     us->requests->enqueue(us->requests, r);
     cnd_signal(&us->needs_update);
 
-    mtx_unlock(&us->request_lock);
+    mtx_unlock(&us->requests_lock);
 }
 
 render_data_t update_sys_borrow_render_data(update_system_t *us)

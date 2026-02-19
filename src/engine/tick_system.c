@@ -21,7 +21,7 @@ static int _thread_func(void *args)
         if (elapsed_ms >= period_ms)
         {
             last_time = curr_time;
-            tick_func();
+            if (!atomic_load(&ts->paused)) tick_func();
         }
     }
 

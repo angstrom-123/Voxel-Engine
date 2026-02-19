@@ -169,9 +169,9 @@ void render_sys_cleanup(render_system_t *rs)
         sprite_renderer_cleanup(&rs->sprite_renderer);
 }
 
-void render_sys_render(render_system_t *rs, update_system_t *us, load_system_t *ls, 
-                       bool show_cursor)
+void render_sys_render(render_system_t *rs, update_system_t *us, load_system_t *ls, bool show_cursor)
 {
+    atomic_store(&rs->rendering_frame, true);
     /* Chunks. */
     if (rs->chunk_renderer.initialized)
     {
@@ -196,4 +196,11 @@ void render_sys_render(render_system_t *rs, update_system_t *us, load_system_t *
     }
 
     sg_commit();
+    atomic_store(&rs->rendering_frame, false);
+}
+
+void render_sys_set_view_distance(render_system_t *rs, float view_distance)
+{
+    rs->chunk_renderer.offscreen_base.cam->far = view_distance;
+    rs->chunk_renderer.info.view_distance = view_distance;
 }

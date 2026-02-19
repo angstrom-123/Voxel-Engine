@@ -1,5 +1,4 @@
 #include "ui_system.h"
-#include "sprite_renderer.h"
 
 static void _shift_left_after(size_t length, char text[length], size_t ix)
 {
@@ -121,7 +120,7 @@ static bool _mouse_move(const event_t *ev, void *args)
             // No state change, no need to iterate the sprites.
             if (c->hovered != before) 
             {
-                vec4 col = (c->hovered) ? c->body_style.hover_bg_col : c->body_style.bg_col;
+                vec4 col = (c->hovered) ? c->body_style.hover_bg_col : c->body_style.thumb_bg_col;
                 c->thumb_sprites[0]->bg_col = col;
                 c->thumb_sprites[1]->bg_col = col;
             }
@@ -133,15 +132,14 @@ static bool _mouse_move(const event_t *ev, void *args)
                 c->thumb_x = em_clamp(c->thumb_x, 0.0, c->thumb_max_x);
                 vec2 thumb_pos = VEC2(c->thumb_origin.x + c->thumb_x, c->thumb_origin.y);
                 sprite_renderer_move(sr, c->thumb_sprites[0], thumb_pos);
-                thumb_pos.y -= (c->mini ? SPRITE_S_SIZE.y : SPRITE_SIZE.y) 
-                               * c->body_style.scale;
+                thumb_pos.y -= (c->mini ? SPRITE_S_SIZE.y : SPRITE_SIZE.y) * c->body_style.scale;
                 sprite_renderer_move(sr, c->thumb_sprites[1], thumb_pos);
 
                 c->bl.x += c->thumb_x - old_pos;
                 c->tr.x += c->thumb_x - old_pos;
 
-                snprintf(c->value_text, 4, "%3i", 
-                         (int32_t) roundf(c->thumb_x / c->thumb_max_x * 100.0));
+                c->value = (c->thumb_x / c->thumb_max_x * (c->max_value - c->min_value)) + c->min_value;
+                snprintf(c->value_text, 4, "%3i", c->value);
                 sprite_renderer_change_str(sr, c->value_sprites, c->value_text);
             }
             break;
@@ -612,14 +610,16 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
     comp->text_style    = desc->text_style;
     comp->visible       = desc->visible;
     comp->mini          = desc->mini;
-    comp->thumb_x       = 0.0;
-    comp->thumb_max_x   = (desc->width * spr_size.x - thumb_size.x) 
-                        * desc->body_style.scale;
+    comp->min_value     = desc->min_value;
+    comp->max_value     = desc->max_value;
+    comp->value         = desc->value;
+    comp->thumb_max_x   = (desc->width * spr_size.x - thumb_size.x) * desc->body_style.scale;
+    comp->thumb_x       = (float) (desc->value - desc->min_value) / (desc->max_value - desc->min_value) * comp->thumb_max_x;
     comp->thumb_origin  = desc->pos;
     comp->thumb_sprites = sprite_renderer_push_thumb(uis->sr, &(ui_sprites_desc_t) {
         .visible  = desc->visible,
-        .bg_col   = desc->body_style.bg_col,
-        .pos      = desc->pos,
+        .bg_col   = desc->body_style.thumb_bg_col,
+        .pos      = VEC2(desc->pos.x + comp->thumb_x, desc->pos.y),
         .scale    = desc->body_style.scale,
         .mini     = desc->mini,
         .z_index  = desc->body_style.z_index + 0.1,
@@ -637,7 +637,7 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
         .tint_col = desc->body_style.tint_col
     });
 
-    strncpy(comp->value_text, "  0", 3);
+    snprintf(comp->value_text, 4, "%3i", comp->value);
 
     vec2 body_size = VEC2(spr_size.x * desc->body_style.scale * desc->width,
                           spr_size.y * desc->body_style.scale * 2.0);
@@ -693,9 +693,9 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
     }
 
     vec2 thumb_scaled = em_mul_vec2_f(thumb_size, desc->body_style.scale);
-    comp->tr = VEC2(comp->pos.x + thumb_scaled.x, 
+    comp->tr = VEC2(comp->pos.x + thumb_scaled.x + comp->thumb_x, 
                     comp->pos.y + thumb_scaled.y / 2.0);
-    comp->bl = VEC2(comp->pos.x, 
+    comp->bl = VEC2(comp->pos.x + comp->thumb_x, 
                     comp->pos.y - thumb_scaled.y / 2.0);
     if (desc->mini)
     {
@@ -741,7 +741,8 @@ ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc)
     vec2 text_size = em_mul_vec2_f(CHAR_SIZE, desc->text_style.scale);
     text_size.x *= desc->max_len;
 
-    float pad_left = (body_size.x - text_size.x) / 2.0;
+    // float pad_left = (body_size.x - text_size.x) / 2.0;
+    float pad_left = CHAR_SIZE.x * 2.0;
     float top_ofst = 2.0 * desc->body_style.scale * spr_size.y;
     float pad_top = (body_size.y - top_ofst + text_size.y) / 2.0;
     if (desc->mini) pad_top -= desc->body_style.scale * spr_size.y;

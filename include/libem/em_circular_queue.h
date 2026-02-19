@@ -34,8 +34,10 @@ typedef struct em_circular_queue_##NAME {\
     TYPE (*peek)(struct em_circular_queue_##NAME *this);\
     /* Return a pointer to the first element in the queue. */\
     TYPE *(*peek_ptr)(struct em_circular_queue_##NAME *this);\
-    /* Frees all resources associated with the list. WARN: Requires traversal. */\
+    /* Frees all resources associated with the queue. WARN: Requires traversal. */\
     void (*destroy)(struct em_circular_queue_##NAME *this);\
+    /* Clears and frees all entries in the queue. WARN: Requires traversal. */\
+    void (*clear)(struct em_circular_queue_##NAME *this);\
 } em_circular_queue_##NAME##_t;\
 \
 em_circular_queue_##NAME##_t *em_circular_queue_##NAME##_new(const em_circular_queue_desc_t *desc);
@@ -110,6 +112,12 @@ static void _destroy_circular_queue##NAME(em_circular_queue_##NAME##_t *this)\
     free(this);\
 }\
 \
+static void _clear_circular_queue##NAME(em_circular_queue_##NAME##_t *this)\
+{\
+    em_cq_clear(this->_cq);\
+    _update_circular_queue_##NAME(this);\
+}\
+\
 em_circular_queue_##NAME##_t *em_circular_queue_##NAME##_new(const em_circular_queue_desc_t *desc)\
 {\
     if (desc->capacity == 0 || !desc->cln_func)\
@@ -138,6 +146,7 @@ em_circular_queue_##NAME##_t *em_circular_queue_##NAME##_new(const em_circular_q
     res->peek        = _peek_circular_queue_##NAME;\
     res->peek_ptr    = _peek_ptr_circular_queue_##NAME;\
     res->destroy     = _destroy_circular_queue##NAME;\
+    res->clear       = _clear_circular_queue##NAME;\
     \
     return res;\
 }
@@ -351,6 +360,22 @@ void em_cq_destroy(em_circular_queue_t *this)
 
     free(this->_entries);
     free(this);
+}
+
+void em_cq_clear(em_circular_queue_t *this)
+{
+    while (this->count > 0)
+    {
+        this->_cln_func(this->_entries[this->_head]->val);
+        free(this->_entries[this->_head]);
+        this->_head++;
+        if (this->_head == this->size)
+            this->_head = 0;
+
+        this->count--;
+    }
+    this->_head = 0;
+    this->_tail = 0;
 }
 
 #endif // EM_DLL_IMPL
