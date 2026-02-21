@@ -1,4 +1,4 @@
-# A High Performance Voxel Engine Written in C (WIP)
+# A High Performance Voxel Engine Written in C
 This work in progress is my first ever attempt at using C for a large project, making a game, and programming the GPU.
 The engine is powerful and optimized, able to run effectively on a standard laptop. Many features are already implemented,
 and many more are planned, or on the way!
@@ -36,12 +36,14 @@ make profiling
 - [x] Text Support
 - [x] Linux Support
 - [ ] Windows Support
-- [ ] Multiplayer
+- [ ] Transparency Rendering
+- [ ] Memory Allocation Optimisation
 - [ ] Cascaded Shadow Maps
 
 # Screenshots 
-<img width="1920" height="1080" alt="20260203_01h40m16s_grim" src="https://github.com/user-attachments/assets/1fea6a23-e8a3-45cc-89f9-53a5110f9455" />
-<img width="1920" height="1080" alt="20260203_01h44m43s_grim" src="https://github.com/user-attachments/assets/4478c4ee-05df-409a-bb7e-50eec73736f5" />
-<img width="1920" height="1080" alt="20260203_01h45m12s_grim" src="https://github.com/user-attachments/assets/ed67ba22-b65f-455f-81a0-295b10af80c0" />
-<img width="1920" height="1080" alt="20260203_01h45m40s_grim" src="https://github.com/user-attachments/assets/0981bbee-0d77-4dba-8915-283772103345" />
-
+<img width="1920" height="1080" alt="20260221_15h43m51s_grim" src="https://github.com/user-attachments/assets/81cedb56-73d1-41f8-a781-951c65308bc6" />
+<img width="1920" height="1080" alt="20260221_15h50m34s_grim" src="https://github.com/user-attachments/assets/83cbf34c-8672-4c34-9a14-a82c3eea75bc" />
+<img width="1920" height="1080" alt="20260221_15h44m56s_grim" src="https://github.com/user-attachments/assets/9b19fc98-339b-460e-9919-5f8b60f50ad9" />
+<img width="1920" height="1080" alt="20260221_15h51m45s_grim" src="https://github.com/user-attachments/assets/736af524-053b-466f-97d3-7d3221c012e6" />
+<img width="1920" height="1080" alt="20260221_15h54m35s_grim" src="https://github.com/user-attachments/assets/afc7071c-aa83-47bd-978f-d1660614b251" />
+<img width="1920" height="1080" alt="20260221_15h52m04s_grim" src="https://github.com/user-attachments/assets/8a5ebb8d-cfa4-4239-a823-29b45e367793" />
