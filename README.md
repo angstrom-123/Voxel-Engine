@@ -1,7 +1,13 @@
 # A High Performance Voxel Engine Written in C
-This work in progress is my first ever attempt at using C for a large project, making a game, and programming the GPU.
-The engine is powerful and optimized, able to run effectively on a standard laptop. Many features are already implemented,
-and many more are planned, or on the way!
+This engine is my first ever attempt at using C for a large project (~15,000 LOC), making a game, 
+and programming the GPU. The engine is quite powerful and decently optimized, able to run effectively 
+on a standard office laptop.
+
+# Thoughts
+I have brought the engine to a state where I think it is complete enough to end development for now.
+It has been a long journey and I have learned a lot, but I think that it is time for me to move on.
+If I were to write this engine again, there are many things that I would do differently, and perhaps 
+I will revisit this, or something similar, again in the future.
 
 # Build
 > [!IMPORTANT]
