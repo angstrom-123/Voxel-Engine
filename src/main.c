@@ -107,13 +107,6 @@ static void init(void *user_data)
             .argv = ud->argv
         },
     });
-    // No main menu, use subcommands to load / rename / delete / create worlds.
-    // app_init_cmdline(engine, app, &(app_desc_t) {
-    //     .args = {
-    //         .argc = ud->argc,
-    //         .argv = ud->argv
-    //     },
-    // });
 }
 
 sapp_desc sokol_main(int argc, char* argv[])

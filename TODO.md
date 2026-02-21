@@ -8,4 +8,5 @@
 ## Graphics
 - Radial blur god rays (Volumetric lighting)
 - Screen Space Ambient Occlusion
+- Bloom
 - Add translucency support to deferred pipeline (need a new forward pass)

@@ -262,7 +262,6 @@ void chunk_sys_cleanup(chunk_system_t *cs)
     _await_requests_complete(cs);
 
     // Request every loaded chunk to be unloaded directly (bypassing request denial).
-    cs->receiving = false;
     mtx_lock(&cs->genned_lock);
     mtx_lock(&cs->requests_lock);
     em_hashmap_iter_t *it = cs->genned->iterator(cs->genned);

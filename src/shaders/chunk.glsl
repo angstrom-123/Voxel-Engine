@@ -256,11 +256,9 @@ layout(binding=0) uniform vs_params_skybox {
 
 in vec3 a_pos;
 in vec3 a_nrm;
-in vec2 a_uv;
 
 out vec4 v_pos;
 out vec3 v_nrm;
-out vec2 v_uv;
 out vec3 v_view_pos;
 
 void main() {
@@ -268,7 +266,6 @@ void main() {
 
     v_pos = m;
     v_nrm = a_nrm;
-    v_uv = a_uv;
     v_view_pos = u_pos;
 
     gl_Position = u_vp * m;
@@ -283,118 +280,81 @@ layout(binding=1) uniform fs_params_skybox {
 
 in vec4 v_pos;
 in vec3 v_nrm;
-in vec2 v_uv;
 in vec3 v_view_pos;
 
 layout(location=0) out vec4 out_skybox;
 
-#define PI (3.14159265)
-#define EARTH_RADIUS (6370997.0)
+const float pi = 3.14159265359;
+const float invPi = 1.0 / pi;
+const float zenithOffset = 0.1;
+const float multiScatterPhase = 0.1;
+// const float density = 0.7;
+const float density = 0.5;
+// const float anisotropicIntensity = 0.0;
+const float anisotropicIntensity = -0.5;
+const vec3 skyColor = vec3(0.39, 0.57, 1.0) * (1.0 + anisotropicIntensity);
 
-const float kOuterRadius = EARTH_RADIUS * 1.025;
-const float kOuterRadius2 = kOuterRadius * kOuterRadius;
-const float kInnerRadius = EARTH_RADIUS;
-const float kInnerRadius2 = kInnerRadius * kInnerRadius;
-const float kCameraHeight = 0.0001;
+#define smooth(x) x*x*(3.0-2.0*x)
+#define zenithDensity(x) density / pow(max(x - zenithOffset, 0.35e-2), 0.75)
 
-const float kScale = 1.0 / (kOuterRadius - kInnerRadius);
-const float kScaleDepth = 0.25;
-const float kScaleOverScaleDepth = kScale / kScaleDepth;
-
-const float kRAYLEIGH = 0.005;
-const float kMIE = 0.01;
-
-const float kR4PI = kRAYLEIGH * 4.0 * PI;
-
-const vec3 k_lambda_variance = vec3(0.0, 0., 0.);
-const vec3 k_lambda = vec3(0.65, .57, 0.475) - k_lambda_variance;
-
-const float kM4PI = kMIE * 4.0 * PI;
-
-const float mie_g = -0.99;
-const float mie_g2 = mie_g * mie_g;
-
-float saturate(float x) {
-    return clamp(x, 0.0, 1.0);
+vec3 getSkyAbsorption(vec3 x, float y){
+	
+	vec3 absorption = x * -y;
+	     absorption = exp2(absorption) * 2.0;
+	
+	return absorption;
 }
 
-vec3 saturate(vec3 x) {
-    return clamp(x, vec3(0.0), vec3(1.0));
+float getSunPoint(vec3 p, vec3 lp){
+	return smoothstep(0.03, 0.026, distance(p, lp)) * 50.0;
 }
 
-float rayleigh_phase(float cos2) {
-    return 0.75 * (1.0 + cos2);
+float getRayleigMultiplier(vec3 p, vec3 lp){
+	return 1.0 + pow(1.0 - clamp(distance(p, lp), 0.0, 1.0), 2.0) * pi * 0.5;
 }
 
-float mie_phase(float c, float cos2) {
-    float temp = 1.0 + mie_g2 - 2.0 * mie_g * c;
-    temp = smoothstep(0.0, 0.01, temp) * temp;
-    temp = max(temp, 0.0001);
-    return 1.5 * ((1.0 - mie_g2) / (2.0 + mie_g2)) * (1.0 + cos2) / temp;
+float getMie(vec3 p, vec3 lp){
+	float disk = clamp(1.0 - pow(distance(p, lp), 0.1), 0.0, 1.0);
+	
+	return disk*disk*(3.0 - 2.0 * disk) * 2.0 * pi;
 }
 
-float scale(float inCos) {
-    float x = 1.0 - inCos;
-    return 0.25 * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
+vec3 getAtmosphericScattering(vec3 p, vec3 lp){
+	float zenith = zenithDensity(p.y);
+	float sunPointDistMult =  clamp(length(max(lp.y + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
+	
+	float rayleighMult = getRayleigMultiplier(p, lp);
+	
+	vec3 absorption = getSkyAbsorption(skyColor, zenith);
+    vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(lp.y + multiScatterPhase));
+	vec3 sky = skyColor * zenith * rayleighMult;
+	vec3 sun = getSunPoint(p, lp) * absorption;
+	vec3 mie = getMie(p, lp) * sunAbsorption;
+	
+	vec3 totalSky = mix(sky * absorption, sky / (sky + 0.5), sunPointDistMult);
+         totalSky += sun + mie;
+	     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
+	
+	return totalSky;
 }
 
-vec3 renderSky(vec3 viewDir, vec3 lightDir) {
-    float height = kInnerRadius + kCameraHeight;
-    vec3 cameraPos = vec3(0.0, height, 0.0);
-    
-    float depth = exp(kScaleOverScaleDepth * (-kCameraHeight));
-    float startAngle = dot(viewDir, cameraPos) / height;
-    float startAngleScale = scale(startAngle);
-    float startOffset = depth * startAngleScale;
-    
-	float far = sqrt(kOuterRadius2 + kInnerRadius2 * viewDir.y * viewDir.y - kInnerRadius2) - kInnerRadius * viewDir.y;
+vec3 jodieReinhardTonemap(vec3 c){
+    float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    vec3 tc = c / (c + 1.0);
 
-	vec3 pos = cameraPos + far * viewDir;
-    
-	float sampleLength = far / 2.0;
-	float scaledLength = sampleLength * kScale;
-	vec3 sampleRay = viewDir * sampleLength;
-	vec3 samplePoint = cameraPos + sampleRay * 0.5;
-    
-    vec3 invLambda = pow(k_lambda, vec3(-4.0));
-    vec3 front = vec3(0.0);
-    
-    float brightness = 20.0;
-    const float range = 0.1;
-    for (int i = 0; i < 1; ++i) {
-        float height = length(samplePoint);
-		float depth = exp(kScaleOverScaleDepth * (kInnerRadius - height));
-        float lightAngle = dot(lightDir, samplePoint) / height;
-		float cameraAngle = dot(viewDir, samplePoint) / height;
-		float scatter = (startOffset + depth*(scale(lightAngle) - scale(cameraAngle)));
-        vec3 atten = exp(-clamp(scatter, 0.0, 50.0) * (invLambda * kR4PI + kM4PI));
-        
-        front += atten * (depth * scaledLength);
-        samplePoint += sampleRay;
-    }
-        
-    vec3 c1 = front * invLambda * kRAYLEIGH * brightness;
-    
-    vec3 c2 = front * kMIE * brightness;
-    
-    float eyeCos = -dot(viewDir, lightDir);
-    float eyeCos2 = eyeCos * eyeCos;
-    
-    float rayleigh = rayleigh_phase(eyeCos2);
-    float mie = mie_phase(eyeCos, eyeCos2);
-    
-    vec3 col = step(0.0, viewDir.y) * sqrt(rayleigh * c1 + mie * c2);
-    
-    return col;
+    return mix(c / (l + 1.0), tc, tc);
 }
 
-void main()
-{
-    vec3 dir = normalize(v_pos.xyz);
-    dir.y = abs(dir.y); // Stops the area just below the horizon from being black in day time.
-    vec3 sky = renderSky(dir, u_sun_dir);
+void main() {
+    vec3 moved_down = -v_view_pos;
+    moved_down.y += 20.0; // Offset the horizon line down a little
+    vec3 dir = normalize(v_pos.xyz + moved_down);
+    vec3 sky = getAtmosphericScattering(dir, u_sun_dir) * pi;
+    sky = jodieReinhardTonemap(sky);
+    sky = pow(sky, vec3(2.2));
     out_skybox = vec4(sky, 1.0);
 }
+
 @end 
 
 @program skybox vs_skybox fs_skybox

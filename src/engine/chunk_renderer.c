@@ -361,8 +361,7 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         .layout = {
             .attrs = {
                 [ATTR_skybox_a_pos] = { .format = SG_VERTEXFORMAT_FLOAT3 },
-                [ATTR_skybox_a_nrm] = { .format = SG_VERTEXFORMAT_FLOAT3 },
-                [ATTR_skybox_a_uv]  = { .format = SG_VERTEXFORMAT_FLOAT2 }
+                [ATTR_skybox_a_nrm] = { .format = SG_VERTEXFORMAT_FLOAT3 }
             }
         },
         .index_type = SG_INDEXTYPE_UINT16,
@@ -379,59 +378,27 @@ void chunk_renderer_init(chunk_renderer_t *cr, const chunk_renderer_desc_t *desc
         },
     });
 
-    const float DIM = 400.0;
-    skybox_vertex_t skybox_verts[] = { 
-        { .pos = VEC3(-DIM, -DIM, -DIM), .nrm = VEC3( 0.0,  0.0,  1.0), .uv = VEC2(0.0, 0.0) },
-        { .pos = VEC3( DIM, -DIM, -DIM), .nrm = VEC3( 0.0,  0.0,  1.0), .uv = VEC2(1.0, 0.0) },
-        { .pos = VEC3( DIM,  DIM, -DIM), .nrm = VEC3( 0.0,  0.0,  1.0), .uv = VEC2(1.0, 1.0) },
-        { .pos = VEC3(-DIM,  DIM, -DIM), .nrm = VEC3( 0.0,  0.0,  1.0), .uv = VEC2(0.0, 1.0) },
-        { .pos = VEC3( DIM, -DIM,  DIM), .nrm = VEC3( 0.0,  0.0, -1.0), .uv = VEC2(0.0, 0.0) },
-        { .pos = VEC3(-DIM, -DIM,  DIM), .nrm = VEC3( 0.0,  0.0, -1.0), .uv = VEC2(1.0, 0.0) },
-        { .pos = VEC3(-DIM,  DIM,  DIM), .nrm = VEC3( 0.0,  0.0, -1.0), .uv = VEC2(1.0, 1.0) },
-        { .pos = VEC3( DIM,  DIM,  DIM), .nrm = VEC3( 0.0,  0.0, -1.0), .uv = VEC2(0.0, 1.0) },
-        { .pos = VEC3(-DIM, -DIM,  DIM), .nrm = VEC3( 1.0,  0.0,  0.0), .uv = VEC2(0.0, 0.0) },
-        { .pos = VEC3(-DIM, -DIM, -DIM), .nrm = VEC3( 1.0,  0.0,  0.0), .uv = VEC2(1.0, 0.0) },
-        { .pos = VEC3(-DIM,  DIM, -DIM), .nrm = VEC3( 1.0,  0.0,  0.0), .uv = VEC2(1.0, 1.0) },
-        { .pos = VEC3(-DIM,  DIM,  DIM), .nrm = VEC3( 1.0,  0.0,  0.0), .uv = VEC2(0.0, 1.0) },
-        { .pos = VEC3( DIM, -DIM, -DIM), .nrm = VEC3(-1.0,  0.0,  0.0), .uv = VEC2(0.0, 0.0) },
-        { .pos = VEC3( DIM, -DIM,  DIM), .nrm = VEC3(-1.0,  0.0,  0.0), .uv = VEC2(1.0, 0.0) },
-        { .pos = VEC3( DIM,  DIM,  DIM), .nrm = VEC3(-1.0,  0.0,  0.0), .uv = VEC2(1.0, 1.0) },
-        { .pos = VEC3( DIM,  DIM, -DIM), .nrm = VEC3(-1.0,  0.0,  0.0), .uv = VEC2(0.0, 1.0) },
-        { .pos = VEC3(-DIM, -DIM,  DIM), .nrm = VEC3( 0.0,  1.0,  0.0), .uv = VEC2(0.0, 0.0) },
-        { .pos = VEC3( DIM, -DIM,  DIM), .nrm = VEC3( 0.0,  1.0,  0.0), .uv = VEC2(1.0, 0.0) },
-        { .pos = VEC3( DIM, -DIM, -DIM), .nrm = VEC3( 0.0,  1.0,  0.0), .uv = VEC2(1.0, 1.0) },
-        { .pos = VEC3(-DIM, -DIM, -DIM), .nrm = VEC3( 0.0,  1.0,  0.0), .uv = VEC2(0.0, 1.0) },
-        { .pos = VEC3(-DIM,  DIM, -DIM), .nrm = VEC3( 0.0, -1.0,  0.0), .uv = VEC2(0.0, 0.0) },
-        { .pos = VEC3( DIM,  DIM, -DIM), .nrm = VEC3( 0.0, -1.0,  0.0), .uv = VEC2(1.0, 0.0) },
-        { .pos = VEC3( DIM,  DIM,  DIM), .nrm = VEC3( 0.0, -1.0,  0.0), .uv = VEC2(1.0, 1.0) },
-        { .pos = VEC3(-DIM,  DIM,  DIM), .nrm = VEC3( 0.0, -1.0,  0.0), .uv = VEC2(0.0, 1.0) }
-    };
-    uint16_t skybox_indices[] = {
-        0, 2, 1,
-        0, 3, 2,
-        4, 6, 5,
-        4, 7, 6,
-        8, 10, 9,
-        8, 11, 10,
-        12, 14, 13,
-        12, 15, 14,
-        16, 18, 17,
-        16, 19, 18,
-        20, 22, 21,
-        20, 23, 22
-    };
+    icosphere_t skybox_mesh = make_icosphere();
     cr->skybox_base.bind.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc) {
-        .data = SG_RANGE(skybox_verts),
+        .data = (sg_range) {
+            .ptr = skybox_mesh.v_buf,
+            .size = skybox_mesh.v_cnt * sizeof(ico_vertex_t)
+        },
         .usage = {
             .vertex_buffer = true,
-        }
+        },
     });
     cr->skybox_base.bind.index_buffer = sg_make_buffer(&(sg_buffer_desc) {
-        .data = SG_RANGE(skybox_indices),
+        .data = (sg_range) {
+            .ptr = skybox_mesh.i_buf,
+            .size = skybox_mesh.i_cnt * sizeof(uint16_t),
+        },
         .usage = {
             .index_buffer = true,
         }
     });
+    free(skybox_mesh.v_buf);
+    free(skybox_mesh.i_buf);
 
     // Composite pipeline 
     cr->composite_base.pip = sg_make_pipeline(&(sg_pipeline_desc) {
@@ -713,7 +680,7 @@ static void _render_skybox_pass(chunk_renderer_t *cr)
     sg_apply_uniforms(UB_fs_params_skybox, &SG_RANGE(fs_params));
 
     // Render the skybox cube
-    sg_draw(0, 6 * 6, 1);
+    sg_draw(0, ICOSPHERE_INDEX_CNT, 1);
 
     sg_end_pass();
     INSTRUMENT_FUNC_END();

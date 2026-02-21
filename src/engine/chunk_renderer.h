@@ -7,6 +7,7 @@
 
 #include "include_sokol.h"
 #include "texture_handler.h"
+#include "icosphere.h"
 #include <libem/em_bmp.h>
 #include <libem/em_random.h>
 

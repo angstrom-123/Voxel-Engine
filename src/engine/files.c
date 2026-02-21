@@ -239,8 +239,6 @@ bool file_dir_delete(file_t *file)
         char d_path[STD_BUFLEN] = {0};
         snprintf(d_path, STD_BUFLEN, "%s" SEP "%s", file->path, d->d_name);
 
-        free(res);
-
         struct stat statbuf;
         if (stat(d_path, &statbuf) != 0)
             return false;
@@ -255,18 +253,23 @@ bool file_dir_delete(file_t *file)
 
         if (S_ISREG(statbuf.st_mode))
         {
-            if (!file_delete(&f)) return false;
+            bool delete = file_delete(&f);
+            if (!delete) return false;
         }
         else if (S_ISDIR(statbuf.st_mode))
         {
             f.flags |= FILEFLAG_DIR;
-            if (!file_dir_delete(&f)) return false;
+            bool delete = file_dir_delete(&f);
+            if (!delete) return false;
         }
         else 
         {
+            ENGINE_LOG_ERROR("Unknown file type found in dir delete at %s", d_path);
             return false;
         }
     }
+
+    free(res);
 
     if (!file_delete(file)) return false;
 

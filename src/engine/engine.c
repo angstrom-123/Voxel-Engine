@@ -169,6 +169,9 @@ void engine_run(engine_t *engine, const engine_run_desc_t *desc)
         break;
     };
 
+    ENGINE_LOG_OK(">>> Chunk sys seed: %u", engine->_chunk_sys.seed);
+    ENGINE_LOG_OK(">>> Meta seed: %u", engine->meta.world.seed);
+
     engine->_load_sys.curr_pos = IVEC2(
         floorf(engine->_render_sys.cam.pos.x / (float) CHUNK_SIZE) * CHUNK_SIZE, 
         floorf(engine->_render_sys.cam.pos.z / (float) CHUNK_SIZE) * CHUNK_SIZE

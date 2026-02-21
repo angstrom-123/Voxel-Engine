@@ -111,7 +111,7 @@ void render_sys_init_sprite_renderer(render_system_t *rs, vec2 window_size)
 {
     if (rs->sprite_renderer.initialized) return;
     sprite_renderer_init(&rs->sprite_renderer, &(sprite_renderer_desc_t) {
-        .max_sprites = 3000,
+        .max_sprites = 4096,
         .base_desc = &(renderer_base_desc_t) {
             .dimensions = window_size,
             .cam = &rs->ortho_cam,

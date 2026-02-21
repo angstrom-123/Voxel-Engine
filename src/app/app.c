@@ -206,7 +206,7 @@ static void _rename_selected_clicked(ui_handle_t handle, void *args)
 static void _load_selected_clicked(ui_handle_t handle, void *args)
 {
     APP_LOG_OK("Load selected clicked", NULL);
-    // (void) handle;
+    (void) handle;
     app_event_args_t *ev_args = args;
     app_t *app = ev_args->app;
     engine_t *engine = ev_args->engine;
@@ -218,7 +218,7 @@ static void _load_selected_clicked(ui_handle_t handle, void *args)
     }
 
     engine_run_desc_t run_desc = {
-        .run_mode = ENGINE_RUN_LOAD
+        .run_mode = ENGINE_RUN_LOAD,
     };
     strncpy(run_desc.world_name, app->gui.menu.data.selected_world, UI_BUFLEN);
     RUNTIME_ASSERT(run_desc.world_name[0] != '\0', "Cannot load a world if nothing is selected");
