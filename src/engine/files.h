@@ -61,7 +61,7 @@ extern bool write_meta_file(file_t *file, meta_file_t mf);
 
 extern bool file_exists(file_t *file);
 extern bool file_dir_exists(file_t *file);
-extern bool file_list_dir(file_t *file, size_t *num_names, char res[*num_names][STD_BUFLEN]);
+extern bool file_list_dir(file_t *file, size_t *num_names, size_t name_len, char res[*num_names][name_len]);
 extern bool file_create(file_t *file);
 extern bool file_open(file_t *file, file_usage_e usage);
 extern bool file_close(file_t *file);

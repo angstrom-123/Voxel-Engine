@@ -46,7 +46,7 @@ void render_sys_init_cameras(render_system_t *rs, event_system_t *es,
     /* Cameras. */
     cam_init(&rs->cam, PROJECTION_PERSPECTIVE, &(camera_desc_t) {
         .near   = 0.005,
-        .far    = 1000.0,
+        .far    = 2000.0,
         .aspect = w / h,
         .fov    = 80.0,
         .pos    = VEC3(0.0, 0.0, 0.0)
@@ -111,22 +111,13 @@ void render_sys_init_sprite_renderer(render_system_t *rs, vec2 window_size)
 {
     if (rs->sprite_renderer.initialized) return;
     sprite_renderer_init(&rs->sprite_renderer, &(sprite_renderer_desc_t) {
-        .max_sprites = 1024,
+        .max_sprites = 3000,
         .base_desc = &(renderer_base_desc_t) {
             .dimensions = window_size,
             .cam = &rs->ortho_cam,
         }
     });
     sprite_renderer_load_textures(&rs->sprite_renderer);
-
-    // Crosshair
-    sprite_renderer_push(&rs->sprite_renderer, &(sprite_desc_t) {
-        .pos = VEC2(-16.0, -16.0),
-        .scale = 2.0,
-        .z_index = 1.0,
-        .uv_offset = sprite_icon_uv_offset(&rs->sprite_renderer, IID_CROSSHAIR),
-        .visible = true
-    });
 }
 
 extern void render_sys_init_cursor_renderer(render_system_t *rs, vec2 window_size)
@@ -175,25 +166,19 @@ void render_sys_render(render_system_t *rs, update_system_t *us, load_system_t *
     /* Chunks. */
     if (rs->chunk_renderer.initialized)
     {
-        { rs->chunk_renderer.info.chunk_data = update_sys_borrow_render_data(us);
-            rs->chunk_renderer.info.chunk_coords = load_sys_get_render_coords(ls);
-            chunk_renderer_render_all(&rs->chunk_renderer);
-        } update_sys_return_render_data(us, &rs->chunk_renderer.info.chunk_data);
+        rs->chunk_renderer.info.chunk_data = update_sys_borrow_render_data(us);
+        rs->chunk_renderer.info.chunk_coords = load_sys_get_render_coords(ls);
+        chunk_renderer_render_all(&rs->chunk_renderer);
+        update_sys_return_render_data(us, &rs->chunk_renderer.info.chunk_data);
     }
 
     /* Block Cursor. */
-    if (rs->cursor_line_renderer.initialized)
-    {
-        if (show_cursor) 
-            line_renderer_render_all(&rs->cursor_line_renderer);
-    }
+    if (rs->cursor_line_renderer.initialized && show_cursor) 
+        line_renderer_render_all(&rs->cursor_line_renderer);
 
     /* Sprites. */
     if (rs->sprite_renderer.initialized)
-    {
-        // ENGINE_LOG_WARN("Rendering sprites", NULL);
         sprite_renderer_render_all(&rs->sprite_renderer);
-    }
 
     sg_commit();
     atomic_store(&rs->rendering_frame, false);
@@ -201,6 +186,5 @@ void render_sys_render(render_system_t *rs, update_system_t *us, load_system_t *
 
 void render_sys_set_view_distance(render_system_t *rs, float view_distance)
 {
-    rs->chunk_renderer.offscreen_base.cam->far = view_distance;
     rs->chunk_renderer.info.view_distance = view_distance;
 }

@@ -134,6 +134,7 @@ extern void sprite_renderer_load_textures(sprite_renderer_t *sr);
 extern void sprite_renderer_cleanup(sprite_renderer_t *sr);
 extern void sprite_renderer_render_all(sprite_renderer_t *sr);
 extern void sprite_renderer_offset(sprite_renderer_t *sr, sprite_t *s, vec2 offset);
+extern void sprite_renderer_offset_str(sprite_renderer_t *sr, sprite_t **s, size_t len, vec2 offset);
 extern void sprite_renderer_move(sprite_renderer_t *sr, sprite_t *s, vec2 pos);
 extern void sprite_renderer_move_str(sprite_renderer_t *sr, sprite_t **sprites, size_t len, vec2 pos);
 extern void sprite_renderer_change_str(sprite_renderer_t *sr, sprite_t **sprites, const char *str);

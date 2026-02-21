@@ -4,7 +4,7 @@
 #include "sprite_renderer.h"
 #include "event_system.h"
 
-#define UI_BUFLEN 32
+#define UI_BUFLEN 64
 
 typedef enum ui_component_type {
     COMPONENT_BUTTON,
@@ -49,6 +49,7 @@ typedef struct ui_component {
     style_t body_style;
     style_t text_style;
     bool mini;
+    bool deleted;
     // Interactables
     bool visible;
     bool hovered;
@@ -57,6 +58,8 @@ typedef struct ui_component {
     // Button
     void ( *cb)(ui_handle_t, void *);
     void *cb_args;
+    void ( *alt_cb)(ui_handle_t, void *);
+    void *alt_cb_args;
     bool disabled;
     // Slider 
     int32_t min_value;
@@ -91,6 +94,8 @@ typedef struct ui_button_desc {
     char text[UI_BUFLEN];
     void ( *cb)(ui_handle_t, void *);
     void *cb_args;
+    void ( *alt_cb)(ui_handle_t, void *);
+    void *alt_cb_args;
 } ui_button_desc_t;
 
 typedef struct ui_label_desc {
@@ -135,6 +140,7 @@ typedef struct ui_input_desc {
     bool visible;
     size_t max_len;
     input_filter_e filter;
+    char text[UI_BUFLEN];
 } ui_input_desc_t;
 
 typedef struct ui_system {
@@ -149,7 +155,7 @@ typedef struct ui_system {
         sprite_renderer_t *sr;
     } ev_args;
 
-    char _init_buffer[UI_BUFLEN];
+    char _init_buffer[UI_BUFLEN + 1];
 } ui_system_t;
 
 typedef struct ui_system_event_args ui_system_event_args_t;
@@ -164,6 +170,7 @@ typedef struct ui_system_desc {
 
 extern void ui_sys_init(ui_system_t *uis, const ui_system_desc_t *desc);
 extern void ui_sys_cleanup(ui_system_t *uis);
+extern void ui_sys_destroy_component(ui_system_t *uis, ui_handle_t handle);
 extern ui_handle_t ui_sys_make_button(ui_system_t *uis, const ui_button_desc_t *desc);
 extern ui_handle_t ui_sys_make_label(ui_system_t *uis, const ui_label_desc_t *desc);
 extern ui_handle_t ui_sys_make_container(ui_system_t *uis, const ui_container_desc_t *desc);

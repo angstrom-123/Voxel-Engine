@@ -129,7 +129,7 @@ bool file_dir_exists(file_t *file)
     return false;
 }
 
-bool file_list_dir(file_t *file, size_t *num_names, char res[*num_names][STD_BUFLEN])
+bool file_list_dir(file_t *file, size_t *num_names, size_t name_len, char res[*num_names][name_len])
 {
     if (!(file->flags & FILEFLAG_DIR)) return false;
 
@@ -140,9 +140,7 @@ bool file_list_dir(file_t *file, size_t *num_names, char res[*num_names][STD_BUF
     size_t i;
     for (i = 0; i < (size_t) n; i++)
     {
-        if (i < *num_names)
-            strncpy(res[i], dirs[i]->d_name, STD_BUFLEN);
-
+        if (i < *num_names) strncpy(res[i], dirs[i]->d_name, name_len);
         free(dirs[i]);
     }
     free(dirs);
@@ -238,8 +236,10 @@ bool file_dir_delete(file_t *file)
     for (size_t i = 0; i < n; i++)
     {
         struct dirent *d = res[i];
-        char d_path[128];
-        snprintf(d_path, 128, "%s" SEP "%s", file->path, d->d_name);
+        char d_path[STD_BUFLEN] = {0};
+        snprintf(d_path, STD_BUFLEN, "%s" SEP "%s", file->path, d->d_name);
+
+        free(res);
 
         struct stat statbuf;
         if (stat(d_path, &statbuf) != 0)
@@ -250,6 +250,8 @@ bool file_dir_delete(file_t *file)
             .path = d_path,
             .name = d->d_name
         };
+
+        free(d);
 
         if (S_ISREG(statbuf.st_mode))
         {

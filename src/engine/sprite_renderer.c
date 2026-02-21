@@ -196,6 +196,7 @@ void sprite_renderer_render_all(sprite_renderer_t *sr)
         {
             free(sr->sprites[i]);
             sr->sprites[i] = NULL;
+            sr->sprite_count--;
             continue;
         }
 
@@ -229,6 +230,22 @@ void sprite_renderer_offset(sprite_renderer_t *sr, sprite_t *s, vec2 offset)
     sr->vbo[v_ofst + 1].pos = em_add_vec2(sr->vbo[v_ofst + 1].pos, offset);
     sr->vbo[v_ofst + 2].pos = em_add_vec2(sr->vbo[v_ofst + 2].pos, offset);
     sr->vbo[v_ofst + 3].pos = em_add_vec2(sr->vbo[v_ofst + 3].pos, offset);
+    sr->needs_update = true;
+}
+
+void sprite_renderer_offset_str(sprite_renderer_t *sr, sprite_t **sprites, size_t len, vec2 offset)
+{
+    for (size_t i = 0; i < len; i++)
+    {
+        sprite_t *s = sprites[i];
+        ENGINE_ASSERT(s->is_char, "Sprite must be a character to move it as a string");
+
+        uint16_t v_ofst = s->offset->v_ofst;
+        sr->vbo[v_ofst].pos = em_add_vec2(sr->vbo[v_ofst].pos, offset);
+        sr->vbo[v_ofst + 1].pos = em_add_vec2(sr->vbo[v_ofst + 1].pos, offset);
+        sr->vbo[v_ofst + 2].pos = em_add_vec2(sr->vbo[v_ofst + 2].pos, offset);
+        sr->vbo[v_ofst + 3].pos = em_add_vec2(sr->vbo[v_ofst + 3].pos, offset);
+    }
     sr->needs_update = true;
 }
 

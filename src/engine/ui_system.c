@@ -96,8 +96,7 @@ static bool _mouse_move(const event_t *ev, void *args)
         // Only consider hovering for interactable components
         switch (c->kind) {
         case COMPONENT_BUTTON:
-            c->hovered = uis->mouse_active && 
-                         _mouse_over(c->tr, c->bl, ev->framebuf_size, ev->mouse_pos);
+            c->hovered = uis->mouse_active && _mouse_over(c->tr, c->bl, ev->framebuf_size, ev->mouse_pos);
 
             // No state change, no need to iterate the sprites.
             if (c->hovered == before) 
@@ -182,9 +181,16 @@ static bool _mouse_click(const event_t *ev, void *args)
 
         switch (c->kind) {
         case COMPONENT_BUTTON:
-            if (c->cb != NULL) 
+            for (size_t j = 0; j < c->dim.x * c->dim.y; j++)
+                c->body_sprites[j]->bg_col = c->body_style.bg_col;
+            if (ev->mouse_button == MOUSE_BUTTON_LEFT && c->cb != NULL) 
             {
                 c->cb((ui_handle_t) { .id = i }, c->cb_args);
+                return true;
+            }
+            else if (ev->mouse_button == MOUSE_BUTTON_RIGHT && c->alt_cb != NULL)
+            {
+                c->alt_cb((ui_handle_t) { .id = i }, c->alt_cb_args);
                 return true;
             }
             break;
@@ -360,7 +366,7 @@ void ui_sys_init(ui_system_t *uis, const ui_system_desc_t *desc)
     ENGINE_ASSERT(desc->max_comps > 0, "Invalid maximum ui component count");
 
     memset(uis->_init_buffer, ' ', UI_BUFLEN);
-    uis->_init_buffer[UI_BUFLEN - 1] = '\0';
+    uis->_init_buffer[UI_BUFLEN] = '\0';
 
     uis->mouse_active = true;
     uis->max_comps = desc->max_comps;
@@ -399,12 +405,59 @@ void ui_sys_cleanup(ui_system_t *uis)
     for (int32_t i = 0; i < uis->comp_count; i++)
     {
         ui_component_t *c = &uis->components[i];
-        if (c->body_sprites) free(uis->components[i].body_sprites);
-        if (c->text_sprites) free(uis->components[i].text_sprites);
-        if (c->thumb_sprites) free(uis->components[i].thumb_sprites);
-        if (c->value_sprites) free(uis->components[i].value_sprites);
+        if (c->deleted) continue;
+
+        if (c->body_sprites) free(c->body_sprites);
+        if (c->text_sprites) free(c->text_sprites);
+        if (c->thumb_sprites) free(c->thumb_sprites);
+        if (c->value_sprites) free(c->value_sprites);
     }
     free(uis->components);
+}
+
+void ui_sys_destroy_component(ui_system_t *uis, ui_handle_t handle)
+{
+    ui_component_t *c = &uis->components[handle.id];
+
+    switch (c->kind) {
+    case COMPONENT_BUTTON:
+    case COMPONENT_CONTAINER:
+    case COMPONENT_INPUT:
+        for (size_t i = 0; i < c->dim.x * c->dim.y; i++)
+            sprite_renderer_pop(uis->sr, c->body_sprites[i]);
+        for (size_t i = 0; i < strlen(c->text); i++)
+            sprite_renderer_pop(uis->sr, c->text_sprites[i]);
+        if (c->body_sprites) free(c->body_sprites);
+        if (c->text_sprites) free(c->text_sprites);
+        break;
+    case COMPONENT_LABEL:
+        for (size_t i = 0; i < strlen(c->text); i++)
+            sprite_renderer_pop(uis->sr, c->body_sprites[i]);
+        if (c->body_sprites) free(c->body_sprites);
+        break;
+    case COMPONENT_SLIDER:
+        for (size_t i = 0; i < c->dim.x * c->dim.y; i++)
+            sprite_renderer_pop(uis->sr, c->body_sprites[i]);
+        for (size_t i = 0; i < strlen(c->text); i++)
+            sprite_renderer_pop(uis->sr, c->text_sprites[i]);
+        for (size_t i = 0; i < 2; i++)
+            sprite_renderer_pop(uis->sr, c->thumb_sprites[i]);
+        for (size_t i = 0; i < 3; i++)
+            sprite_renderer_pop(uis->sr, c->value_sprites[i]);
+        if (c->body_sprites) free(c->body_sprites);
+        if (c->text_sprites) free(c->text_sprites);
+        if (c->text_sprites) free(c->thumb_sprites);
+        if (c->value_sprites) free(c->value_sprites);
+        break;
+    };
+
+    ENGINE_TODO("Find a better way to cleanup ui components");
+    c->tr = VEC2(-100000.0, 0.0);
+    c->bl = VEC2(-100000.0, 0.0);
+    c->disabled = true;
+    c->visible = false;
+    c->deleted = true;
+    c->text[0] = '\0';
 }
 
 ui_handle_t ui_sys_make_button(ui_system_t *uis, const ui_button_desc_t *desc)
@@ -424,6 +477,8 @@ ui_handle_t ui_sys_make_button(ui_system_t *uis, const ui_button_desc_t *desc)
     comp->text_style   = desc->text_style;
     comp->cb           = desc->cb;
     comp->cb_args      = desc->cb_args;
+    comp->alt_cb       = desc->alt_cb;
+    comp->alt_cb_args  = desc->alt_cb_args;
     comp->disabled     = desc->disabled;
     comp->visible      = desc->visible;
     comp->mini         = desc->mini;
@@ -439,37 +494,33 @@ ui_handle_t ui_sys_make_button(ui_system_t *uis, const ui_button_desc_t *desc)
         .dim      = comp->dim
     });
 
+    ENGINE_ASSERT(strlen(desc->text) < UI_BUFLEN, "Text too long");
+
     vec2 body_size = em_mul_vec2_f(em_mul_vec2(spr_size, AS_VEC2(desc->dim)),
                                    desc->body_style.scale);
     vec2 text_size = em_mul_vec2_f(CHAR_SIZE, desc->text_style.scale);
     text_size.x *= strlen(desc->text);
 
-    if (desc->text[0] == '\0')
-    {
-        comp->text[0] = '\0';
-        comp->text_sprites = NULL;
-        comp->max_len = 0;
-    }
-    else
-    {
-        strcpy(comp->text, desc->text);
-        comp->max_len = strlen(comp->text);
+    float pad_left = (body_size.x - text_size.x) / 2.0;
+    float top_ofst = 2.0 * desc->body_style.scale * spr_size.y;
+    float pad_top = (body_size.y - top_ofst + text_size.y) / 2.0;
+    if (desc->mini) pad_top -= desc->body_style.scale * spr_size.y;
 
-        float pad_left = (body_size.x - text_size.x) / 2.0;
-        float top_ofst = 2.0 * desc->body_style.scale * spr_size.y;
-        float pad_top = (body_size.y - top_ofst + text_size.y) / 2.0;
-        if (desc->mini) pad_top -= desc->body_style.scale * spr_size.y;
-        comp->text_sprites = sprite_renderer_push_str(uis->sr, uis->_init_buffer, &(sprite_desc_t) {
-            .visible  = desc->visible,
-            .bg_col   = comp->text_style.bg_col,
-            .z_index  = comp->text_style.z_index,
-            .scale    = comp->text_style.scale,
-            .tint_col = comp->text_style.tint_col,
-            .pos      = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
-        });
+    comp->text_sprites = sprite_renderer_push_str(uis->sr, uis->_init_buffer, &(sprite_desc_t) {
+        .visible  = desc->visible,
+        .bg_col   = comp->text_style.bg_col,
+        .z_index  = comp->text_style.z_index,
+        .scale    = comp->text_style.scale,
+        .tint_col = comp->text_style.tint_col,
+        .pos      = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
+    });
+
+    if (desc->text[0] != '\0')
+    {
+        strncpy(comp->text, desc->text, UI_BUFLEN);
         sprite_renderer_change_str(uis->sr, comp->text_sprites, comp->text);
-
     }
+
     vec2 epsilon = VEC2(1.0, 1.0);
     vec2 tr_ofst = VEC2(body_size.x, desc->body_style.scale * spr_size.y);
     vec2 bl_ofst = VEC2(0.0, - body_size.y + desc->body_style.scale * spr_size.y);
@@ -499,29 +550,20 @@ ui_handle_t ui_sys_make_label(ui_system_t *uis, const ui_label_desc_t *desc)
     comp->text_style = desc->text_style;
     comp->visible    = desc->visible;
 
-    if (desc->text[0] == '\0')
-    {
-        comp->text[0] = '\0';
-        comp->text_sprites = NULL;
-        comp->max_len = 0;
-    }
-    else 
-    {
-        strcpy(comp->text, desc->text);
-        comp->max_len = strlen(comp->text);
+    comp->text_sprites = sprite_renderer_push_str(uis->sr, uis->_init_buffer, &(sprite_desc_t) {
+        .visible = desc->visible,
+        .scale   = comp->text_style.scale,
+        .z_index = comp->text_style.z_index,
+        .pos     = VEC2(comp->pos.x, comp->pos.y - (comp->text_style.scale * CHAR_SIZE.y) / 2.0),
+        .bg_col  = comp->text_style.bg_col,
+        .tint_col  = comp->text_style.tint_col
+    });
 
-        comp->text_sprites = sprite_renderer_push_str(uis->sr, uis->_init_buffer, &(sprite_desc_t) {
-            .visible = desc->visible,
-            .scale   = comp->text_style.scale,
-            .z_index = comp->text_style.z_index,
-            .pos     = VEC2(comp->pos.x, 
-                            comp->pos.y - (comp->text_style.scale * CHAR_SIZE.y) / 2.0),
-            .bg_col  = comp->text_style.bg_col,
-            .tint_col  = comp->text_style.tint_col
-        });
+    if (desc->text[0] != '\0')
+    {
+        strncpy(comp->text, desc->text, UI_BUFLEN);
         sprite_renderer_change_str(uis->sr, comp->text_sprites, comp->text);
     }
-
     return res;
 }
 
@@ -559,33 +601,25 @@ ui_handle_t ui_sys_make_container(ui_system_t *uis, const ui_container_desc_t *d
                                    desc->body_style.scale);
     vec2 text_size = em_mul_vec2_f(CHAR_SIZE, desc->text_style.scale);
     text_size.x *= strlen(desc->text);
-
-    if (desc->text[0] == '\0')
+    float pad_left = (body_size.x - text_size.x) / 2.0;
+    float pad_top = 0.0; // JUSTIFY_TOP
+    if (comp->justify == JUSTIFY_MIDDLE)
     {
-        comp->text[0] = '\0';
-        comp->text_sprites = NULL;
-        comp->max_len = 0;
+        float top_ofst = 2.0 * desc->body_style.scale * spr_size.y;
+        pad_top = (body_size.y - top_ofst + text_size.y) / 2.0;
     }
-    else
+    comp->text_sprites = sprite_renderer_push_str(uis->sr, uis->_init_buffer, &(sprite_desc_t) {
+        .visible = desc->visible,
+        .bg_col  = comp->text_style.bg_col,
+        .z_index = comp->text_style.z_index,
+        .scale   = comp->text_style.scale,
+        .pos     = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top),
+        .tint_col = comp->text_style.tint_col
+    });
+
+    if (desc->text[0] != '\0')
     {
         strcpy(comp->text, desc->text);
-        comp->max_len = strlen(comp->text);
-
-        float pad_left = (body_size.x - text_size.x) / 2.0;
-        float pad_top = 0.0; // JUSTIFY_TOP
-        if (comp->justify == JUSTIFY_MIDDLE)
-        {
-            float top_ofst = 2.0 * desc->body_style.scale * spr_size.y;
-            pad_top = (body_size.y - top_ofst + text_size.y) / 2.0;
-        }
-        comp->text_sprites = sprite_renderer_push_str(uis->sr, uis->_init_buffer, &(sprite_desc_t) {
-            .visible = desc->visible,
-            .bg_col  = comp->text_style.bg_col,
-            .z_index = comp->text_style.z_index,
-            .scale   = comp->text_style.scale,
-            .pos     = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top),
-            .tint_col = comp->text_style.tint_col
-        });
         sprite_renderer_change_str(uis->sr, comp->text_sprites, comp->text);
     }
 
@@ -667,9 +701,6 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
     }
     else
     {
-        strcpy(comp->text, desc->text);
-        comp->max_len = strlen(comp->text);
-
         comp->text_sprites = sprite_renderer_push_str(uis->sr, uis->_init_buffer, &(sprite_desc_t) {
             .visible  = desc->visible,
             .bg_col   = comp->text_style.bg_col,
@@ -678,6 +709,8 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
             .pos      = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top),
             .tint_col = desc->text_style.tint_col
         });
+
+        strncpy(comp->text, desc->text, UI_BUFLEN);
         sprite_renderer_change_str(uis->sr, comp->text_sprites, comp->text);
 
         pad_left += text_size.x - (3.0 * CHAR_SIZE.x * desc->text_style.scale);
@@ -707,8 +740,7 @@ ui_handle_t ui_sys_make_slider(ui_system_t *uis, const ui_slider_desc_t *desc)
 
 ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc)
 {
-    ENGINE_ASSERT(uis->comp_count < uis->max_comps, 
-                  "Maximum components reached in ui system");
+    ENGINE_ASSERT(uis->comp_count < uis->max_comps, "Maximum components reached in ui system");
 
     const vec2 spr_size = (desc->mini) ? SPRITE_S_SIZE : SPRITE_SIZE;
 
@@ -738,17 +770,13 @@ ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc)
 
     vec2 body_size = em_mul_vec2_f(em_mul_vec2(spr_size, AS_VEC2(comp->dim)),
                                    desc->body_style.scale);
-    vec2 text_size = em_mul_vec2_f(CHAR_SIZE, desc->text_style.scale);
-    text_size.x *= desc->max_len;
 
-    // float pad_left = (body_size.x - text_size.x) / 2.0;
     float pad_left = CHAR_SIZE.x * 2.0;
     float top_ofst = 2.0 * desc->body_style.scale * spr_size.y;
-    float pad_top = (body_size.y - top_ofst + text_size.y) / 2.0;
+    float pad_top = (body_size.y - top_ofst + CHAR_SIZE.y * desc->text_style.scale) / 2.0;
     if (desc->mini) pad_top -= desc->body_style.scale * spr_size.y;
 
-    memset(comp->text, ' ', desc->max_len);
-    comp->text_sprites = sprite_renderer_push_str(uis->sr, comp->text, &(sprite_desc_t) {
+    comp->text_sprites = sprite_renderer_push_str(uis->sr, uis->_init_buffer, &(sprite_desc_t) {
         .visible  = desc->visible,
         .bg_col   = comp->text_style.bg_col,
         .z_index  = comp->text_style.z_index,
@@ -756,6 +784,21 @@ ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc)
         .tint_col = comp->text_style.tint_col,
         .pos      = VEC2(comp->pos.x + pad_left, comp->pos.y - pad_top)
     });
+
+    if (desc->text[0] != '\0')
+    {
+        size_t len = em_min(em_min(strlen(desc->text), comp->max_len), UI_BUFLEN);
+        strncpy(comp->text, desc->text, len);
+        sprite_renderer_change_str(uis->sr, comp->text_sprites, comp->text);
+        memset(comp->text, ' ', UI_BUFLEN);
+        strncpy(comp->text, desc->text, len);
+        comp->cursor = len;
+        comp->text_end = len;
+    }
+    else 
+    {
+        memset(comp->text, ' ', UI_BUFLEN);
+    }
 
     vec2 epsilon = VEC2(1.0, 1.0);
     vec2 tr_ofst = VEC2(body_size.x, desc->body_style.scale * spr_size.y);
@@ -775,6 +818,7 @@ ui_handle_t ui_sys_make_input(ui_system_t *uis, const ui_input_desc_t *desc)
 
 void ui_sys_show_component(ui_system_t *uis, ui_handle_t handle, bool show)
 {
+    // Fail soft here to make things easier, not necessarily an error to do this.
     if (handle.id == UI_INVALID_HANDLE_ID) 
     {
         ENGINE_LOG_WARN("Attempting to show component with invalid handle", NULL);
@@ -782,6 +826,8 @@ void ui_sys_show_component(ui_system_t *uis, ui_handle_t handle, bool show)
     }
 
     ui_component_t *c = &uis->components[handle.id];
+    if (c->deleted) return;
+
     c->visible = show;
 
     switch (c->kind) {
@@ -818,7 +864,10 @@ void ui_sys_init_handle_buffer(size_t count, ui_handle_t *buffer)
 
 void ui_sys_query_text(ui_system_t *uis, ui_handle_t handle, char res[UI_BUFLEN])
 {
+    ENGINE_ASSERT(handle.id != UI_INVALID_HANDLE_ID, "UI Handle is invalid");
     ui_component_t c = uis->components[handle.id];
+    ENGINE_ASSERT(c.deleted == false, "Component is deleted");
+
     switch (c.kind) {
     case COMPONENT_INPUT:
         for (size_t i = 0; i < c.text_end; i++)
@@ -835,6 +884,7 @@ void ui_sys_enable_component(ui_system_t *uis, ui_handle_t handle, bool enable)
 {
     ENGINE_ASSERT(handle.id != UI_INVALID_HANDLE_ID, "UI Handle is invalid");
     ui_component_t *c = &uis->components[handle.id];
+    ENGINE_ASSERT(c->deleted == false, "Component is deleted");
 
     ENGINE_ASSERT(c->kind == COMPONENT_BUTTON, "Only button enabling is supported for now");
     c->disabled = !enable;
@@ -852,9 +902,40 @@ void ui_sys_set_component_text(ui_system_t *uis, ui_handle_t handle, char *text)
 {
     ENGINE_ASSERT(handle.id != UI_INVALID_HANDLE_ID, "UI Handle is invalid");
     ui_component_t *c = &uis->components[handle.id];
+    ENGINE_ASSERT(c->deleted == false, "Component is deleted");
 
-    strncpy(c->text, text, UI_BUFLEN);
-    memset(&c->text[strlen(text)], ' ', UI_BUFLEN - strlen(text) - 1);
+    size_t old_len = strlen(c->text);
+    size_t len = strlen(text);
+    if (c->kind == COMPONENT_INPUT)
+    {
+        len = em_min(len, c->max_len);
+        sprite_renderer_change_str(uis->sr, c->text_sprites, uis->_init_buffer);
+        sprite_renderer_change_str(uis->sr, c->text_sprites, text);
+        memset(c->text, ' ', UI_BUFLEN);
+        strncpy(c->text, text, len);
+        c->cursor = len;
+        c->text_end = len;
+    }
+    else
+    {
+        sprite_renderer_change_str(uis->sr, c->text_sprites, uis->_init_buffer);
+        sprite_renderer_change_str(uis->sr, c->text_sprites, text);
+        memset(c->text, ' ', UI_BUFLEN);
+        strncpy(c->text, text, len);
+        c->text[len] = '\0';
+        for (size_t i = 0; i < len; i++)
+            c->text_sprites[i]->visible = true;
 
-    sprite_renderer_change_str(uis->sr, c->text_sprites, c->text);
+        if (c->kind == COMPONENT_BUTTON) // Centred text
+        {
+            ENGINE_LOG_WARN("Old len: %zu, New len: %zu", old_len, len);
+            float spr_width = (c->mini) ? SPRITE_S_SIZE.x : SPRITE_SIZE.x;
+            float body_width = spr_width * c->dim.x;
+            float char_width = CHAR_SIZE.x * c->text_style.scale;
+            float pad_left = (body_width - char_width * len) / 2.0;
+            float old_pad_left = (body_width - char_width * old_len) / 2.0;
+            float delta = pad_left - old_pad_left;
+            sprite_renderer_offset_str(uis->sr, c->text_sprites, UI_BUFLEN, VEC2(delta, 0.0));
+        }
+    }
 }
