@@ -347,7 +347,7 @@ vec3 jodieReinhardTonemap(vec3 c){
 
 void main() {
     vec3 moved_down = -v_view_pos;
-    moved_down.y += 20.0; // Offset the horizon line down a little
+    moved_down.y = 0.0;
     vec3 dir = normalize(v_pos.xyz + moved_down);
     vec3 sky = getAtmosphericScattering(dir, u_sun_dir) * pi;
     sky = jodieReinhardTonemap(sky);
